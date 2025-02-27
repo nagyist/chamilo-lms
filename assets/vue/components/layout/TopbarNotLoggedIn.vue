@@ -1,54 +1,69 @@
 <template>
   <div class="app-topbar">
-    <Menubar
-      :model="menuItems"
-    >
+    <Menubar :model="menuItems">
       <template #start>
-        <img
-          alt="Chamilo LMS"
-          src="/build/css/themes/chamilo/images/header-logo.svg"
-        >
+        <PlatformLogo />
       </template>
     </Menubar>
   </div>
 </template>
 
 <script setup>
-import {ref} from 'vue';
-import Menubar from 'primevue/menubar';
+import { computed } from "vue"
+import Menubar from "primevue/menubar"
+import { useI18n } from "vue-i18n"
+import { useRouter } from "vue-router"
+import { useLocale } from "../../composables/locale"
+import PlatformLogo from "./PlatformLogo.vue"
+import { usePlatformConfig } from "../../store/platformConfig"
 
-function setLanguage(event) {
-  const {label} = event.item;
+const { t } = useI18n()
+const router = useRouter()
 
-  const selectorIndex = menuItems.value.findIndex(item => 'language_selector' === item.key);
+const { languageList, currentLanguageFromList, reloadWithLocale } = useLocale()
 
-  menuItems.value[selectorIndex] ? menuItems.value[selectorIndex].label = label : null;
-}
+const languageItems = languageList.map((language) => ({
+  label: language.originalName,
+  isoCode: language.isocode,
+  command: (event) => reloadWithLocale(event.item.isoCode),
+}))
 
-const menuItems = ref([
-  {
-    label: 'Buy courses',
-  },
-  {
-    label: 'Help',
-  },
-  {
-    key: 'language_selector',
-    label: 'English',
-    items: [
-      {
-        label: 'English',
-        command: setLanguage,
-      },
-      {
-        label: 'French',
-        command: setLanguage,
-      },
-      {
-        label: 'Spanish',
-        command: setLanguage,
-      },
-    ],
+const platformConfigStore = usePlatformConfig()
+const allowRegistration = computed(() => "false" !== platformConfigStore.getSetting("registration.allow_registration"))
+
+const menuItems = computed(() => {
+  const items = [
+    {
+      label: t("Home"),
+      url: router.resolve({ name: "Index" }).href,
+    },
+    {
+      label: t("FAQ"),
+      url: router.resolve({ name: "Faq" }).href,
+    },
+    {
+      label: t("Demo"),
+      url: router.resolve({ name: "Demo" }).href,
+    },
+    {
+      label: t("Contact"),
+      url: "/contact",
+    },
+    {
+      key: "language_selector",
+      label: currentLanguageFromList.originalName,
+      items: languageItems,
+    },
+  ]
+
+  if (allowRegistration.value) {
+    items.splice(2, 0, {
+      label: t("Registration"),
+      url: "/main/auth/inscription.php",
+    })
   }
-]);
+
+  console.log("Menu Items:", items)
+  return items
+})
 </script>

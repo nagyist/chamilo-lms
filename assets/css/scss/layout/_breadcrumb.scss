@@ -1,41 +1,43 @@
-$color_1: rgba(0, 0, 0, 0.87);
-$color_2: rgba(0, 0, 0, 0.6);
+.app-breadcrumb {
+  @apply bg-white mb-3 text-tiny font-semibold leading-4 space-y-1;
 
-.app-breadcrumb.p-breadcrumb {
-  @apply bg-white pb-3 mb-4;
+  .p-breadcrumb {
+    @apply overflow-x-auto bg-white;
 
-  ul {
-    li {
-      .p-menuitem-link {
-        @apply rounded transition-none;
+    &-list {
+      @apply p-0 flex gap-1 text-gray-90 list-none items-center flex-nowrap;
 
-        &:focus {
-          @apply outline-none;
+      li {
+        .p-menuitem-link {
+          @apply outline-transparent
+            focus-visible:outline-none;
         }
 
-        .p-menuitem-text {
-          color: $color_1;
-        }
-
-        .p-menuitem-icon {
-          color: $color_2;
-        }
-      }
-
-      &:last-child {
-        .p-menuitem-text {
-          color: $color_1;
-        }
-
-        .p-menuitem-icon {
-          color: $color_2;
+        &:last-child .p-menuitem-text,
+        &:last-child .p-menuitem-icon {
+          @apply text-gray-50;
         }
       }
     }
 
-    li.p-breadcrumb-chevron {
-      @apply my-0 mx-2;
-      color: $color_2;
+    .p-menuitem {
+      &-text,
+      &-icon {
+        @apply text-black leading-none;
+      }
+
+      &-link,
+      &-separator {
+        @apply flex items-center text-black;
+      }
     }
+
+    &::-webkit-scrollbar {
+      @apply hidden;
+    }
+  }
+
+  &__session-title {
+    @apply text-tiny font-semibold text-gray-50 uppercase;
   }
 }

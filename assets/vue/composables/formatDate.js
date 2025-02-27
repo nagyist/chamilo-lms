@@ -1,14 +1,26 @@
-const { DateTime } = require('luxon');
+import { DateTime } from "luxon"
+import { useLocale } from "./locale"
 
-export function useAbbreviatedDatetime (datetime) {
-    return DateTime.fromISO(datetime).toLocaleString(
-        {
-            ...DateTime.DATETIME_MED,
-            month: 'long'
-        }
-    );
-}
+export function useFormatDate() {
+  const { appParentLocale } = useLocale()
 
-export function useRelativeDatetime (datetime) {
-    return DateTime.fromISO(datetime).toRelative();
+  const abbreviatedDatetime = (datetime) => {
+    if (!datetime) {
+      return ""
+    }
+
+    return DateTime.fromISO(datetime)
+      .setLocale(appParentLocale.value)
+      .toLocaleString({
+        ...DateTime.DATETIME_MED,
+        month: "long",
+      })
+  }
+
+  const relativeDatetime = (datetime) => DateTime.fromISO(datetime).setLocale(appParentLocale.value).toRelative()
+
+  return {
+    abbreviatedDatetime,
+    relativeDatetime,
+  }
 }

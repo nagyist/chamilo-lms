@@ -2,15 +2,19 @@
 
 /* For licensing terms, see /license.txt */
 
+use Chamilo\CoreBundle\Entity\AccessUrl;
 use Chamilo\CoreBundle\Entity\Course;
 use Chamilo\CoreBundle\Entity\ExtraFieldValues;
 use Chamilo\CoreBundle\Entity\Message;
 use Chamilo\CoreBundle\Entity\Session;
 use Chamilo\CoreBundle\Entity\User;
+use Chamilo\CoreBundle\Entity\UserAuthSource;
 use Chamilo\CoreBundle\Framework\Container;
+use Chamilo\CoreBundle\ServiceHelper\AccessUrlHelper;
 use Chamilo\CourseBundle\Entity\CLpCategory;
 use Chamilo\CourseBundle\Entity\CNotebook;
 use Chamilo\CourseBundle\Repository\CNotebookRepository;
+use Chamilo\CoreBundle\Component\Utils\ObjectIcon;
 
 /**
  * Class RestApi.
@@ -463,14 +467,6 @@ class Rest extends WebService
         $announcements = AnnouncementManager::getAnnouncements(
             null,
             null,
-            false,
-            null,
-            null,
-            null,
-            null,
-            null,
-            0,
-            $this->user->getId(),
             $this->course->getId(),
             $sessionId
         );
@@ -673,7 +669,7 @@ class Rest extends WebService
 
             $categories[] = [
                 'id' => (int) $category['iid'],
-                'title' => $category['cat_title'],
+                'title' => $category['title'],
                 'catId' => (int) $category['cat_id'],
                 'description' => $category['cat_comment'],
                 'forums' => $categoryForums,
@@ -714,7 +710,7 @@ class Rest extends WebService
         foreach ($threads as $thread) {
             $forum['threads'][] = [
                 'id' => $thread['iid'],
-                'title' => $thread['thread_title'],
+                'title' => $thread['title'],
                 'lastEditDate' => api_convert_and_format_date($thread['lastedit_date'], DATE_TIME_FORMAT_LONG_24H),
                 'numberOfReplies' => $thread['thread_replies'],
                 'numberOfViews' => $thread['thread_views'],
@@ -739,7 +735,7 @@ class Rest extends WebService
         $thread = [
             'id' => intval($threadInfo['iid']),
             'cId' => intval($threadInfo['c_id']),
-            'title' => $threadInfo['thread_title'],
+            'title' => $threadInfo['title'],
             'forumId' => intval($threadInfo['forum_id']),
             'posts' => [],
         ];
@@ -819,8 +815,7 @@ class Rest extends WebService
         $categoriesTempList = learnpath::getCategories($this->course->getId());
 
         $categoryNone = new CLpCategory();
-        $categoryNone->setName(get_lang('WithOutCategory'));
-        $categoryNone->setPosition(0);
+        $categoryNone->setTitle(get_lang('WithOutCategory'));
 
         $categories = array_merge([$categoryNone], $categoriesTempList);
         $categoryData = [];
@@ -870,8 +865,8 @@ class Rest extends WebService
                 }
 
                 if ($timeLimits) {
-                    if (!empty($lpDetails['publicated_on']) && !empty($lpDetails['expired_on'])) {
-                        $startTime = api_strtotime($lpDetails['publicated_on'], 'UTC');
+                    if (!empty($lpDetails['published_on']) && !empty($lpDetails['expired_on'])) {
+                        $startTime = api_strtotime($lpDetails['published_on'], 'UTC');
                         $endTime = api_strtotime($lpDetails['expired_on'], 'UTC');
                         $now = time();
                         $isActiveTime = false;
@@ -913,7 +908,7 @@ class Rest extends WebService
 
             $categoryData[] = [
                 'id' => $category->getId(),
-                'name' => $category->getName(),
+                'name' => $category->getTitle(),
                 'learnpaths' => $listData,
             ];
         }
@@ -1297,7 +1292,7 @@ class Rest extends WebService
         $language = '';
         $phone = '';
         $picture_uri = '';
-        $auth_source = $userParam['auth_source'] ?? PLATFORM_AUTH_SOURCE;
+        $auth_source = $userParam['auth_source'] ?? UserAuthSource::PLATFORM;
         $expiration_date = '';
         $active = 1;
         $hr_dept_id = 0;
@@ -1337,7 +1332,7 @@ class Rest extends WebService
             $language,
             $phone,
             $picture_uri,
-            $auth_source,
+            [$auth_source],
             $expiration_date,
             $active,
             $hr_dept_id
@@ -1795,6 +1790,9 @@ class Rest extends WebService
      */
     public function updateUserFromUserName($parameters)
     {
+        /** @var AccessUrl $accessUrl */
+        $accessUrl = Container::$container->get(AccessUrlHelper::class)->getCurrent();
+
         // find user
         $userId = null;
         if (!is_array($parameters) || empty($parameters)) {
@@ -1829,9 +1827,6 @@ class Rest extends WebService
                 case 'email':
                     $user->setEmail($value);
                     break;
-                case 'enabled':
-                    $user->setEnabled($value);
-                    break;
                 case 'lastname':
                     $user->setLastname($value);
                     break;
@@ -1851,7 +1846,7 @@ class Rest extends WebService
                     $user->setProfileCompleted($value);
                     break;
                 case 'auth_source':
-                    $user->setAuthSource($value);
+                    $user->addAuthSourceByAuthentication($value, $accessUrl);
                     break;
                 case 'status':
                     $user->setStatus($value);
@@ -1887,8 +1882,8 @@ class Rest extends WebService
                     }
                     $user->setLocale($value);
                     break;
-                case 'registration_date':
-                    $user->setRegistrationDate($value);
+                case 'created_at':
+                    $user->setCreatedAt($value);
                     break;
                 case 'expiration_date':
                     $user->setExpirationDate(
@@ -1902,7 +1897,17 @@ class Rest extends WebService
                     // see UserManager::update_user() usermanager.lib.php:1205
                     if ($user->getActive() != $value) {
                         $user->setActive($value);
-                        Event::addEvent($value ? LOG_USER_ENABLE : LOG_USER_DISABLE, LOG_USER_ID, $userId);
+                        switch ($value) {
+                            case 1:
+                                Event::addEvent(LOG_USER_ENABLE, LOG_USER_ID, $userId);
+                                break;
+                            case 0:
+                                Event::addEvent(LOG_USER_DISABLE, LOG_USER_ID, $userId);
+                                break;
+                            case -1:
+                                Event::addEvent(LOG_USER_PREDELETE, LOG_USER_ID, $userId);
+                                break;
+                        }
                     }
                     break;
                 case 'openid':
@@ -2018,7 +2023,7 @@ class Rest extends WebService
             "modules" => [],
         ];
 
-        $quizIcon = Display::return_icon('quiz.png', '', [], ICON_SIZE_SMALL, false, true);
+        $quizIcon = Display::getMdiIcon(ObjectIcon::TEST, 'ch-tool-icon', null, ICON_SIZE_SMALL);
 
         $json['modules'] = array_map(
             function (array $exercise) use ($quizIcon) {

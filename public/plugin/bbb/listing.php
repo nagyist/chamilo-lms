@@ -430,10 +430,10 @@ if (false === $bbb->isGlobalConference() &&
         foreach ($groups as $groupData) {
             if ($groupData instanceof \Chamilo\CourseBundle\Entity\CGroup) {
                 $itemGroupId = $groupData->getIid();
-                $name = $groupData->getName();
+                $name = $groupData->getTitle();
             } else {
                 $itemGroupId = $groupData['iid'];
-                $name = $groupData['name'];
+                $name = $groupData['title'];
             }
             if (isset($meetingsGroup[$itemGroupId]) && 1 == $meetingsGroup[$itemGroupId]) {
                 $name .= ' ('.get_lang('Active').')';

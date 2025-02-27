@@ -2,9 +2,14 @@
 
 /* For licensing terms, see /license.txt */
 
+use Chamilo\CoreBundle\Entity\AccessUrl;
 use Chamilo\CoreBundle\Entity\User;
+use Chamilo\CoreBundle\Entity\UserAuthSource;
 use Chamilo\CoreBundle\Framework\Container;
+use Chamilo\CoreBundle\ServiceHelper\AccessUrlHelper;
+use Chamilo\CoreBundle\ServiceHelper\AuthenticationConfigHelper;
 use ChamiloSession as Session;
+use Chamilo\CoreBundle\Component\Utils\ActionIcon;
 
 $cidReset = true;
 require_once __DIR__.'/../inc/global.inc.php';
@@ -19,6 +24,12 @@ $is_platform_admin = api_is_platform_admin() ? 1 : 0;
 $userInfo = api_get_user_info($user_id);
 $userObj = api_get_user_entity($user_id);
 $illustrationRepo = Container::getIllustrationRepository();
+
+/** @var AuthenticationConfigHelper $authenticationConfigHelper */
+$authenticationConfigHelper = Container::$container->get(AuthenticationConfigHelper::class);
+
+/** @var AccessUrl $accessUrl */
+$accessUrl = Container::$container->get(AccessUrlHelper::class)->getCurrent();
 
 $htmlHeadXtra[] = '
 <script>
@@ -85,14 +96,14 @@ if (1 != Database::num_rows($res)) {
     exit;
 }
 
-$user_data = Database::fetch_array($res, 'ASSOC');
+$user_data = Database::fetch_assoc($res);
 
 $user_data['platform_admin'] = is_null($user_data['is_admin']) ? 0 : 1;
 $user_data['send_mail'] = 0;
 $user_data['old_password'] = $user_data['password'];
 //Convert the registration date of the user
 
-$user_data['registration_date'] = api_get_local_time($user_data['registration_date']);
+$user_data['created_at'] = api_get_local_time($user_data['created_at']);
 unset($user_data['password']);
 
 // Create the form
@@ -172,6 +183,8 @@ $form->addRule(
 $hasPicture = $illustrationRepo->hasIllustration($userObj);
 
 if ($hasPicture) {
+    $picture = $illustrationRepo->getIllustrationUrl($userObj);
+    $form->addElement('html', '<img src="'.$picture.'" class="w-32 h-32" />');
     $form->addElement('checkbox', 'delete_picture', '', get_lang('Remove picture'));
 }
 
@@ -189,24 +202,28 @@ if ('true' !== api_get_setting('login_is_email')) {
     $form->addRule('username', get_lang('This login is already in use'), 'username_available', $user_data['username']);
 }
 
-if (isset($extAuthSource) && !empty($extAuthSource) && count($extAuthSource) > 0) {
-    $form->addLabel(
-        get_lang('External authentification'),
-        $userInfo['auth_source']
-    );
+$extAuthSource = $authenticationConfigHelper->getAuthSourceAuthentications($accessUrl);
+
+if (!empty($extAuthSource) && count($extAuthSource) > 0) {
+    foreach ($userInfo['auth_sources'] as $userAuthSource) {
+        $form->addLabel(
+            get_lang('External authentification'),
+            $userAuthSource
+        );
+    }
 }
 
 // Password
 $form->addElement('radio', 'reset_password', get_lang('Password'), get_lang('Don\'t reset password'), 0);
 $nb_ext_auth_source_added = 0;
-if (isset($extAuthSource) && !empty($extAuthSource) && count($extAuthSource) > 0) {
+if (!empty($extAuthSource) && count($extAuthSource) > 0) {
     $auth_sources = [];
-    foreach ($extAuthSource as $key => $info) {
+    foreach ($extAuthSource as $key) {
         // @todo : make uniform external authentication configuration (ex : cas and external_login ldap)
         // Special case for CAS. CAS is activated from Chamilo > Administration > Configuration > CAS
         // extAuthSource always on for CAS even if not activated
         // same action for file user_add.php
-        if ((CAS_AUTH_SOURCE == $key && 'true' === api_get_setting('cas_activate')) || (CAS_AUTH_SOURCE != $key)) {
+        if ((UserAuthSource::CAS == $key && 'true' === api_get_setting('cas_activate')) || (UserAuthSource::CAS != $key)) {
             $auth_sources[$key] = $key;
             $nb_ext_auth_source_added++;
         }
@@ -214,8 +231,8 @@ if (isset($extAuthSource) && !empty($extAuthSource) && count($extAuthSource) > 0
     if ($nb_ext_auth_source_added > 0) {
         // @todo check the radio button for external authentification and select the external authentication in the menu
         $group[] = $form->createElement('radio', 'reset_password', null, get_lang('External authentification').' ', 3);
-        $group[] = $form->createElement('select', 'auth_source', null, $auth_sources);
-        $group[] = $form->createElement('static', '', '', '<br />');
+        $group[] = $form->createElement('select', 'auth_source', null, $auth_sources, ['multiple' => 'multiple']);
+        $group[] = $form->createElement('static', '', '', '<br />', []);
         $form->addGroup($group, 'password', null, null, false);
     }
 }
@@ -226,7 +243,11 @@ $group[] = $form->createElement(
     'password',
     'password',
     null,
-    ['onkeydown' => 'javascript: password_switch_radio_button();']
+    [
+        'id' => 'password',
+        'onkeydown' => 'javascript: password_switch_radio_button();',
+        'show_hide' => true,
+    ]
 );
 
 $form->addGroup($group, 'password', null, null, false);
@@ -282,12 +303,14 @@ if (!empty($creatorInfo)) {
         get_lang('Create by <a href="%s">%s</a> on %s'),
         'user_information.php?user_id='.$user_data['creator_id'],
         $creatorInfo['username'],
-        $user_data['registration_date']
+        $user_data['created_at']
     );
     $form->addElement('label', get_lang('Registration date'), $date);
 }
 
-if (!$user_data['platform_admin']) {
+$isUserEditingOwnAccount = ($user_data['id'] === api_get_user_id());
+$hideFields = $isUserEditingOwnAccount || USER_SOFT_DELETED == $user_data['active'];
+if (!$hideFields) {
     // Expiration Date
     $form->addElement('radio', 'radio_expiration_date', get_lang('Expiration date'), get_lang('Never expires'), 0);
     $group = [];
@@ -303,6 +326,9 @@ if (!$user_data['platform_admin']) {
     // active account or inactive account
     $form->addElement('radio', 'active', get_lang('Account'), get_lang('active'), 1);
     $form->addElement('radio', 'active', '', get_lang('inactive'), 0);
+} else {
+    $form->addElement('hidden', 'active', $user_data['active']);
+    $form->addElement('hidden', 'expiration_date', $user_data['expiration_date']);
 }
 $studentBossList = UserManager::getStudentBossList($user_id);
 
@@ -340,10 +366,7 @@ $returnParams = $extraField->addElements(
 );
 $jqueryReadyContent = $returnParams['jquery_ready_content'];
 
-$allowEmailTemplate = api_get_configuration_value('mail_template_system');
-if ($allowEmailTemplate) {
-    $form->addEmailTemplate(['user_edit_content.tpl']);
-}
+$form->addEmailTemplate(['user_edit_content.tpl']);
 
 // the $jqueryReadyContent variable collects all functions that will be load in the
 $htmlHeadXtra[] = '<script>
@@ -353,7 +376,7 @@ $(function () {
 </script>';
 
 // Freeze user conditions, admin cannot updated them
-$extraConditions = api_get_configuration_value('show_conditions_to_user');
+$extraConditions = api_get_setting('profile.show_conditions_to_user', true);
 
 if ($extraConditions && isset($extraConditions['conditions'])) {
     $extraConditions = $extraConditions['conditions'];
@@ -371,14 +394,17 @@ $form->addButtonSave(get_lang('Save'));
 
 // Set default values
 $user_data['reset_password'] = 0;
-$expiration_date = $user_data['expiration_date'];
+$user_data['auth_source'] = $userInfo['auth_sources'];
 
-if (empty($expiration_date)) {
-    $user_data['radio_expiration_date'] = 0;
-    $user_data['expiration_date'] = api_get_local_time();
-} else {
-    $user_data['radio_expiration_date'] = 1;
-    $user_data['expiration_date'] = api_get_local_time($expiration_date);
+if (!$hideFields) {
+    $expiration_date = $user_data['expiration_date'];
+    if (empty($expiration_date)) {
+        $user_data['radio_expiration_date'] = 0;
+        $user_data['expiration_date'] = api_get_local_time();
+    } else {
+        $user_data['radio_expiration_date'] = 1;
+        $user_data['expiration_date'] = api_get_local_time($expiration_date);
+    }
 }
 $form->setDefaults($user_data);
 
@@ -403,7 +429,9 @@ if ($form->validate()) {
         $picture_uri = $user_data['picture_uri'];
         if (isset($user['delete_picture']) && $user['delete_picture']) {
             $picture_uri = UserManager::deleteUserPicture($user_id);
-        } elseif (!empty($picture['name'])) {
+        }
+        if (!empty($picture['name'])) {
+            $picture_uri = UserManager::deleteUserPicture($user_id);
             $request = Container::getRequest();
             $file = $request->files->get('picture');
             $picture_uri = UserManager::update_user_picture(
@@ -416,25 +444,27 @@ if ($form->validate()) {
         $lastname = $user['lastname'];
         $firstname = $user['firstname'];
         $password = $user['password'];
-        $auth_source = isset($user['auth_source']) ? $user['auth_source'] : $userInfo['auth_source'];
+        $auth_source = $user['auth_source'] ?? $userInfo['auth_source'];
         $official_code = $user['official_code'];
         $email = $user['email'];
         $phone = $user['phone'];
-        $username = isset($user['username']) ? $user['username'] : $userInfo['username'];
+        $username = $user['username'] ?? $userInfo['username'];
         $status = (int) $user['status'];
-        $platform_admin = (int) $user['platform_admin'];
+        $platform_admin = 0;
+        // Only platform admin can change user status to admin.
+        if (api_is_platform_admin()) {
+            $platform_admin = (int) $user['platform_admin'];
+        }
         $send_mail = (int) $user['send_mail'];
         $reset_password = (int) $user['reset_password'];
         $hr_dept_id = isset($user['hr_dept_id']) ? intval($user['hr_dept_id']) : null;
         $language = $user['locale'];
-        $address = isset($user['address']) ? $user['address'] : null;
-
-        $expiration_date = null;
-        if (!$user_data['platform_admin'] && '1' == $user['radio_expiration_date']) {
-            $expiration_date = $user['expiration_date'];
+        $address = $user['address'] ?? null;
+        $expiration_date = !empty($user['expiration_date']) ? $user['expiration_date'] : null;
+        if (isset($user['radio_expiration_date']) && 0 === (int) $user['radio_expiration_date']) {
+            $expiration_date = null;
         }
-
-        $active = $user_data['platform_admin'] ? 1 : intval($user['active']);
+        $active = isset($user['active']) ? (int) $user['active'] : USER_SOFT_DELETED;
 
         //If the user is set to admin the status will be overwrite by COURSEMANAGER = 1
         if (1 == $platform_admin) {
@@ -516,21 +546,11 @@ if ($error_drh) {
 
 $actions = [
     Display::url(
-        Display::return_icon(
-            'info.png',
-            get_lang('Information'),
-            [],
-            ICON_SIZE_MEDIUM
-        ),
+        Display::getMdiIcon(ActionIcon::INFORMATION, 'ch-tool-icon', null, ICON_SIZE_MEDIUM, get_lang('Information')),
         api_get_path(WEB_CODE_PATH).'admin/user_information.php?user_id='.$user_id
     ),
     Display::url(
-        Display::return_icon(
-            'login_as.png',
-            get_lang('Login as'),
-            [],
-            ICON_SIZE_MEDIUM
-        ),
+        Display::getMdiIcon(ActionIcon::LOGIN_AS, 'ch-tool-icon', null, ICON_SIZE_MEDIUM, get_lang('Login as')),
         api_get_path(WEB_CODE_PATH).
         'admin/user_list.php?action=login_as&user_id='.$user_id.'&sec_token='.Security::getTokenFromSession()
     ),

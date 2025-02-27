@@ -14,24 +14,13 @@
   [multiple],
   textarea,
   select {
-    @apply text-body-1 text-gray-90
-      placeholder:text-gray-90
-      focus:outline-none focus:outline-offset-0 focus:ring-0 focus:ring-offset-0;
+    @apply focus:ring-0 focus:outline-0;
   }
 
   label {
-    @apply text-body-2;
 
     &:empty {
       @apply hidden;
-    }
-  }
-
-  form {
-    @apply flex flex-col;
-
-    small {
-      @apply text-caption;
     }
   }
 }
@@ -40,7 +29,7 @@
   .form {
     &--search,
     &--inline {
-      @apply flex-row gap-3 mb-1;
+      @apply flex-row gap-3;
     }
 
     &--search {
@@ -65,11 +54,95 @@
   }
 }
 
+.field {
+  @apply mb-5;
+
+  > small,
+  .help-text {
+    @apply text-caption text-primary mt-1;
+  }
+
+  &-group {
+    @apply flex gap-4 flex-wrap mb-4 items-start;
+  }
+
+  &.grid {
+    @apply mt-0;
+  }
+}
+
+.formgrid {
+  &.grid {
+    @apply mt-0;
+  }
+}
+
+.formgroup-inline {
+  @apply flex flex-wrap items-start;
+
+  .field,
+  .field-checkbox,
+  .field-radiobutton {
+    @apply mr-4;
+
+    > label {
+      @apply mr-2 mb-0;
+    }
+  }
+}
+
+.field-checkbox,
+.field-radiobutton {
+  @apply mb-4 flex items-center;
+
+  > label {
+    @apply ml-2 leading-none;
+  }
+}
 
 .p-error {
-  @apply text-error;
+  @apply text-error text-caption;
 }
 
 .p-disabled {
   @apply opacity-60;
+}
+
+.p-float-label {
+  @apply block relative;
+
+  label {
+    @apply absolute top-1/2 -mt-2 pointer-events-none leading-none left-4 text-support-3 bg-transparent transition-all duration-200;
+  }
+
+  &:has(input:focus) label,
+  &:has(input.p-filled) label,
+  &:has(input:-webkit-autofill) label,
+  &:has(textarea:focus) label,
+  &:has(textarea.p-filled) label,
+  &:has(.p-inputwrapper-focus) label,
+  &:has(.p-inputwrapper-filled) label,
+  &:has(.tox.tox-tinymce) label {
+    @apply top-0 left-2 text-caption px-1 bg-white text-primary z-[1];
+  }
+
+  .html-editor-container > div,
+  .tox.tox-tinymce {
+    @apply pt-2 border-support-3 rounded-lg;
+  }
+
+  .p-invalid ~ label {
+    @apply text-error;
+  }
+
+  input:focus,
+  input.p-filled,
+  textarea:focus,
+  textarea.p-filled,
+  .p-inputwrapper-focus,
+  .p-inputwrapper-filled {
+    &.p-invalid ~ label {
+      @apply text-error;
+    }
+  }
 }

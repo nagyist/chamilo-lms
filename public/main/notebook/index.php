@@ -2,6 +2,7 @@
 /* For licensing terms, see /license.txt */
 
 use ChamiloSession as Session;
+use Chamilo\CoreBundle\Component\Utils\ActionIcon;
 
 /**
  * @author Christian Fasanando, initial version
@@ -89,6 +90,7 @@ if ('addnote' === $action) {
     // Setting the form elements
     $form->addElement('header', '', get_lang('Add new note in my personal notebook'));
     $form->addElement('text', 'note_title', get_lang('Note title'), ['id' => 'note_title']);
+    $form->applyFilter('note_title', 'html_filter');
     $form->addElement(
         'html_editor',
         'note_comment',
@@ -118,7 +120,7 @@ if ('addnote' === $action) {
             'add_glossary',
             [
                 Display::url(
-                    Display::return_icon('back.png', get_lang('Back'), [], ICON_SIZE_MEDIUM),
+                    Display::getMdiIcon(ActionIcon::BACK, 'ch-tool-icon', null, ICON_SIZE_MEDIUM, get_lang('Back')),
                     api_get_self().'?'.api_get_cidreq()
                 ),
             ]
@@ -146,6 +148,7 @@ if ('addnote' === $action) {
     $form->addElement('header', '', get_lang('Edit my personal note'));
     $form->addElement('hidden', 'notebook_id');
     $form->addElement('text', 'note_title', get_lang('Note title'), ['size' => '100']);
+    $form->applyFilter('note_title', 'html_filter');
     $form->addElement(
         'html_editor',
         'note_comment',
@@ -181,7 +184,7 @@ if ('addnote' === $action) {
             'add_glossary',
             [
                 Display::url(
-                    Display::return_icon('back.png', get_lang('Back'), [], ICON_SIZE_MEDIUM),
+                    Display::getMdiIcon(ActionIcon::BACK, 'ch-tool-icon', null, ICON_SIZE_MEDIUM, get_lang('Back')),
                     api_get_self().'?'.api_get_cidreq()
                 ),
             ]

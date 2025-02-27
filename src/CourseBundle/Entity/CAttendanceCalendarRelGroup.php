@@ -6,43 +6,30 @@ declare(strict_types=1);
 
 namespace Chamilo\CourseBundle\Entity;
 
+use Chamilo\CourseBundle\Repository\CAttendanceCalendarRelGroupRepository;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
  * CAttendanceCalendarRelGroup.
- *
- * @ORM\Table(
- *     name="c_attendance_calendar_rel_group",
- *     indexes={
- *     }
- * )
- * @ORM\Entity
  */
+#[ORM\Table(name: 'c_attendance_calendar_rel_group')]
+#[ORM\Entity(repositoryClass: CAttendanceCalendarRelGroupRepository::class)]
 class CAttendanceCalendarRelGroup
 {
-    /**
-     * @ORM\Column(name="iid", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue
-     */
-    protected int $iid;
+    #[ORM\Column(name: 'iid', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    protected ?int $iid = null;
 
-    /**
-     * @ORM\ManyToOne(targetEntity="Chamilo\CourseBundle\Entity\CGroup")
-     * @ORM\JoinColumn(name="group_id", referencedColumnName="iid")
-     */
+    #[ORM\ManyToOne(targetEntity: CGroup::class)]
+    #[ORM\JoinColumn(name: 'group_id', referencedColumnName: 'iid')]
     protected CGroup $group;
 
-    /**
-     * @ORM\ManyToOne(targetEntity="Chamilo\CourseBundle\Entity\CAttendanceCalendar")
-     * @ORM\JoinColumn(name="calendar_id", referencedColumnName="iid")
-     */
+    #[ORM\ManyToOne(targetEntity: CAttendanceCalendar::class)]
+    #[ORM\JoinColumn(name: 'calendar_id', referencedColumnName: 'iid')]
     protected CAttendanceCalendar $attendanceCalendar;
 
-    /**
-     * @return int
-     */
-    public function getIid()
+    public function getIid(): ?int
     {
         return $this->iid;
     }

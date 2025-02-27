@@ -11,57 +11,38 @@ use Doctrine\ORM\Mapping as ORM;
 
 /**
  * Project.
- *
- * @ORM\Table(name="ticket_project")
- * @ORM\Entity
  */
+#[ORM\Table(name: 'ticket_project')]
+#[ORM\Entity]
 class TicketProject
 {
-    /**
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue
-     */
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
     protected ?int $id = null;
 
-    /**
-     * @ORM\Column(name="name", type="string", length=255, nullable=false)
-     */
-    protected string $name;
+    #[ORM\Column(name: 'title', type: 'string', length: 255, nullable: false)]
+    protected string $title;
 
-    /**
-     * @ORM\Column(name="description", type="text", nullable=true)
-     */
+    #[ORM\Column(name: 'description', type: 'text', nullable: true)]
     protected ?string $description = null;
 
-    /**
-     * @ORM\Column(name="email", type="string", nullable=true)
-     */
+    #[ORM\Column(name: 'email', type: 'string', nullable: true)]
     protected ?string $email = null;
 
-    /**
-     * @ORM\Column(name="other_area", type="integer", nullable=true)
-     */
-    protected ?string $otherArea = null;
+    #[ORM\Column(name: 'other_area', type: 'integer', nullable: true)]
+    protected ?int $otherArea = null;
 
-    /**
-     * @ORM\Column(name="sys_insert_user_id", type="integer")
-     */
+    #[ORM\Column(name: 'sys_insert_user_id', type: 'integer')]
     protected int $insertUserId;
 
-    /**
-     * @ORM\Column(name="sys_insert_datetime", type="datetime")
-     */
+    #[ORM\Column(name: 'sys_insert_datetime', type: 'datetime')]
     protected DateTime $insertDateTime;
 
-    /**
-     * @ORM\Column(name="sys_lastedit_user_id", type="integer", nullable=true, unique=false)
-     */
+    #[ORM\Column(name: 'sys_lastedit_user_id', type: 'integer', unique: false, nullable: true)]
     protected ?int $lastEditUserId = null;
 
-    /**
-     * @ORM\Column(name="sys_lastedit_datetime", type="datetime", nullable=true, unique=false)
-     */
+    #[ORM\Column(name: 'sys_lastedit_datetime', type: 'datetime', unique: false, nullable: true)]
     protected ?DateTime $lastEditDateTime = null;
 
     public function __construct()
@@ -69,33 +50,24 @@ class TicketProject
         $this->insertDateTime = new DateTime();
     }
 
-    /**
-     * @return int
-     */
-    public function getId()
+    public function getId(): ?int
     {
         return $this->id;
     }
 
-    /**
-     * @return string
-     */
-    public function getName()
+    public function getTitle(): string
     {
-        return $this->name;
+        return $this->title;
     }
 
-    public function setName(string $name): self
+    public function setTitle(string $title): self
     {
-        $this->name = $name;
+        $this->title = $title;
 
         return $this;
     }
 
-    /**
-     * @return string
-     */
-    public function getDescription()
+    public function getDescription(): ?string
     {
         return $this->description;
     }
@@ -107,10 +79,7 @@ class TicketProject
         return $this;
     }
 
-    /**
-     * @return string
-     */
-    public function getEmail()
+    public function getEmail(): ?string
     {
         return $this->email;
     }
@@ -122,25 +91,19 @@ class TicketProject
         return $this;
     }
 
-    /**
-     * @return string
-     */
-    public function getOtherArea()
+    public function getOtherArea(): int
     {
-        return $this->otherArea;
+        return (int) $this->otherArea;
     }
 
-    public function setOtherArea(string $otherArea): self
+    public function setOtherArea(?int $otherArea): static
     {
         $this->otherArea = $otherArea;
 
         return $this;
     }
 
-    /**
-     * @return int
-     */
-    public function getInsertUserId()
+    public function getInsertUserId(): int
     {
         return $this->insertUserId;
     }
@@ -152,10 +115,7 @@ class TicketProject
         return $this;
     }
 
-    /**
-     * @return DateTime
-     */
-    public function getInsertDateTime()
+    public function getInsertDateTime(): DateTime
     {
         return $this->insertDateTime;
     }
@@ -167,10 +127,7 @@ class TicketProject
         return $this;
     }
 
-    /**
-     * @return int
-     */
-    public function getLastEditUserId()
+    public function getLastEditUserId(): ?int
     {
         return $this->lastEditUserId;
     }
@@ -182,10 +139,7 @@ class TicketProject
         return $this;
     }
 
-    /**
-     * @return DateTime
-     */
-    public function getLastEditDateTime()
+    public function getLastEditDateTime(): ?DateTime
     {
         return $this->lastEditDateTime;
     }

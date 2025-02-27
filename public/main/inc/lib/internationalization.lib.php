@@ -53,14 +53,10 @@ define('PERSON_NAME_DATA_EXPORT', PERSON_NAME_EASTERN_ORDER);
 
 /**
  * Returns a translated (localized) string.
- *
- * @param string $variable
- *
- * @return string
  */
-function get_lang($variable)
+function get_lang(string $variable, ?string $locale = null): string
 {
-    $translator = Container::getTranslator();
+    $translator = Container::$translator ?: Container::$container->get('translator');
 
     if (!$translator) {
         return $variable;
@@ -68,14 +64,46 @@ function get_lang($variable)
 
     // Using symfony
     $defaultDomain = 'messages';
-    $locale = api_get_language_isocode();
 
-    return $translator->trans(
+    // Check for locale fallbacks (in case no translation is available).
+    static $fallbacks = null;
+    $englishInQueue = (!empty($locale) && $locale === 'en_US');
+    if ($fallbacks === null) {
+        if (!empty($locale)) {
+            while (!empty($parent = SubLanguageManager::getParentLocale($locale))) {
+                $fallbacks[] = $parent;
+                if ($parent === 'en_US') {
+                    $englishInQueue = true;
+                }
+            }
+        }
+        // If there were no parent language, still consider en_US as global fallback
+        if (!$englishInQueue) {
+            $fallbacks[] = 'en_US';
+        }
+    }
+    // Test a basic translation to the current language.
+    $translation = $translator->trans(
         $variable,
         [],
         $defaultDomain,
         $locale
     );
+    // If no translation was found, $translation is empty.
+    // Check fallbacks for a valid translation.
+    $i = 0;
+    while (empty($translation) && !empty($fallbacks[$i])) {
+        $fallback = $fallbacks[$i];
+        $translation = $translator->trans(
+            $variable,
+            [],
+            $defaultDomain,
+            $fallback
+        );
+        $i++;
+    }
+
+    return $translation;
 }
 
 /**
@@ -170,14 +198,14 @@ function api_get_timezone()
         // First, get the default timezone of the server
         $timezone = date_default_timezone_get();
         // Second, see if a timezone has been chosen for the platform
-        $timezoneFromSettings = api_get_setting('timezone_value', 'timezones');
+        $timezoneFromSettings = api_get_setting('platform.timezone', false, 'timezones');
 
         if (null != $timezoneFromSettings) {
             $timezone = $timezoneFromSettings;
         }
 
         // If allowed by the administrator
-        $allowUserTimezones = api_get_setting('use_users_timezone', 'timezones');
+        $allowUserTimezones = api_get_setting('profile.use_users_timezone', false, 'timezones');
         $userId = api_get_user_id();
 
         if ('true' === $allowUserTimezones && !empty($userId)) {
@@ -1300,9 +1328,9 @@ function api_strtolower($string, $encoding = null)
  * @see http://php.net/manual/en/function.strtoupper
  * @see http://php.net/manual/en/function.mb-strtoupper
  */
-function api_strtoupper($string, $encoding = null)
+function api_strtoupper(?string $string, $encoding = null)
 {
-    return strtoupper($string);
+    return strtoupper((string) $string);
 }
 
 /**
@@ -1984,4 +2012,59 @@ function api_get_human_date_time($date, $showTime = true, $humanForm = false)
             return $date->format('Y-m-d');
         }
     }
+}
+
+/**
+ * Return an array with the start and end dates of a quarter (as in 3 months period).
+ * If no DateTime is not sent, use the current date.
+ *
+ * @param string|null $date (optional) The date or null.
+ *
+ * @return array E.G.: ['quarter_start' => '2022-10-11',
+ *               'quarter_end' => '2022-12-31',
+ *               'quarter_title' => 'Q4 2022']
+ */
+function getQuarterDates(string $date = null): array
+{
+    if (empty($date)) {
+        $date = api_get_utc_datetime();
+    }
+    if (strlen($date > 10)) {
+        $date = substr($date, 0, 10);
+    }
+    $month = substr($date, 5, 2);
+    $year = substr($date, 0, 4);
+    switch ($month) {
+        case $month >= 1 && $month <= 3:
+            $start = "$year-01-01";
+            $end = "$year-03-31";
+            $quarter = 1;
+            break;
+        case $month >= 4 && $month <= 6:
+            $start = "$year-04-01";
+            $end = "$year-06-30";
+            $quarter = 2;
+            break;
+        case $month >= 7 && $month <= 9:
+            $start = "$year-07-01";
+            $end = "$year-09-30";
+            $quarter = 3;
+            break;
+        case $month >= 10 && $month <= 12:
+            $start = "$year-10-01";
+            $end = "$year-12-31";
+            $quarter = 4;
+            break;
+        default:
+            // Should never happen
+            $start = "$year-01-01";
+            $end = "$year-03-31";
+            $quarter = 1;
+            break;
+    }
+    return [
+        'quarter_start' => $start,
+        'quarter_end' => $end,
+        'quarter_title' => sprintf(get_lang('Q%s %s'), $quarter, $year),
+    ];
 }

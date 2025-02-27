@@ -1,230 +1,173 @@
 <?php
 
-declare(strict_types=1);
-
 /* For licensing terms, see /license.txt */
+
+declare(strict_types=1);
 
 namespace Chamilo\CoreBundle\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
 use DateTime;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
-/**
- * TrackCourseRanking.
- *
- * @ORM\Table(name="track_course_ranking", indexes={
- *     @ORM\Index(name="idx_tcc_cid", columns={"c_id"}),
- *     @ORM\Index(name="idx_tcc_sid", columns={"session_id"}),
- *     @ORM\Index(name="idx_tcc_urlid", columns={"url_id"}),
- *     @ORM\Index(name="idx_tcc_creation_date", columns={"creation_date"})
- * })
- * @ORM\Entity
- */
+#[ApiResource(
+    normalizationContext: [
+        'groups' => ['trackCourseRanking:read'],
+    ],
+    denormalizationContext: [
+        'groups' => ['trackCourseRanking:write'],
+    ],
+    security: "is_granted('ROLE_USER')"
+)]
+#[ORM\Table(name: 'track_course_ranking')]
+#[ORM\Index(columns: ['c_id'], name: 'idx_tcc_cid')]
+#[ORM\Index(columns: ['session_id'], name: 'idx_tcc_sid')]
+#[ORM\Index(columns: ['url_id'], name: 'idx_tcc_urlid')]
+#[ORM\Index(columns: ['creation_date'], name: 'idx_tcc_creation_date')]
+#[ORM\Entity]
 class TrackCourseRanking
 {
-    /**
-     * @ORM\Column(name="c_id", type="integer", nullable=false)
-     */
-    protected int $cId;
-
-    /**
-     * @ORM\Column(name="session_id", type="integer", nullable=false)
-     */
-    protected int $sessionId;
-
-    /**
-     * @ORM\Column(name="url_id", type="integer", nullable=false)
-     */
-    protected int $urlId;
-
-    /**
-     * @ORM\Column(name="accesses", type="integer", nullable=false)
-     */
-    protected int $accesses;
-
-    /**
-     * @ORM\Column(name="total_score", type="integer", nullable=false)
-     */
-    protected int $totalScore;
-
-    /**
-     * @ORM\Column(name="users", type="integer", nullable=false)
-     */
-    protected int $users;
-
-    /**
-     * @ORM\Column(name="creation_date", type="datetime", nullable=false)
-     */
-    protected DateTime $creationDate;
-
-    /**
-     * @ORM\Column(name="id", type="integer")
-     * @ORM\Id
-     * @ORM\GeneratedValue(strategy="IDENTITY")
-     */
+    #[Groups(['course:read', 'trackCourseRanking:read'])]
+    #[ORM\Column(name: 'id', type: 'integer')]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'IDENTITY')]
     protected ?int $id = null;
 
-    /**
-     * Set cId.
-     *
-     * @return TrackCourseRanking
-     */
-    public function setCId(int $cId)
+    #[Groups(['course:read', 'trackCourseRanking:read', 'trackCourseRanking:write'])]
+    #[ORM\OneToOne(inversedBy: 'trackCourseRanking', targetEntity: Course::class)]
+    #[ORM\JoinColumn(name: 'c_id', referencedColumnName: 'id', nullable: false, onDelete: 'cascade')]
+    protected Course $course;
+
+    #[Groups(['trackCourseRanking:read', 'trackCourseRanking:write'])]
+    #[ORM\Column(name: 'session_id', type: 'integer', nullable: false)]
+    protected int $sessionId;
+
+    #[Groups(['trackCourseRanking:read', 'trackCourseRanking:write'])]
+    #[ORM\Column(name: 'url_id', type: 'integer', nullable: false)]
+    protected int $urlId;
+
+    #[Groups(['course:read', 'trackCourseRanking:read'])]
+    #[ORM\Column(name: 'accesses', type: 'integer', nullable: false)]
+    protected int $accesses;
+
+    #[Groups(['course:read', 'trackCourseRanking:read', 'trackCourseRanking:write'])]
+    #[ORM\Column(name: 'total_score', type: 'integer', nullable: false)]
+    protected int $totalScore;
+
+    #[Groups(['course:read'])]
+    #[ORM\Column(name: 'users', type: 'integer', nullable: false)]
+    protected int $users;
+
+    #[ORM\Column(name: 'creation_date', type: 'datetime', nullable: false)]
+    protected DateTime $creationDate;
+
+    public function __construct()
     {
-        $this->cId = $cId;
+        $this->urlId = 0;
+        $this->accesses = 0;
+        $this->totalScore = 0;
+        $this->users = 0;
+        $this->creationDate = new DateTime();
+    }
+
+    public function getCourse(): Course
+    {
+        return $this->course;
+    }
+
+    public function setCourse(Course $course): self
+    {
+        $this->course = $course;
 
         return $this;
     }
 
-    /**
-     * Get cId.
-     *
-     * @return int
-     */
-    public function getCId()
+    public function getSessionId(): int
     {
-        return $this->cId;
+        return $this->sessionId;
     }
 
-    /**
-     * Set sessionId.
-     *
-     * @return TrackCourseRanking
-     */
-    public function setSessionId(int $sessionId)
+    public function setSessionId(int $sessionId): static
     {
         $this->sessionId = $sessionId;
 
         return $this;
     }
 
-    /**
-     * Get sessionId.
-     *
-     * @return int
-     */
-    public function getSessionId()
+    public function getUrlId(): int
     {
-        return $this->sessionId;
+        return $this->urlId;
     }
 
-    /**
-     * Set urlId.
-     *
-     * @return TrackCourseRanking
-     */
-    public function setUrlId(int $urlId)
+    public function setUrlId(int $urlId): static
     {
         $this->urlId = $urlId;
 
         return $this;
     }
 
-    /**
-     * Get urlId.
-     *
-     * @return int
-     */
-    public function getUrlId()
+    public function getAccesses(): int
     {
-        return $this->urlId;
+        return $this->accesses;
     }
 
-    /**
-     * Set accesses.
-     *
-     * @return TrackCourseRanking
-     */
-    public function setAccesses(int $accesses)
+    public function setAccesses(int $accesses): static
     {
         $this->accesses = $accesses;
 
         return $this;
     }
 
-    /**
-     * Get accesses.
-     *
-     * @return int
-     */
-    public function getAccesses()
-    {
-        return $this->accesses;
-    }
-
-    /**
-     * Set totalScore.
-     *
-     * @return TrackCourseRanking
-     */
-    public function setTotalScore(int $totalScore)
-    {
-        $this->totalScore = $totalScore;
-
-        return $this;
-    }
-
-    /**
-     * Get totalScore.
-     *
-     * @return int
-     */
-    public function getTotalScore()
+    public function getTotalScore(): int
     {
         return $this->totalScore;
     }
 
-    /**
-     * Set users.
-     *
-     * @return TrackCourseRanking
-     */
-    public function setUsers(int $users)
+    public function setTotalScore(int $totalScore): static
+    {
+        $this->users++;
+        $this->totalScore += $totalScore;
+
+        return $this;
+    }
+
+    public function getUsers(): int
+    {
+        return $this->users;
+    }
+
+    public function setUsers(int $users): static
     {
         $this->users = $users;
 
         return $this;
     }
 
-    /**
-     * Get users.
-     *
-     * @return int
-     */
-    public function getUsers()
+    public function getCreationDate(): DateTime
     {
-        return $this->users;
+        return $this->creationDate;
     }
 
-    /**
-     * Set creationDate.
-     *
-     * @return TrackCourseRanking
-     */
-    public function setCreationDate(DateTime $creationDate)
+    public function setCreationDate(DateTime $creationDate): static
     {
         $this->creationDate = $creationDate;
 
         return $this;
     }
 
-    /**
-     * Get creationDate.
-     *
-     * @return DateTime
-     */
-    public function getCreationDate()
-    {
-        return $this->creationDate;
-    }
-
-    /**
-     * Get id.
-     *
-     * @return int
-     */
-    public function getId()
+    public function getId(): ?int
     {
         return $this->id;
+    }
+
+    #[Groups(['course:read', 'trackCourseRanking:read'])]
+    public function getRealTotalScore(): int
+    {
+        if (0 !== $this->totalScore && 0 !== $this->users) {
+            return (int) round($this->totalScore / $this->users);
+        }
+
+        return 0;
     }
 }

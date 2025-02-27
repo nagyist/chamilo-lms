@@ -2,6 +2,8 @@
 
 /* For licensing terms, see /license.txt */
 
+use Chamilo\CoreBundle\Component\Utils\ActionIcon;
+
 require_once __DIR__.'/../inc/global.inc.php';
 
 if (!api_is_platform_admin() && 'true' !== api_get_setting('ticket_allow_student_add')) {
@@ -103,7 +105,7 @@ function add_image_form() {
 
 $projectId = isset($_GET['project_id']) ? (int) $_GET['project_id'] : 0;
 
-$types = TicketManager::get_all_tickets_categories($projectId, 'category.name ASC');
+$types = TicketManager::get_all_tickets_categories($projectId, 'category.title ASC');
 $htmlHeadXtra[] = '<script>
     var projects = '.js_array($types, 'projects', 'project_id').'
     var course_required = '.js_array($types, 'course_required', 'course_required').'
@@ -180,7 +182,7 @@ $userId = api_get_user_id();
 // Category List
 $categoryList = [];
 foreach ($types as $type) {
-    $categoryList[$type['category_id']] = $type['name'].': '.$type['description'];
+    $categoryList[$type['category_id']] = $type['title'].': '.$type['description'];
 }
 
 // Status List
@@ -346,7 +348,7 @@ Display::display_header(get_lang('Compose message'));
 
 echo '<div class="actions">';
 echo Display::url(
-    Display::return_icon('back.png', get_lang('Tickets'), [], ICON_SIZE_MEDIUM),
+    Display::getMdiIcon(ActionIcon::BACK, 'ch-tool-icon', null, ICON_SIZE_MEDIUM, get_lang('Tickets')),
     api_get_path(WEB_CODE_PATH).'ticket/tickets.php'
 );
 echo '</div>';

@@ -1,30 +1,25 @@
 <template>
-  <div class="flex justify-between items-center">
-    <h2 v-t="'My Courses'" />
-    <Button
-      v-if="isTeacher"
-      class="p-button-secondary md:hidden"
-      icon="pi pi-plus"
-    />
-    <Button
-      v-if="isTeacher"
-      :label="t('Course')"
-      class="p-button-secondary hidden md:inline-flex"
-      icon="pi pi-plus"
-    />
-  </div>
-  <hr>
+  <SectionHeader :title="t('My courses')">
+    <BaseAppLink :to="{ name: 'CourseCreate' }">
+      <BaseButton
+        v-if="isTeacher"
+        type="secondary"
+        icon="plus"
+        :label="t('Course')"
+      />
+    </BaseAppLink>
+  </SectionHeader>
   <router-view />
 </template>
 
 <script setup>
-import Button from 'primevue/button';
-import { computed } from 'vue';
-import { useStore } from 'vuex';
-import { useI18n } from 'vue-i18n';
+import { useI18n } from "vue-i18n"
+import { storeToRefs } from "pinia"
+import { useSecurityStore } from "../store/securityStore"
+import SectionHeader from "../components/layout/SectionHeader.vue"
+import BaseButton from "../components/basecomponents/BaseButton.vue"
+import BaseAppLink from "../components/basecomponents/BaseAppLink.vue"
 
-const store = useStore();
-const { t } = useI18n();
-
-const isTeacher = computed(() => store.getters['security/hasRole']('ROLE_TEACHER'));
+const { t } = useI18n()
+const { isTeacher } = storeToRefs(useSecurityStore())
 </script>

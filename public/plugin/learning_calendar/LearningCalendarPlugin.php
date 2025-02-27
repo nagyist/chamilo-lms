@@ -2,6 +2,8 @@
 
 /* For license terms, see /license.txt */
 
+use Chamilo\CoreBundle\Component\Utils\ActionIcon;
+
 /**
  * Class LearningCalendarPlugin.
  */
@@ -91,7 +93,7 @@ class LearningCalendarPlugin extends Plugin
         $sql = "
             CREATE TABLE IF NOT EXISTS learning_calendar_events(
               id int not null AUTO_INCREMENT primary key,
-              name varchar(255) default '',
+              title varchar(255) default '',
               calendar_id int not null,
               start_date date not null,
               end_date date not null,
@@ -222,17 +224,17 @@ class LearningCalendarPlugin extends Plugin
                 api_get_path(WEB_PLUGIN_PATH).'learning_calendar/calendar.php?id='.$id
             );
             $actions = Display::url(
-                Display::return_icon('edit.png', get_lang('Edit')),
+                Display::getMdiIcon(ActionIcon::EDIT, 'ch-tool-icon', null, ICON_SIZE_SMALL, get_lang('Edit')),
                 $link.'?action=edit&id='.$id
             );
 
             $actions .= Display::url(
-                Display::return_icon('copy.png', get_lang('Copy')),
+                Display::getMdiIcon(ActionIcon::COPY_CONTENT, 'ch-tool-icon', null, ICON_SIZE_SMALL, get_lang('Copy')),
                 $link.'?action=copy&id='.$id
             );
 
             $actions .= Display::url(
-                Display::return_icon('delete.png', get_lang('Delete')),
+                Display::getMdiIcon(ActionIcon::DELETE, 'ch-tool-icon', null, ICON_SIZE_SMALL, get_lang('Delete')),
                 $link.'?action=delete&id='.$id
             );
             $row['actions'] = $actions;
@@ -293,13 +295,13 @@ class LearningCalendarPlugin extends Plugin
         $result = Database::query($sql);
 
         if ($getCount) {
-            $row = Database::fetch_array($result, 'ASSOC');
+            $row = Database::fetch_assoc($result);
 
             return $row['count'];
         }
 
         $list = [];
-        while ($row = Database::fetch_array($result, 'ASSOC')) {
+        while ($row = Database::fetch_assoc($result)) {
             $list[] = $row;
         }
 
@@ -327,7 +329,7 @@ class LearningCalendarPlugin extends Plugin
         $sql = "SELECT start_date FROM learning_calendar_events
                 WHERE calendar_id = $calendarId ORDER BY start_date LIMIT 1";
         $result = Database::query($sql);
-        $row = Database::fetch_array($result, 'ASSOC');
+        $row = Database::fetch_assoc($result);
 
         return $row['start_date'];
     }
@@ -361,7 +363,7 @@ class LearningCalendarPlugin extends Plugin
                 WHERE calendar_id = $calendarId";
         $result = Database::query($sql);
         $list = [];
-        while ($row = Database::fetch_array($result, 'ASSOC')) {
+        while ($row = Database::fetch_assoc($result)) {
             $userInfo = api_get_user_info($row['user_id']);
             $userInfo['exam'] = 'exam';
             $list[] = $userInfo;
@@ -381,7 +383,7 @@ class LearningCalendarPlugin extends Plugin
         $sql = "SELECT count(id) as count FROM learning_calendar_user
                 WHERE calendar_id = $calendarId";
         $result = Database::query($sql);
-        $row = Database::fetch_array($result, 'ASSOC');
+        $row = Database::fetch_assoc($result);
 
         return (int) $row['count'];
     }
@@ -444,7 +446,7 @@ class LearningCalendarPlugin extends Plugin
         $sql = "SELECT * FROM learning_calendar WHERE id = $calendarId";
         $result = Database::query($sql);
 
-        return Database::fetch_array($result, 'ASSOC');
+        return Database::fetch_assoc($result);
     }
 
     /**
@@ -458,7 +460,7 @@ class LearningCalendarPlugin extends Plugin
         $sql = "SELECT * FROM learning_calendar_user WHERE user_id = $userId";
         $result = Database::query($sql);
 
-        return Database::fetch_array($result, 'ASSOC');
+        return Database::fetch_assoc($result);
     }
 
     /**
@@ -649,7 +651,7 @@ class LearningCalendarPlugin extends Plugin
 
         $html = '';
         if (!empty($list)) {
-            $html = implode('&nbsp;', array_column($list, 'name'));
+            $html = implode('&nbsp;', array_column($list, 'title'));
         }
 
         return $html;
@@ -697,7 +699,7 @@ class LearningCalendarPlugin extends Plugin
         $tableEvaluation = Database::get_main_table(TABLE_MAIN_GRADEBOOK_EVALUATION);
         $tableCourse = Database::get_main_table(TABLE_MAIN_COURSE);
         $tableResult = Database::get_main_table(TABLE_MAIN_GRADEBOOK_RESULT);
-        $sql = "SELECT DISTINCT e.name, e.id
+        $sql = "SELECT DISTINCT e.title, e.id
                 FROM $tableEvaluation e
                 INNER JOIN $tableCourse c
                 ON (course_code = c.code)
@@ -712,7 +714,7 @@ class LearningCalendarPlugin extends Plugin
         $result = Database::query($sql);
         $list = [];
         if (Database::num_rows($result)) {
-            while ($row = Database::fetch_array($result, 'ASSOC')) {
+            while ($row = Database::fetch_assoc($result)) {
                 $list[$row['id']] = $row;
             }
         }
@@ -790,7 +792,7 @@ class LearningCalendarPlugin extends Plugin
         $result = Database::query($sql);
 
         if (Database::num_rows($result)) {
-            $row = Database::fetch_array($result, 'ASSOC');
+            $row = Database::fetch_assoc($result);
 
             return $row['count'];
         }
@@ -798,11 +800,10 @@ class LearningCalendarPlugin extends Plugin
         return 0;
     }
 
-    /**
-     * @param array $htmlHeadXtra
-     */
-    public function setJavaScript(&$htmlHeadXtra)
+    public function setJavaScript()
     {
+        global $htmlHeadXtra;
+
         $htmlHeadXtra[] = api_get_js('jqplot/jquery.jqplot.js');
         $htmlHeadXtra[] = api_get_js('jqplot/plugins/jqplot.dateAxisRenderer.js');
         $htmlHeadXtra[] = api_get_js('jqplot/plugins/jqplot.canvasOverlay.js');
@@ -934,7 +935,7 @@ class LearningCalendarPlugin extends Plugin
         if (!empty($newCalendarId)) {
             $sql = "SELECT * FROM learning_calendar_events WHERE calendar_id = $calendarId";
             $result = Database::query($sql);
-            while ($row = Database::fetch_array($result, 'ASSOC')) {
+            while ($row = Database::fetch_assoc($result)) {
                 unset($row['id']);
                 $row['calendar_id'] = $newCalendarId;
                 Database::insert('learning_calendar_events', $row);
@@ -990,7 +991,7 @@ class LearningCalendarPlugin extends Plugin
         $result = Database::query($sql);
 
         if (Database::num_rows($result)) {
-            $row = Database::fetch_array($result, 'ASSOC');
+            $row = Database::fetch_assoc($result);
             $currentType = $row['type'];
             $currentType++;
             if ($currentType > count($eventTypeList)) {
@@ -1010,7 +1011,7 @@ class LearningCalendarPlugin extends Plugin
             }
         } else {
             $params = [
-                'name' => '',
+                'title' => '',
                 'calendar_id' => $calendarId,
                 'start_date' => $startDate,
                 'end_date' => $startDate,
@@ -1035,7 +1036,7 @@ class LearningCalendarPlugin extends Plugin
         $result = Database::query($sql);
 
         $list = [];
-        while ($row = Database::fetch_array($result, 'ASSOC')) {
+        while ($row = Database::fetch_assoc($result)) {
             $list[] = [
                 'start_date' => $row['start_date'],
                 'end_date' => $row['start_date'],

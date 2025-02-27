@@ -14,6 +14,7 @@ use Chamilo\CoreBundle\Repository\TagRepository;
 use DateTime;
 use GoogleMapsPlugin;
 use Oh\GoogleMapFormTypeBundle\Form\Type\GoogleMapType;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -28,8 +29,10 @@ use Symfony\Component\Form\Extension\Core\Type\UrlType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
-use Symfony\Component\Security\Core\Security;
 
+/**
+ * @template-extends AbstractType<array>
+ */
 class ExtraFieldType extends AbstractType
 {
     private ExtraFieldValuesRepository $extraFieldValuesRepository;
@@ -76,12 +79,14 @@ class ExtraFieldType extends AbstractType
             $variable = $extraField->getVariable();
             $value = $data[$extraField->getVariable()] ?? null;
 
+            $isEditable = $extraField->isChangeable();
             $defaultOptions = [
                 'label' => $text,
                 'required' => false,
                 'by_reference' => false,
                 'mapped' => false,
                 'data' => $value,
+                'attr' => $isEditable ? [] : ['readonly' => true, 'class' => 'readonly-field'],
             ];
 
             // @todo validate data.
@@ -95,8 +100,9 @@ class ExtraFieldType extends AbstractType
                 case \ExtraField::FIELD_TYPE_ALPHANUMERIC_SPACE:
                 case \ExtraField::FIELD_TYPE_SELECT_WITH_TEXT_FIELD:
                 case \ExtraField::FIELD_TYPE_TRIPLE_SELECT:
-                    //@todo
+                    // @todo
                     break;
+
                 case \ExtraField::FIELD_TYPE_GEOLOCALIZATION_COORDINATES:
                 case \ExtraField::FIELD_TYPE_GEOLOCALIZATION:
                     if (!$geolocalization) {
@@ -106,7 +112,7 @@ class ExtraFieldType extends AbstractType
                     $defaultOptions['data'] = [];
                     if (!empty($value)) {
                         $parts = explode('::', $value);
-                        $coordinates = explode(',', $parts[1]);
+                        $coordinates = isset($parts[1]) ? explode(',', $parts[1]) : [];
                         $mapArray = [
                             'address' => $parts[0] ?? '',
                             'latitude' => $coordinates[0] ?? '',
@@ -118,6 +124,7 @@ class ExtraFieldType extends AbstractType
                     $builder->add($variable, GoogleMapType::class, $defaultOptions);
 
                     break;
+
                 case \ExtraField::FIELD_TYPE_TAG:
                     $defaultOptions['expanded'] = false;
                     $defaultOptions['multiple'] = true;
@@ -153,15 +160,18 @@ class ExtraFieldType extends AbstractType
                     $builder->add($variable, ChoiceType::class, $defaultOptions);
 
                     break;
+
                 case \ExtraField::FIELD_TYPE_VIDEO_URL:
                 case \ExtraField::FIELD_TYPE_SOCIAL_PROFILE:
                     $builder->add($variable, UrlType::class, $defaultOptions);
 
                     break;
+
                 case \ExtraField::FIELD_TYPE_MOBILE_PHONE_NUMBER:
                     $builder->add($variable, TelType::class, $defaultOptions);
 
                     break;
+
                 case \ExtraField::FIELD_TYPE_DATE:
                     $defaultOptions['data'] = null;
                     if (!empty($value)) {
@@ -171,6 +181,7 @@ class ExtraFieldType extends AbstractType
                     $builder->add($variable, DateType::class, $defaultOptions);
 
                     break;
+
                 case \ExtraField::FIELD_TYPE_DATETIME:
                     $defaultOptions['data'] = null;
                     if (!empty($value)) {
@@ -180,30 +191,36 @@ class ExtraFieldType extends AbstractType
                     $builder->add($variable, DateTimeType::class, $defaultOptions);
 
                     break;
+
                 case \ExtraField::FIELD_TYPE_TEXTAREA:
                     $builder->add($variable, TextareaType::class, $defaultOptions);
 
                     break;
+
                 case \ExtraField::FIELD_TYPE_FLOAT:
                     $builder->add($variable, NumberType::class, $defaultOptions);
 
                     break;
+
                 case \ExtraField::FIELD_TYPE_INTEGER:
                     $builder->add($variable, IntegerType::class, $defaultOptions);
 
                     break;
+
                 case \ExtraField::FIELD_TYPE_LETTERS_ONLY:
                 case \ExtraField::FIELD_TYPE_ALPHANUMERIC:
                 case \ExtraField::FIELD_TYPE_TEXT:
                     $builder->add($variable, TextType::class, $defaultOptions);
 
                     break;
+
                 case \ExtraField::FIELD_TYPE_CHECKBOX:
                     $defaultOptions['data'] = 1 === (int) $value;
 
                     $builder->add($variable, CheckboxType::class, $defaultOptions);
 
                     break;
+
                 case \ExtraField::FIELD_TYPE_RADIO:
                 case \ExtraField::FIELD_TYPE_SELECT:
                 case \ExtraField::FIELD_TYPE_SELECT_MULTIPLE:
@@ -265,6 +282,7 @@ class ExtraFieldType extends AbstractType
                             $this->extraFieldValuesRepository->updateItemData($extraField, $item, $newValue);
 
                             break;
+
                         case \ExtraField::FIELD_TYPE_TAG:
                             $formItem = $event->getForm()->get($extraField->getVariable());
                             $options = $formItem->getConfig()->getOptions();
@@ -278,6 +296,7 @@ class ExtraFieldType extends AbstractType
                             }
 
                             break;
+
                         default:
                             $this->extraFieldValuesRepository->updateItemData($extraField, $item, $newValue);
 

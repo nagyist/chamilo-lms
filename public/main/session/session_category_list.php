@@ -25,12 +25,12 @@ $tbl_session = Database::get_main_table(TABLE_MAIN_SESSION);
 
 $page = isset($_GET['page']) ? (int) $_GET['page'] : null;
 $action = isset($_REQUEST['action']) ? Security::remove_XSS($_REQUEST['action']) : null;
-$sort = isset($_GET['sort']) && in_array($_GET['sort'], ['name', 'nbr_session', 'date_start', 'date_end'])
+$sort = isset($_GET['sort']) && in_array($_GET['sort'], ['title', 'nbr_session', 'date_start', 'date_end'])
     ? Security::remove_XSS($_GET['sort'])
-    : 'name';
+    : 'title';
 $idChecked = isset($_REQUEST['idChecked']) ? Security::remove_XSS($_REQUEST['idChecked']) : null;
 $order = isset($_REQUEST['order']) ? Security::remove_XSS($_REQUEST['order']) : 'ASC';
-$keyword = isset($_REQUEST['keyword']) ? Security::remove_XSS($_REQUEST['keyword']) : null;
+$keyword = null;
 
 if ('delete_on_session' === $action || 'delete_off_session' === $action) {
     $delete_session = 'delete_on_session' == $action ? true : false;
@@ -38,6 +38,13 @@ if ('delete_on_session' === $action || 'delete_off_session' === $action) {
     Display::addFlash(Display::return_message(get_lang('The selected categories have been deleted')));
     header('Location: '.api_get_self().'?sort='.$sort);
     exit();
+}
+
+$frmSearch = new FormValidator('search', 'get', 'session_category_list.php', '', [], FormValidator::LAYOUT_INLINE);
+$frmSearch->addText('keyword', get_lang('Search'), false);
+$frmSearch->addButtonSearch(get_lang('Search'));
+if ($frmSearch->validate()) {
+    $keyword = $frmSearch->exportValues()['keyword'];
 }
 
 $interbreadcrumb[] = ['url' => 'session_list.php', 'name' => get_lang('Session list')];
@@ -63,9 +70,9 @@ if (isset($_GET['search']) && 'advanced' === $_GET['search']) {
     //if user is crfp admin only list its sessions
     $where = null;
     if (!api_is_platform_admin()) {
-        $where .= empty($keyword) ? "" : " WHERE name LIKE '%".Database::escape_string(trim($keyword))."%'";
+        $where .= empty($keyword) ? "" : " WHERE title LIKE '%".Database::escape_string(trim($keyword))."%'";
     } else {
-        $where .= empty($keyword) ? "" : " WHERE name LIKE '%".Database::escape_string(trim($keyword))."%'";
+        $where .= empty($keyword) ? "" : " WHERE title LIKE '%".Database::escape_string(trim($keyword))."%'";
     }
     if (empty($where)) {
         $where = " WHERE access_url_id = ".api_get_current_access_url_id()." ";
@@ -100,20 +107,13 @@ if (isset($_GET['search']) && 'advanced' === $_GET['search']) {
     Display::display_header($tool_name);
 
     $actionsLeft = Display::url(
-            Display::return_icon('new_folder.png', get_lang('Add category'), [], ICON_SIZE_MEDIUM),
+            Display::getMdiIcon('file-tree-outline', 'ch-tool-icon-gradient', null, 32, get_lang('Add category')),
             api_get_path(WEB_CODE_PATH).'session/session_category_add.php'
         ).Display::url(
-            Display::return_icon('session.png', get_lang('Training sessions list'), [], ICON_SIZE_MEDIUM),
+            Display::getMdiIcon('google-classroom', 'ch-tool-icon-gradient', null, 32, get_lang('Training sessions list')),
             api_get_path(WEB_CODE_PATH).'session/session_list.php'
         );
-    $actionsRight = '<form method="POST" action="session_category_list.php" class="form--inline">
-                        <div class="form-group">
-                            <input class="form-control" type="text" name="keyword" aria-label="'.get_lang('Search').'"/>
-                            <button class="btn btn--plain" type="submit" name="name"
-                                    value="'.get_lang('Search').'">
-                                    <em class="fa fa-search"></em>'.get_lang('Search').'</button>
-                        </div>
-                    </form>';
+    $actionsRight = $frmSearch->returnForm();
 
     echo Display::toolbarAction('category', [$actionsLeft, $actionsRight]); ?>
     <form method="post" action="<?php echo api_get_self(); ?>?action=delete&sort=<?php echo $sort; ?>"
@@ -159,7 +159,7 @@ if (isset($_GET['search']) && 'advanced' === $_GET['search']) {
             <table class="data_table" width="100%">
                 <tr>
                     <th>&nbsp;</th>
-                    <th><a href="<?php echo api_get_self(); ?>?sort=name&order=<?php echo ('name' == $sort) ? $order
+                    <th><a href="<?php echo api_get_self(); ?>?sort=title&order=<?php echo ('title' == $sort) ? $order
                             : 'ASC'; ?>"><?php echo get_lang('Category name'); ?></a></th>
                     <th><a href="<?php echo api_get_self(); ?>?sort=nbr_session&order=<?php echo ('nbr_session'
                             == $sort) ? $order : 'ASC'; ?>"><?php echo get_lang('Number sessions'); ?></a></th>
@@ -190,7 +190,7 @@ if (isset($_GET['search']) && 'advanced' === $_GET['search']) {
                     <tr class="<?php echo $i ? 'row_odd' : 'row_even'; ?>">
                         <td><input type="checkbox" id="idChecked_<?php echo $x; ?>" name="idChecked[]"
                                    value="<?php echo $enreg['id']; ?>"></td>
-                        <td><?php echo api_htmlentities($enreg['name'], ENT_QUOTES); ?></td>
+                        <td><?php echo api_htmlentities($enreg['title'], ENT_QUOTES); ?></td>
                         <td><?php echo "<a href=\"session_list.php?id_category=".$enreg['id']."\">".$nb_courses
                                 ." Session(s) </a>"; ?></td>
                         <td><?php echo api_format_date($enreg['date_start'], DATE_FORMAT_SHORT); ?></td>
@@ -204,14 +204,14 @@ if (isset($_GET['search']) && 'advanced' === $_GET['search']) {
                         </td>
                         <td>
                             <a href="session_category_edit.php?&id=<?php echo $enreg['id']; ?>">
-                                <?php echo Display::return_icon('edit.png', get_lang('Edit'), [], ICON_SIZE_SMALL); ?>
+                                <?php echo Display::getMdiIcon('pencil', 'ch-tool-icon', null, 22, get_lang('Edit')); ?>
                             </a>
                             <a href="<?php echo api_get_self(
                             ); ?>?sort=<?php echo $sort; ?>&action=delete_off_session&idChecked=<?php echo $enreg['id']; ?>"
                                onclick="if(!confirm('<?php echo get_lang(
                                    'Please confirm your choice'
                                ); ?>')) return false;">
-                                <?php echo Display::return_icon('delete.png', get_lang('Delete'), [], ICON_SIZE_SMALL); ?>
+                                <?php echo Display::getMdiIcon('delete', 'ch-tool-icon', null, 22, get_lang('Delete')); ?>
                             </a>
                         </td>
                     </tr>
@@ -274,7 +274,7 @@ if (isset($_GET['search']) && 'advanced' === $_GET['search']) {
                     </select>
                 </div>
                 <div class="col-sm-2">
-                    <button class="btn btn--success" type="submit" name="name" value="<?php echo get_lang('Validate'); ?>">
+                    <button class="btn btn--success" type="submit" name="title" value="<?php echo get_lang('Validate'); ?>">
                         <?php echo get_lang('Validate'); ?>
                     </button>
                 </div>

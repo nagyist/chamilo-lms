@@ -7,7 +7,7 @@
 
     <form
       class="login-section__form p-input-filled"
-      @submit.prevent="performLogin"
+      @submit.prevent="onSubmitLoginForm"
     >
       <div class="field">
         <InputText
@@ -30,9 +30,8 @@
 
       <div class="field login-section__remember-me">
         <InputSwitch
-          id="binary"
           v-model="remember"
-          :binary="true"
+          input-id="binary"
           name="remember_me"
           tabindex="4"
         />
@@ -50,6 +49,7 @@
         />
 
         <a
+          v-if="allowRegistration"
           v-t="'Register oneself'"
           class="btn btn--primary-outline"
           href="/main/auth/inscription.php"
@@ -67,53 +67,39 @@
         />
       </div>
     </form>
+
+    <LoginOAuth2Buttons />
   </div>
 </template>
 
 <script setup>
-import {useStore} from 'vuex';
-import {computed, ref} from "vue";
-import {useRoute, useRouter} from "vue-router";
-import Button from 'primevue/button';
-import InputText from 'primevue/inputtext';
-import Password from 'primevue/password';
-import InputSwitch from 'primevue/inputswitch';
-import {useI18n} from "vue-i18n";
+import { computed, ref } from "vue"
+import Button from "primevue/button"
+import InputText from "primevue/inputtext"
+import Password from "primevue/password"
+import InputSwitch from "primevue/inputswitch"
+import { useI18n } from "vue-i18n"
+import { useLogin } from "../composables/auth/login"
+import LoginOAuth2Buttons from "./login/LoginOAuth2Buttons.vue"
+import { usePlatformConfig } from "../store/platformConfig"
 
-const route = useRoute();
-const router = useRouter();
-const store = useStore();
-const {t} = useI18n();
+const { t } = useI18n()
+const platformConfigStore = usePlatformConfig()
+const allowRegistration = computed(() => "false" !== platformConfigStore.getSetting("registration.allow_registration"))
 
-const login = ref('');
-const password = ref('');
-const remember = ref(false);
+const { redirectNotAuthenticated, performLogin, isLoading } = useLogin()
 
-const isLoading = computed(() => store.getters['security/isLoading']);
+const login = ref("")
+const password = ref("")
+const remember = ref(false)
 
-let redirect = route.query.redirect;
+redirectNotAuthenticated()
 
-if (store.getters["security/isAuthenticated"]) {
-  if (typeof redirect !== "undefined") {
-    router.push({path: redirect.toString()});
-  } else {
-    router.replace({name: 'Home'});
-  }
-}
-
-async function performLogin() {
-  let payload = {login: login.value, password: password.value};
-  let redirect = route.query.redirect;
-
-  await store.dispatch("security/login", payload);
-
-  if (!store.getters["security/hasError"]) {
-    if (typeof redirect !== "undefined") {
-      await router.push({path: redirect.toString()});
-    } else {
-      // router.replace({path: "/home"});
-      window.location.href = '/home';
-    }
-  }
+function onSubmitLoginForm() {
+  performLogin({
+    login: login.value,
+    password: password.value,
+    _remember_me: remember.value,
+  })
 }
 </script>

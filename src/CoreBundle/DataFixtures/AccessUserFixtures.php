@@ -7,35 +7,34 @@ declare(strict_types=1);
 namespace Chamilo\CoreBundle\DataFixtures;
 
 use Chamilo\CoreBundle\Entity\User;
+use Chamilo\CoreBundle\Entity\UserAuthSource;
 use Chamilo\CoreBundle\Repository\Node\UserRepository;
+use Chamilo\CoreBundle\ServiceHelper\AccessUrlHelper;
 use Chamilo\CoreBundle\Tool\ToolChain;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
-use Symfony\Component\DependencyInjection\ContainerAwareInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 
-class AccessUserFixtures extends Fixture implements ContainerAwareInterface
+class AccessUserFixtures extends Fixture
 {
     public const ADMIN_USER_REFERENCE = 'admin';
     public const ANON_USER_REFERENCE = 'anon';
     public const ACCESS_URL_REFERENCE = 'accessUrl';
 
-    private ContainerInterface $container;
-
-    public function setContainer(ContainerInterface $container = null): void
-    {
-        $this->container = $container;
-    }
+    public function __construct(
+        private readonly ToolChain $toolChain,
+        private readonly UserRepository $userRepository,
+        private readonly AccessUrlHelper $accessUrlHelper,
+    ) {}
 
     public function load(ObjectManager $manager): void
     {
         $timezone = 'Europe\Paris';
-        $container = $this->container;
-        $toolChain = $container->get(ToolChain::class);
-        $toolChain->createTools();
+        $this->toolChain->createTools();
+
+        $accessUrl = $this->accessUrlHelper->getCurrent();
 
         // Defined in AccessGroupFixtures.php.
-        //$group = $this->getReference('GROUP_ADMIN');
+        // $group = $this->getReference('GROUP_ADMIN');
 
         $admin = (new User())
             ->setSkipResourceNode(true)
@@ -50,14 +49,12 @@ class AccessUserFixtures extends Fixture implements ContainerAwareInterface
             ->setTimezone($timezone)
             ->addUserAsAdmin()
             ->addRole('ROLE_GLOBAL_ADMIN') // Only for the first user
-            //->addGroup($group)
+            // ->addGroup($group)
         ;
 
         $manager->persist($admin);
 
-        /** @var UserRepository $userRepo */
-        $userRepo = $container->get(UserRepository::class);
-        $userRepo->updateUser($admin);
+        $this->userRepository->updateUser($admin);
 
         $anon = (new User())
             ->setSkipResourceNode(true)
@@ -72,10 +69,30 @@ class AccessUserFixtures extends Fixture implements ContainerAwareInterface
             ->setTimezone($timezone)
         ;
         $manager->persist($anon);
+
+        $fallbackUser = new User();
+        $fallbackUser
+            ->setSkipResourceNode(true)
+            ->setUsername('fallback_user')
+            ->setEmail('fallback@example.com')
+            ->setPlainPassword('fallback_user')
+            ->setStatus(User::ROLE_FALLBACK)
+            ->setLastname('Fallback')
+            ->setFirstname('User')
+            ->setCreatorId(1)
+            ->setOfficialCode('FALLBACK')
+            ->addAuthSourceByAuthentication(UserAuthSource::PLATFORM, $accessUrl)
+            ->setPhone('0000000000')
+            ->setTimezone($timezone)
+            ->setActive(USER_SOFT_DELETED)
+        ;
+        $manager->persist($fallbackUser);
+
         $manager->flush();
 
-        $userRepo->addUserToResourceNode($admin->getId(), $admin->getId());
-        $userRepo->addUserToResourceNode($anon->getId(), $admin->getId());
+        $this->userRepository->addUserToResourceNode($admin->getId(), $admin->getId());
+        $this->userRepository->addUserToResourceNode($anon->getId(), $admin->getId());
+        $this->userRepository->addUserToResourceNode($fallbackUser->getId(), $admin->getId());
 
         $manager->flush();
 

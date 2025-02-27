@@ -9,6 +9,7 @@ use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\ConsoleOutput;
 use Symfony\Component\Dotenv\Dotenv;
 use Symfony\Component\ErrorHandler\Debug;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Session\Session as HttpSession;
 use Symfony\Component\Translation\Loader\PoFileLoader;
 use Symfony\Component\Translation\Translator;
@@ -46,8 +47,8 @@ api_check_php_version();
 ob_implicit_flush();
 Debug::enable();
 
-// Create .env.local file
-/*$envFile = api_get_path(SYMFONY_SYS_PATH).'.env.local';
+// Create .env file
+/*$envFile = api_get_path(SYMFONY_SYS_PATH).'.env';
 if (file_exists($envFile)) {
     echo "Chamilo is already installed. File $envFile exists.";
     exit;
@@ -66,20 +67,27 @@ putenv('APP_DEBUG=1');
 
 session_start();
 
+Container::$session = new HttpSession();
+
 require_once 'install.lib.php';
 $installationLanguage = 'en_US';
+
+$httpRequest = Request::createFromGlobals();
+
+if ($httpRequest->request->get('language_list')) {
+    $search = ['../', '\\0'];
+    $installationLanguage = str_replace($search, '', urldecode($httpRequest->request->get('language_list')));
+    ChamiloSession::write('install_language', $installationLanguage);
+} elseif (ChamiloSession::has('install_language')) {
+  $installationLanguage = ChamiloSession::read('install_language');
+} else {
+  $installationLanguage = $httpRequest->getPreferredLanguage();
+}
 
 // Set translation
 $translator = new Translator($installationLanguage);
 $translator->addLoader('po', new PoFileLoader());
-$translator->addResource(
-    'po',
-    "../../../var/translations/installation.$installationLanguage.po",
-    $installationLanguage
-);
 Container::$translator = $translator;
-
-Container::$session = new HttpSession();
 
 // The function api_get_setting() might be called within the installation scripts.
 // We need to provide some limited support for it through initialization of the
@@ -109,14 +117,12 @@ $adminFirstName = get_lang('John');
 $loginForm = 'admin';
 $passForm = '';
 $institutionUrlForm = 'https://chamilo.org';
-$languageForm = '';
+$languageForm = $installationLanguage;
 $campusForm = 'My campus';
 $educationForm = 'Albert Einstein';
 $adminPhoneForm = '(000) 001 02 03';
 $institutionForm = 'My Organisation';
 $session_lifetime = 360000;
-//$installLanguage = isset($_SESSION['install_language']) ? $_SESSION['install_language'] : 'english';
-$installLanguage = '';
 $installationGuideLink = '../../documentation/installation_guide.html';
 
 // Setting the error reporting levels.
@@ -134,6 +140,13 @@ $upgradeFromVersion = [
     '1.11.11',
     '1.11.12',
     '1.11.14',
+    '1.11.16',
+    '1.11.18',
+    '1.11.20',
+    '1.11.22',
+    '1.11.24',
+    '1.11.26',
+    '1.11.28',
 ];
 
 $my_old_version = '';
@@ -165,6 +178,8 @@ if (!empty($_POST['updatePath'])) {
     $proposedUpdatePath = $_POST['updatePath'];
 }
 
+$checkMigrationStatus = [];
+$isUpdateAvailable = isUpdateAvailable();
 if (isset($_POST['step2_install']) || isset($_POST['step2_update_8']) || isset($_POST['step2_update_6'])) {
     if (isset($_POST['step2_install'])) {
         $installType = 'new';
@@ -188,21 +203,12 @@ if (isset($_POST['step2_install']) || isset($_POST['step2_update_8']) || isset($
     }
 } elseif (isset($_POST['step1'])) {
     $_POST['updatePath'] = '';
-    $installType = '';
+    $installType = $_GET['installType'] ?? '';
     $updateFromConfigFile = '';
     unset($_GET['running']);
 } else {
     $installType = $_GET['installType'] ?? '';
     $updateFromConfigFile = $_GET['updateFromConfigFile'] ?? false;
-}
-if ('update' === $installType && in_array($my_old_version, $upgradeFromVersion)) {
-    // This is the main configuration file of the system before the upgrade.
-    // Old configuration file.
-    // Don't change to include_once
-    $oldConfigPath = api_get_path(SYS_CODE_PATH).'inc/conf/configuration.php';
-    if (file_exists($oldConfigPath)) {
-        include $oldConfigPath;
-    }
 }
 
 $showEmailNotCheckedToStudent = 1;
@@ -224,9 +230,8 @@ if (!isset($_GET['running'])) {
     }
 
     $loginForm = 'admin';
-    $passForm = api_generate_password();
+    $passForm = api_generate_password(12, false);
     $institutionUrlForm = 'https://chamilo.org';
-    $languageForm = api_get_language_isocode();
     $checkEmailByHashSent = 0;
     $userMailCanBeEmpty = 1;
     $allowSelfReg = 'approval';
@@ -254,7 +259,7 @@ $total_steps = 7;
 $current_step = 1;
 if (!$_POST) {
     $current_step = 1;
-} elseif (!empty($_POST['language_list']) || !empty($_POST['step1']) || ((!empty($_POST['step2_update_8']) || (!empty($_POST['step2_update_6']))) && ($emptyUpdatePath || $badUpdatePath))) {
+} elseif ($httpRequest->request->get('language_list') || !empty($_POST['step1']) || ((!empty($_POST['step2_update_8']) || (!empty($_POST['step2_update_6']))) && ($emptyUpdatePath || $badUpdatePath))) {
     $current_step = 2;
 } elseif (!empty($_POST['step2']) || (!empty($_POST['step2_update_8']) || (!empty($_POST['step2_update_6'])))) {
     $current_step = 3;
@@ -269,13 +274,6 @@ if (!$_POST) {
 }
 
 error_log("Step: $current_step");
-
-// Managing the $encryptPassForm
-if ('1' == $encryptPassForm) {
-    $encryptPassForm = 'bcrypt';
-} elseif ('0' == $encryptPassForm) {
-    $encryptPassForm = 'none';
-}
 
 if (empty($installationProfile)) {
     $installationProfile = '';
@@ -308,15 +306,41 @@ if (isset($_POST['step2'])) {
     $current_step = 5;
     // STEP 5 : CONFIGURATION SETTINGS
     if ('update' === $installType) {
+        // Create .env file
+        $envFile = api_get_path(SYMFONY_SYS_PATH) . '.env';
+        $distFile = api_get_path(SYMFONY_SYS_PATH) . '.env.dist';
+        $params = [
+            '{{DATABASE_HOST}}' => $dbHostForm,
+            '{{DATABASE_PORT}}' => $dbPortForm,
+            '{{DATABASE_NAME}}' => $dbNameForm,
+            '{{DATABASE_USER}}' => $dbUsernameForm,
+            '{{DATABASE_PASSWORD}}' => $dbPassForm,
+            '{{APP_INSTALLED}}' => 1,
+            '{{APP_ENCRYPT_METHOD}}' => $encryptPassForm,
+            '{{APP_SECRET}}' => generateRandomToken(),
+            '{{DB_MANAGER_ENABLED}}' => '0',
+            '{{SOFTWARE_NAME}}' => 'Chamilo',
+            '{{SOFTWARE_URL}}' => $institutionUrlForm,
+            '{{DENY_DELETE_USERS}}' => '0',
+            '{{HOSTING_TOTAL_SIZE_LIMIT}}' => '0',
+            '{{THEME_FALLBACK}}' => 'chamilo',
+            '{{PACKAGER}}' => 'chamilo',
+            '{{DEFAULT_TEMPLATE}}' => 'default',
+            '{{ADMIN_CHAMILO_ANNOUNCEMENTS_DISABLE}}' => '0',
+        ];
+        error_log('Update env file');
+        updateEnvFile($distFile, $envFile, $params);
+        (new Dotenv())->load($envFile);
+
         $db_name = $dbNameForm;
-        $database = connectToDatabase(
+        connectToDatabase(
             $dbHostForm,
             $dbUsernameForm,
             $dbPassForm,
             $dbNameForm,
             $dbPortForm
         );
-        $manager = $database->getManager();
+        $manager = Database::getManager();
 
         $tmp = get_config_param_from_db('platformLanguage');
         if (!empty($tmp)) {
@@ -428,74 +452,33 @@ if (isset($_POST['step2'])) {
     $stepData['institutionUrlForm'] = $institutionUrlForm;
     $stepData['encryptPassForm'] = $encryptPassForm;
 
-    $stepData['dbHostForm'] = $dbHostForm;
-    $stepData['dbPortForm'] = $dbPortForm;
-    $stepData['dbUsernameForm'] = $dbUsernameForm;
-    $stepData['dbPassForm'] = str_repeat('*', api_strlen($dbPassForm));
-    $stepData['dbNameForm'] = $dbNameForm;
+    if ($isUpdateAvailable) {
+        $envFile = api_get_path(SYMFONY_SYS_PATH) . '.env';
+        $dotenv = new Dotenv();
+        $envFile = api_get_path(SYMFONY_SYS_PATH) . '.env';
+        $dotenv->loadEnv($envFile);
+        $stepData['dbHostForm'] = $_ENV['DATABASE_HOST'];
+        $stepData['dbPortForm'] = $_ENV['DATABASE_PORT'];
+        $stepData['dbUsernameForm'] = $_ENV['DATABASE_USER'];
+        $stepData['dbPassForm'] = str_repeat('*', api_strlen($_ENV['DATABASE_PASSWORD']));
+        $stepData['dbNameForm'] = $_ENV['DATABASE_NAME'];
+    } else {
+        $stepData['dbHostForm'] = $dbHostForm;
+        $stepData['dbPortForm'] = $dbPortForm;
+        $stepData['dbUsernameForm'] = $dbUsernameForm;
+        $stepData['dbPassForm'] = str_repeat('*', api_strlen($dbPassForm));
+        $stepData['dbNameForm'] = $dbNameForm;
+    }
 } elseif (isset($_POST['step6'])) {
     //STEP 6 : INSTALLATION PROCESS
     $current_step = 7;
 
     if ('update' === $installType) {
-        $database = connectToDatabase(
-            $dbHostForm,
-            $dbUsernameForm,
-            $dbPassForm,
-            $dbNameForm,
-            $dbPortForm
-        );
-        $manager = $database->getManager();
-        //$perm = api_get_permissions_for_new_directories();
-        //$perm_file = api_get_permissions_for_new_files();
-        // @todo fix permissions.
-        $perm = octdec('0777');
-        $perm_file = octdec('0777');
+        // The migration process for updates has been moved to migrate.php and is now
+        // handled via AJAX requests from Vue.js. This section of the code is no longer
+        // necessary and has been removed to streamline the update process.
 
-        // Create .env.local file
-        $envFile = api_get_path(SYMFONY_SYS_PATH).'.env.local';
-        $distFile = api_get_path(SYMFONY_SYS_PATH).'.env';
-
-        $params = [
-            '{{DATABASE_HOST}}' => $dbHostForm,
-            '{{DATABASE_PORT}}' => $dbPortForm,
-            '{{DATABASE_NAME}}' => $dbNameForm,
-            '{{DATABASE_USER}}' => $dbUsernameForm,
-            '{{DATABASE_PASSWORD}}' => $dbPassForm,
-            '{{APP_INSTALLED}}' => 1,
-            '{{APP_ENCRYPT_METHOD}}' => $encryptPassForm,
-            '{{APP_SECRET}}' => generateRandomToken(),
-        ];
-
-        error_log('Update env file');
-        updateEnvFile($distFile, $envFile, $params);
-        (new Dotenv())->load($envFile);
-
-        // Load Symfony Kernel
-        $kernel = new Kernel('dev', true);
-        $application = new Application($kernel);
-        error_log('Set Kernel');
-
-        session_unset();
-        $_SESSION = [];
-        session_destroy();
-
-        // No errors
-        //if ($result == 0) {
-        // Boot kernel and get the doctrine from Symfony container
-        $kernel->boot();
-        error_log('Boot');
-        $container = $kernel->getContainer();
-
-        Container::setContainer($container);
-        Container::setLegacyServices($container);
-
-        $manager = $container->get('doctrine')->getManager();
-
-        migrateSwitch($my_old_version, $manager);
-        upgradeWithContainer($container);
-        error_log('Set upgradeWithContainer');
-        error_log('------------------------------');
+        error_log('Migration process moved to migrate.php');
         error_log('Upgrade 2.0.0 process concluded!  ('.date('Y-m-d H:i:s').')');
     } else {
         error_log('------------------------------');
@@ -504,22 +487,30 @@ if (isset($_POST['step2'])) {
         set_file_folder_permissions();
         error_log("connectToDatabase as user $dbUsernameForm");
 
-        $database = connectToDatabase(
+        connectToDatabase(
             $dbHostForm,
             $dbUsernameForm,
             $dbPassForm,
             null,
             $dbPortForm
         );
-        $manager = $database->getManager();
+        $manager = Database::getManager();
         $dbNameForm = preg_replace('/[^a-zA-Z0-9_\-]/', '', $dbNameForm);
 
         // Drop and create the database anyways
         error_log("Drop database $dbNameForm");
-        $manager->getConnection()->getSchemaManager()->dropAndCreateDatabase($dbNameForm);
+        $schemaManager = $manager->getConnection()->createSchemaManager();
+
+        try {
+            $schemaManager->dropDatabase($dbNameForm);
+        } catch (\Doctrine\DBAL\Exception $e) {
+            error_log("Database ".$dbNameForm." does not exists");
+        }
+
+        $schemaManager->createDatabase($dbNameForm);
 
         error_log("Connect to database $dbNameForm with user $dbUsernameForm");
-        $database = connectToDatabase(
+        connectToDatabase(
             $dbHostForm,
             $dbUsernameForm,
             $dbPassForm,
@@ -527,10 +518,10 @@ if (isset($_POST['step2'])) {
             $dbPortForm
         );
 
-        $manager = $database->getManager();
-        // Create .env.local file
-        $envFile = api_get_path(SYMFONY_SYS_PATH).'.env.local';
-        $distFile = api_get_path(SYMFONY_SYS_PATH).'.env';
+        $manager = Database::getManager();
+        // Create .env file
+        $envFile = api_get_path(SYMFONY_SYS_PATH).'.env';
+        $distFile = api_get_path(SYMFONY_SYS_PATH).'.env.dist';
 
         $params = [
             '{{DATABASE_HOST}}' => $dbHostForm,
@@ -541,6 +532,15 @@ if (isset($_POST['step2'])) {
             '{{APP_INSTALLED}}' => 1,
             '{{APP_ENCRYPT_METHOD}}' => $encryptPassForm,
             '{{APP_SECRET}}' => generateRandomToken(),
+            '{{DB_MANAGER_ENABLED}}' => '0',
+            '{{SOFTWARE_NAME}}' => 'Chamilo',
+            '{{SOFTWARE_URL}}' => $institutionUrlForm,
+            '{{DENY_DELETE_USERS}}' => '0',
+            '{{HOSTING_TOTAL_SIZE_LIMIT}}' => '0',
+            '{{THEME_FALLBACK}}' => 'chamilo',
+            '{{PACKAGER}}' => 'chamilo',
+            '{{DEFAULT_TEMPLATE}}' => 'default',
+            '{{ADMIN_CHAMILO_ANNOUNCEMENTS_DISABLE}}' => '0',
         ];
 
         updateEnvFile($distFile, $envFile, $params);
@@ -591,9 +591,9 @@ if (isset($_POST['step2'])) {
                 $campusForm,
                 $allowSelfReg,
                 $allowSelfRegProf,
-                $installationProfile
+                $installationProfile,
+                $kernel
             );
-            writeSystemConfigFile(api_get_path(SYMFONY_SYS_PATH).'config/configuration.php');
             error_log('Finish installation');
         } else {
             error_log('ERROR during installation.');
@@ -621,6 +621,9 @@ if (isset($_POST['step2'])) {
     $stepData['installationProfile'] = $installationProfile;
 }
 
+if ($isUpdateAvailable) {
+    $installType = 'update';
+}
 $installerData = [
     'poweredBy' => 'Powered by <a href="https://chamilo.org" target="_blank">Chamilo</a> &copy; '.date('Y'),
 
@@ -635,10 +638,10 @@ $installerData = [
     'langIso' => api_get_language_isocode(),
 
     'formAction' => api_get_self().'?'.http_build_query([
-        'running' => 1,
-        'installType' => $installType,
-        'updateFromConfigFile' => $updateFromConfigFile,
-    ]),
+            'running' => 1,
+            'installType' => $installType,
+            'updateFromConfigFile' => $updateFromConfigFile,
+        ]),
 
     'updatePath' => !$badUpdatePath ? api_htmlentities($proposedUpdatePath, ENT_QUOTES) : '',
     'urlAppendPath' => api_htmlentities($urlAppendPath, ENT_QUOTES),
@@ -670,29 +673,66 @@ $installerData = [
     'old_version' => api_htmlentities($my_old_version, ENT_QUOTES),
     'new_version' => api_htmlentities($new_version, ENT_QUOTES),
     'installationProfile' => api_htmlentities($installationProfile, ENT_QUOTES),
-
     'currentStep' => $current_step,
-
+    'isUpdateAvailable' => $isUpdateAvailable,
+    'checkMigrationStatus' => $checkMigrationStatus,
+    'logUrl' => '/main/install/get_migration_status.php',
     'stepData' => $stepData,
 ];
 ?>
 <!DOCTYPE html>
+<html lang="<?php echo $installationLanguage ?>" class="no-js h-100">
 <head>
     <title>
         &mdash; <?php echo $translator->trans('Chamilo installation').' &mdash; '.$translator->trans('Version').' '.$new_version; ?>
     </title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="../../build/legacy_app.css">
+    <style>
+        :root {
+            --color-primary-base: 46 117 163;
+            --color-primary-gradient: 36 77 103;
+            --color-primary-button-text: 46 117 163;
+            --color-primary-button-alternative-text: 255 255 255;
+
+            --color-secondary-base: 243 126 47;
+            --color-secondary-gradient: 224 100 16;
+            --color-secondary-button-text: 255 255 255;
+
+            --color-tertiary-base: 51 51 51;
+            --color-tertiary-gradient: 0 0 0;
+            --color-tertiary-button-text: 255 255 255;
+
+            --color-success-base: 119 170 12;
+            --color-success-gradient: 83 127 0;
+            --color-success-button-text: 255 255 255;
+
+            --color-info-base: 13 123 253;
+            --color-info-gradient: 0 84 211;
+            --color-info-button-text: 255 255 255;
+
+            --color-warning-base: 245 206 1;
+            --color-warning-gradient: 186 152 0;
+            --color-warning-button-text: 0 0 0;
+
+            --color-danger-base: 223 59 59;
+            --color-danger-gradient: 180 0 21;
+            --color-danger-button-text: 255 255 255;
+
+            --color-form-base: 46 117 163;
+        }
+    </style>
+    <link rel="stylesheet" href="../../build/app.css">
     <link rel="stylesheet" href="../../build/vue.css">
-    <link rel="stylesheet" href="../../build/css/app.css">
-    <script type="text/javascript" src="../../../build/runtime.js"></script>
-    <script type="text/javascript" src="../../../build/app.js"></script>
+    <script type="text/javascript" src="../../build/legacy_app.js"></script>
 </head>
 <body class="flex min-h-screen p-2 md:px-16 md:py-8 xl:px-32 xl:py-16 bg-gradient-to-br from-primary to-primary-gradient">
-    <div id="app" class="m-auto"></div>
-    <script>
-    var installerData = <?php echo json_encode($installerData) ?>;
-    </script>
-    <script type="text/javascript" src="../../../build/vue_installer.js"></script>
+<div id="app" class="m-auto"></div>
+<script>
+  var installerData = <?php echo json_encode($installerData) ?>;
+</script>
+<script type="text/javascript" src="../../build/runtime.js"></script>
+<script type="text/javascript" src="../../build/vue_installer.js"></script>
 </body>
 </html>

@@ -1,7 +1,15 @@
 // Exercise CSS
 
+.exercise-overview {
+  @apply space-y-4;
+}
+
+[name="frm_exercise"] {
+  @apply space-y-4;
+}
+
 .main-question {
-  @apply mb-4;
+  @apply mb-4 space-y-4;
 }
 
 .question_menu {
@@ -60,6 +68,274 @@
   background-color: #ffffff;
   outline: 0 none;
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset, 0 0 8px rgba(102, 175, 233, 0.6);
+}
+
+.ui-state-highlight {
+  height: 3.5em;
+  line-height: 2.2em;
+  background-color: #fafafa;
+  border: 1px dashed #ccc;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  padding: 5px;
+}
+
+.question-pool-table-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 10px 0;
+  position: relative;
+
+  .btn-group {
+    margin-right: 5px;
+    position:relative;
+  }
+
+  .btn-group .btn--plain {
+    background-color: #f8f9fa;
+    border: 1px solid #ccc;
+    padding: 6px 12px;
+    font-size: 14px;
+    line-height: 1.42857143;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #333;
+  }
+
+  .btn-group .dropdown-toggle::after {
+    content: "▼";
+    margin-left: 5px;
+  }
+
+  .btn-group .dropdown-toggle[data-toggle="dropdown"] {
+    cursor: pointer;
+  }
+
+  .dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    display: none;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);
+    padding: 10px;
+    width: 300px;
+  }
+
+  .btn--plain:hover,
+  .dropdown-menu > li > a:hover,
+  .dropdown-menu > li > a:focus {
+    background-color: #e2e6ea;
+    color: #333;
+  }
+
+  .btn-group:hover .dropdown-menu {
+    display: block;
+  }
+
+  @media (max-width: 768px) {
+    .question-pool-table-actions {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .btn-group {
+      width: 100%;
+      margin-bottom: 5px;
+    }
+
+    .btn-group .dropdown-toggle::after {
+      content: "▼";
+      margin-left: auto;
+      margin-right: 10px;
+    }
+  }
+}
+
+.question-pool-pagination-nav {
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+
+  .pagination {
+    display: inline-flex;
+    list-style: none;
+    padding: 0;
+  }
+
+  .page-item {
+    margin: 0 0.25rem;
+  }
+
+  .page-item a {
+    color: #007bff;
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    padding: 0.5rem 0.75rem;
+    text-decoration: none;
+  }
+
+  .page-item.active a {
+    background-color: #007bff;
+    color: #fff;
+  }
+
+  .page-item a:hover {
+    background-color: #e9ecef;
+  }
+}
+
+#question_list {
+  font-family: Arial, sans-serif;
+  width: 100%;
+
+  .row,
+  .header_operations .row > div,
+  .header_operations .row > div > a,
+  .header_operations .row > div > a > i {
+    display: flex;
+    align-items: center;
+  }
+
+  .header_operations .row > div {
+    flex: 1;
+    padding: 0.75rem 1rem;
+  }
+
+  .question {
+    flex: 2 !important;
+  }
+
+  .type,
+  .category,
+  .level,
+  .score,
+  .btn-actions {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .level,
+  .score,
+  .btn-actions {
+    justify-content: flex-end;
+  }
+
+  .header_operations .xs {
+    display: none;
+  }
+
+  .row:first-child {
+    font-weight: bold;
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+
+  .btn-actions .edition {
+    gap: 10px;
+  }
+
+  .btn-actions .edition a {
+    margin: 0;
+  }
+
+  i.mdi {
+    font-size: 16px;
+  }
+
+  .ui-sortable-handle {
+    font-size: 25px !important;
+    margin-right: 5px;
+  }
+}
+
+.question-header {
+  @apply flex items-center justify-center border border-gray-30 rounded shadow-md mb-5;
+  background-color: #f8f9fa;
+  padding: 2px;
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+
+  > div {
+    @apply flex items-center justify-center text-center p-3;
+  }
+
+  .col-sm-5 {
+    flex: 3;
+  }
+
+  .col-sm-1 {
+    flex: 2 !important;
+  }
+
+  .col-sm-2 {
+    flex: 2;
+  }
+
+  .col-sm-1.text-right,
+  .col-sm-2.text-right {
+    @apply justify-end;
+  }
+
+  @media (max-width: 768px) {
+    @apply flex-col;
+
+    > div {
+      @apply text-left w-full py-2;
+    }
+  }
+}
+
+.feedback-green {
+  @apply text-success;
+}
+
+.feedback-red {
+  @apply text-error line-through;
+}
+
+.question-list-description-block {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  padding: 15px;
+  margin-top: -1px;
+  border-radius: 0 0 4px 4px;
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+
+  .lead {
+    font-size: 1.25rem;
+    margin-bottom: 10px;
+  }
+
+  .question_options {
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+
+    input[type="text"] {
+      width: auto;
+      margin: 0 5px;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    padding: 10px;
+
+    .question_options {
+      padding: 5px;
+
+      input[type="text"] {
+        padding: 4px;
+      }
+    }
+  }
 }
 
 .question_menu {
@@ -231,5 +507,74 @@
     th {
       @apply text-left;
     }
+  }
+}
+
+.ui-jqgrid {
+  .btn.btn-sm.ui-pg-button.active:hover {
+    @apply bg-primary text-white border-primary;
+  }
+
+  .fm-button-icon.active,
+  .fm-button-text.active {
+    @apply text-primary;
+  }
+}
+
+.modal.ui-jqgrid-bootstrap.ui-jqdialog {
+  @apply absolute bg-white rounded-lg border border-gray-30 shadow-lg overflow-hidden font-sans p-0 w-[300px];
+}
+
+.ui-jqdialog {
+  .modal-dialog {
+    @apply h-full;
+  }
+
+  .modal-content {
+    @apply bg-white border-none rounded-lg shadow-none w-full;
+  }
+
+  .modal-header.ui-jqdialog-titlebar {
+    @apply bg-primary text-white px-4 py-3 text-lg font-bold flex justify-between items-center w-full box-border;
+  }
+
+  .modal-header .close.ui-jqdialog-titlebar-close {
+    @apply text-white text-2xl no-underline m-0 cursor-pointer;
+  }
+
+  .modal-header .close.ui-jqdialog-titlebar-close:hover {
+    @apply text-support-5;
+  }
+
+  .modal-body {
+    @apply px-5 py-5 text-sm text-gray-90 text-center;
+  }
+
+  .fm-button {
+    @apply bg-gray-10 text-gray-90 inline-flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 ease-in-out;
+  }
+
+  .fm-button:hover {
+    @apply bg-gray-20 text-gray-50;
+  }
+
+  .fm-button-icon {
+    @apply text-gray-30 transition-colors duration-200 ease-in-out;
+  }
+
+  .fm-button-icon:hover {
+    @apply text-gray-50;
+  }
+
+  .fm-button-text {
+    color: inherit;
+  }
+
+  .ui-resizable-handle {
+    @apply bg-gray-25 w-1 h-1 cursor-pointer;
+  }
+
+  .ui-resizable-handle:hover {
+    @apply bg-primary;
   }
 }

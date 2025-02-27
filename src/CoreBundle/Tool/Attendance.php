@@ -10,14 +10,14 @@ use Chamilo\CourseBundle\Entity\CAttendance;
 
 class Attendance extends AbstractTool implements ToolInterface
 {
-    public function getName(): string
+    public function getTitle(): string
     {
         return 'attendance';
     }
 
     public function getLink(): string
     {
-        return '/main/attendance/index.php';
+        return '/resources/attendance/:nodeId/';
     }
 
     public function getIcon(): string

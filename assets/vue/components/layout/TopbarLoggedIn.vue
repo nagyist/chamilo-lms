@@ -1,127 +1,145 @@
 <template>
-  <MegaMenu
-    class="app-topbar"
-    :model="menuItems"
-  >
-    <template #start>
-      <img
-        alt="Chamilo LMS"
-        src="/build/css/themes/chamilo/images/header-logo.svg"
+  <div class="app-topbar">
+    <div class="app-topbar__start">
+      <PlatformLogo />
+    </div>
+    <div class="app-topbar__items">
+      <BaseAppLink
+        v-if="'false' !== platformConfigStore.getSetting('display.show_link_ticket_notification')"
+        :url="ticketUrl"
+        class="item-button"
       >
-    </template>
-
-    <template #item="{item}">
-      <router-link
-        v-if="item.to"
-        :to="item.to"
-        class="p-menuitem-link"
-      >
-        <span
-          :class="item.icon"
-          class="p-menuitem-icon mx-0"
+        <BaseIcon
+          class="item-button__icon"
+          icon="ticket"
         />
-        <span class="p-menuitem-text hidden">{{ item.label }}</span>
-      </router-link>
-      <a
-        v-if="item.url"
-        :href="item.url"
-        class="p-menuitem-link"
-        aria-haspopup="true"
-        aria-controls="user-submenu"
-      >
-        <span
-          :class="item.icon"
-          class="p-menuitem-icon mx-0"
-        />
-        <span class="p-menuitem-text hidden">{{ item.label }}</span>
-      </a>
-    </template>
+      </BaseAppLink>
 
-    <template #end>
+      <BaseAppLink
+        :class="{ 'item-button--unread': !!btnInboxBadge }"
+        :to="{ name: 'MessageList' }"
+        class="item-button"
+      >
+        <BaseIcon
+          class="item-button__icon"
+          icon="inbox"
+        />
+        <span
+          v-if="btnInboxBadge"
+          class="item-button__badge"
+          v-text="btnInboxBadge"
+        />
+      </BaseAppLink>
+    </div>
+    <div class="app-topbar__end">
       <Avatar
         :image="currentUser.illustrationUrl"
-        class="cursor-pointer"
+        class="user-avatar"
         shape="circle"
-        @click="toogleUserMenu"
+        unstyled
+        @click="toggleUserMenu"
       />
-    </template>
-  </MegaMenu>
+    </div>
+  </div>
 
   <Menu
     id="user-submenu"
     ref="elUserSubmenu"
-    class="app-topbar__user-submenu"
     :model="userSubmenuItems"
     :popup="true"
+    class="app-topbar__user-submenu"
   />
 </template>
 
 <script setup>
-import {ref} from "vue";
-import {useRoute} from "vue-router";
+import { computed, ref } from "vue"
+import { useRouter } from "vue-router"
 
-import MegaMenu from "primevue/megamenu";
-import Avatar from "primevue/avatar";
-import Menu from "primevue/menu";
+import Avatar from "primevue/avatar"
+import Menu from "primevue/menu"
+import { usePlatformConfig } from "../../store/platformConfig"
+import { useMessageRelUserStore } from "../../store/messageRelUserStore"
 
-// eslint-disable-next-line no-undef
+import { useNotification } from "../../composables/notification"
+import { useI18n } from "vue-i18n"
+import PlatformLogo from "./PlatformLogo.vue"
+import BaseIcon from "../basecomponents/BaseIcon.vue"
+import { useCidReqStore } from "../../store/cidReq"
+
+const { t } = useI18n()
+
 const props = defineProps({
   currentUser: {
     required: true,
     type: Object,
   },
-  platformSettings: {
-    required: true,
-    type: Object,
+})
+
+const router = useRouter()
+
+const platformConfigStore = usePlatformConfig()
+const messageRelUserStore = useMessageRelUserStore()
+const notification = useNotification()
+const cidReqStore = useCidReqStore()
+
+const ticketUrl = computed(() => {
+  const searchParms = new URLSearchParams()
+  searchParms.append("project_id", "1")
+  searchParms.append("cid", cidReqStore.course?.id ?? 0)
+  searchParms.append("sid", cidReqStore.session?.id ?? 0)
+  searchParms.append("gid", cidReqStore.group?.id ?? 0)
+
+  return "/main/ticket/tickets.php?" + searchParms.toString()
+})
+
+const elUserSubmenu = ref(null)
+const userSubmenuItems = computed(() => {
+  const items = [
+    {
+      label: props.currentUser.fullName,
+      items: [
+        {
+          label: t("My profile"),
+          url: router.resolve({ name: "AccountHome" }).href,
+        },
+      ],
+    },
+  ]
+
+  if (platformConfigStore.getSetting("platform.show_tabs").indexOf("topbar_certificate") > -1) {
+    items[0].items.push({
+      label: t("My General Certificate"),
+      url: "/main/social/my_skills_report.php?a=generate_custom_skill",
+    })
   }
-});
 
-const route = useRoute();
+  if (platformConfigStore.getSetting("platform.show_tabs").indexOf("topbar_skills") > -1) {
+    items[0].items.push({
+      label: t("My skills"),
+      url: "/main/social/my_skills_report.php",
+    })
+  }
 
-const menuItems = ref([
-  {
-    label: 'Tickets',
-    icon: 'pi pi-fw pi-ticket',
-    url: (function () {
-      const queryParams = new URLSearchParams(window.location.href);
+  items[0].items.push(
+    { separator: true },
+    {
+      label: t("Sign out"),
+      url: "/logout",
+      icon: "mdi mdi-logout-variant",
+    },
+  )
 
-      const cid = route.query.cid || route.params.id || queryParams.get('cid') || 0;
-      const sid = route.query.sid || queryParams.get('sid') || 0;
-      const gid = route.query.gid || queryParams.get('gid') || 0;
+  return items
+})
 
-      return `/main/ticket/tickets.php?project_id=1&cid=${cid}&sid=${sid}&gid=${gid}`;
-    })(),
-    visible: 'true' !== props.platformSettings['display.show_link_ticket_notification'],
-    items: []
-  },
-  {
-    label: 'Profile',
-    icon: 'pi pi-fw pi-user',
-    to: '/account/home',
-    items: []
-  },
-  {
-    label: 'Inbox',
-    icon: 'pi pi-fw pi-inbox',
-    to: '/resources/messages',
-    items: []
-  },
-]);
-
-const elUserSubmenu = ref(null);
-const userSubmenuItems = [
-  {
-    label: props.currentUser.fullName,
-    items: [
-      {
-        label: 'Settings',
-        url: '/account/edit'
-      },
-    ]
-  },
-];
-
-function toogleUserMenu(event) {
-  elUserSubmenu.value.toggle(event);
+function toggleUserMenu(event) {
+  elUserSubmenu.value.toggle(event)
 }
+
+const btnInboxBadge = computed(() => {
+  const unreadCount = messageRelUserStore.countUnread
+  return unreadCount > 20 ? "9+" : unreadCount > 0 ? unreadCount.toString() : null
+})
+
+messageRelUserStore.findUnreadCount().catch((e) => notification.showErrorNotification(e))
 </script>

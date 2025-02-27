@@ -141,8 +141,10 @@ class MultipleAnswerTrueFalseDegreeCertainty extends Question
                     foreach ($optionData as $id => $data) {
                         $rdoCorrect = $form->addElement('radio', 'correct['.$i.']', null, null, $id);
 
-                        if (isset($_POST['correct']) && isset($_POST['correct'][$i]) && $id == $_POST['correct'][$i]) {
+                        if (isset($_POST['correct']) && isset($_POST['correct'][$i]) && $j == $_POST['correct'][$i]) {
                             $rdoCorrect->setValue(Security::remove_XSS($_POST['correct'][$i]));
+                        } else {
+                            $rdoCorrect->setValue($j);
                         }
                         $j++;
                         if (3 == $j) {
@@ -164,6 +166,7 @@ class MultipleAnswerTrueFalseDegreeCertainty extends Question
                 ['style' => 'vertical-align:middle;'],
             );
             $form->addRule('answer['.$i.']', get_lang('Required field'), 'required');
+            $form->applyFilter("answer[$i]", 'attr_on_filter');
 
             if (isset($_POST['answer']) && isset($_POST['answer'][$i])) {
                 $form->getElement("answer[$i]")->setValue(Security::remove_XSS($_POST['answer'][$i]));
@@ -181,6 +184,7 @@ class MultipleAnswerTrueFalseDegreeCertainty extends Question
                 if (isset($_POST['comment']) && isset($_POST['comment'][$i])) {
                     $form->getElement("comment[$i]")->setValue(Security::remove_XSS($_POST['comment'][$i]));
                 }
+                $form->applyFilter("comment[$i]", 'attr_on_filter');
             }
             $form->addElement('html', '</tr>');
         }
@@ -246,9 +250,9 @@ class MultipleAnswerTrueFalseDegreeCertainty extends Question
         $question = $repo->find($this->id);
         $options = $question->getOptions();
 
-        if (!empty($options)) {
+        if (!$options->isEmpty()) {
             foreach ($options as $optionData) {
-                $optionData->setName($optionData);
+                $optionData->setTitle($optionData->getTitle());
             }
         } else {
             for ($i = 1; $i <= 8; $i++) {

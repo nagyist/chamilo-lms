@@ -5,16 +5,24 @@
 use Chamilo\CoreBundle\DataFixtures\LanguageFixtures;
 use Chamilo\CoreBundle\Entity\AccessUrl;
 use Chamilo\CoreBundle\Entity\User;
+use Chamilo\CoreBundle\Entity\UserAuthSource;
 use Chamilo\CoreBundle\Framework\Container;
 use Chamilo\CoreBundle\Repository\GroupRepository;
 use Chamilo\CoreBundle\Repository\Node\AccessUrlRepository;
+use Chamilo\CoreBundle\ServiceHelper\AccessUrlHelper;
 use Chamilo\CoreBundle\Tool\ToolChain;
+use Doctrine\DBAL\Connection;
 use Doctrine\Migrations\Configuration\Connection\ExistingConnection;
 use Doctrine\Migrations\Configuration\Migration\PhpFile;
 use Doctrine\Migrations\DependencyFactory;
 use Doctrine\Migrations\Query\Query;
 use Doctrine\ORM\EntityManager;
+use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\DependencyInjection\Container as SymfonyContainer;
+use Symfony\Component\Dotenv\Dotenv;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\BufferedOutput;
+use Symfony\Bundle\FrameworkBundle\Console\Application;
 
 /*
  * Chamilo LMS
@@ -245,45 +253,6 @@ function set_file_folder_permissions()
 }
 
 /**
- * Write the main system config file.
- *
- * @param string $path Path to the config file
- */
-function writeSystemConfigFile($path)
-{
-    $content = file_get_contents(__DIR__.'/'.SYSTEM_CONFIG_FILENAME);
-    $config['{DATE_GENERATED}'] = date('r');
-    $config['{SECURITY_KEY}'] = md5(uniqid(rand().time()));
-
-    foreach ($config as $key => $value) {
-        $content = str_replace($key, $value, $content);
-    }
-    $fp = @fopen($path, 'w');
-
-    if (!$fp) {
-        echo '<strong>
-                <font color="red">Your script doesn\'t have write access to the config directory</font></strong><br />
-                <em>('.str_replace('\\', '/', realpath($path)).')</em><br /><br />
-                You probably do not have write access on Chamilo root directory,
-                i.e. you should <em>CHMOD 777</em> or <em>755</em> or <em>775</em>.<br /><br />
-                Your problems can be related on two possible causes:<br />
-                <ul>
-                  <li>Permission problems.<br />Try initially with <em>chmod -R 777</em> and increase restrictions gradually.</li>
-                  <li>PHP is running in <a href="http://www.php.net/manual/en/features.safe-mode.php" target="_blank">Safe-Mode</a>.
-                  If possible, try to switch it off.</li>
-                </ul>
-                <a href="http://forum.chamilo.org/" target="_blank">Read about this problem in Support Forum</a><br /><br />
-                Please go back to step 5.
-                <p><input type="submit" name="step5" value="&lt; Back" /></p>
-                </td></tr></table></form></body></html>';
-        exit;
-    }
-
-    fwrite($fp, $content);
-    fclose($fp);
-}
-
-/**
  * This function returns the value of a parameter from the configuration file.
  *
  * WARNING - this function relies heavily on global variables $updateFromConfigFile
@@ -344,10 +313,19 @@ function get_config_param_from_db($param = '')
 {
     $param = Database::escape_string($param);
 
-    if (false !== ($res = Database::query("SELECT * FROM settings_current WHERE variable = '$param'"))) {
+    $schemaManager = Database::getConnection()->createSchemaManager();
+
+    if ($schemaManager->tablesExist('settings_current')) {
+        $query = "SELECT * FROM settings_current WHERE variable = '$param'";
+    } elseif ($schemaManager->tablesExist('settings')) {
+        $query = "SELECT * FROM settings WHERE variable = '$param'";
+    } else {
+        return null;
+    }
+
+    if (false !== ($res = Database::query($query))) {
         if (Database::num_rows($res) > 0) {
             $row = Database::fetch_array($res);
-
             return $row['selected_value'];
         }
     }
@@ -362,9 +340,12 @@ function get_config_param_from_db($param = '')
  * @param string $username
  * @param string $password
  * @param string $databaseName
- * @param int    $port
+ * @param int $port
  *
- * @return \Database
+ * @throws \Doctrine\DBAL\Exception
+ * @throws \Doctrine\ORM\ORMException
+ *
+ * @return void
  */
 function connectToDatabase(
     $host,
@@ -372,9 +353,9 @@ function connectToDatabase(
     $password,
     $databaseName,
     $port = 3306
-) {
-    $database = new \Database();
-    $database->connect(
+): void
+{
+    Database::connect(
         [
             'driver' => 'pdo_mysql',
             'host' => $host,
@@ -384,8 +365,6 @@ function connectToDatabase(
             'dbname' => $databaseName,
         ]
     );
-
-    return $database;
 }
 
 /**
@@ -727,12 +706,12 @@ function display_requirements(
         'status' => is_writable($basePath.'var'),
     ];
     $pathPermissions[] = [
-        'item' => $basePath.'.env.local',
-        'status' => checkCanCreateFile($basePath.'.env.local'),
-    ];
-    $pathPermissions[] = [
         'item' => $basePath.'config/',
         'status' => is_writable($basePath.'config'),
+    ];
+    $pathPermissions[] = [
+        'item' => $basePath.'.env',
+        'status' => checkCanCreateFile($basePath.'.env'),
     ];
     $pathPermissions[] = [
         'item' => get_lang('Permissions for new directories'),
@@ -754,12 +733,6 @@ function display_requirements(
         $perm = octdec('0777');
         //$perm_file = api_get_permissions_for_new_files();
         $perm_file = octdec('0666');
-
-        $checked_writable = api_get_path(SYS_PUBLIC_PATH);
-        if (!is_writable($checked_writable)) {
-            $notWritable[] = $checked_writable;
-            @chmod($checked_writable, $perm);
-        }
 
         if (!$course_test_was_created) {
             error_log('Installer: Could not create test course - Make sure permissions are fine.');
@@ -803,7 +776,7 @@ function display_requirements(
         'pathPermissions' => $pathPermissions,
         'step2_update_6' => isset($_POST['step2_update_6']),
         'notWritable' => $notWritable,
-        'existsConfigurationFile' => file_exists(api_get_path(CONFIGURATION_PATH).'configuration.php'),
+        'existsConfigurationFile' => false,
         'deprecatedToRemove' => $deprecatedToRemove,
         'installError' => $error,
     ];
@@ -819,62 +792,65 @@ function display_license_agreement(): array
     $license = api_htmlentities(@file_get_contents(api_get_path(SYMFONY_SYS_PATH).'public/documentation/license.txt'));
 
     $activtiesList = [
-        'Advertising/Marketing/PR',
-        'Agriculture/Forestry',
-        'Architecture',
-        'Banking/Finance',
-        'Biotech/Pharmaceuticals',
-        'Business Equipment',
-        'Business Services',
-        'Construction',
-        'Consulting/Research',
-        'Education',
-        'Engineering',
-        'Environmental',
-        'Government',
-        'Health Care',
-        'Hospitality/Lodging/Travel',
-        'Insurance',
-        'Legal',
-        'Manufacturing',
-        'Media/Entertainment',
-        'Mortgage',
-        'Non-Profit',
-        'Real Estate',
-        'Restaurant',
-        'Retail',
-        'Shipping/Transportation',
-        'Technology',
-        'Telecommunications',
-        'Other',
+        ['Advertising/Marketing/PR'],
+        ['Agriculture/Forestry'],
+        ['Architecture'],
+        ['Banking/Finance'],
+        ['Biotech/Pharmaceuticals'],
+        ['Business Equipment'],
+        ['Business Services'],
+        ['Construction'],
+        ['Consulting/Research'],
+        ['Education'],
+        ['Engineering'],
+        ['Environmental'],
+        ['Government'],
+        ['Health Care'],
+        ['Hospitality/Lodging/Travel'],
+        ['Insurance'],
+        ['Legal'],
+        ['Manufacturing'],
+        ['Media/Entertainment'],
+        ['Mortgage'],
+        ['Non-Profit'],
+        ['Real Estate'],
+        ['Restaurant'],
+        ['Retail'],
+        ['Shipping/Transportation'],
+        ['Technology'],
+        ['Telecommunications'],
+        ['Other'],
     ];
 
     $rolesList = [
-        'Administration',
-        'CEO/President/ Owner',
-        'CFO',
-        'CIO/CTO',
-        'Consultant',
-        'Customer Service',
-        'Engineer/Programmer',
-        'Facilities/Operations',
-        'Finance/ Accounting Manager',
-        'Finance/ Accounting Staff',
-        'General Manager',
-        'Human Resources',
-        'IS/IT Management',
-        'IS/ IT Staff',
-        'Marketing Manager',
-        'Marketing Staff',
-        'Partner/Principal',
-        'Purchasing Manager',
-        'Sales/ Business Dev. Manager',
-        'Sales/ Business Dev.',
-        'Vice President/Senior Manager',
-        'Other',
+        ['Administration'],
+        ['CEO/President/ Owner'],
+        ['CFO'],
+        ['CIO/CTO'],
+        ['Consultant'],
+        ['Customer Service'],
+        ['Engineer/Programmer'],
+        ['Facilities/Operations'],
+        ['Finance/ Accounting Manager'],
+        ['Finance/ Accounting Staff'],
+        ['General Manager'],
+        ['Human Resources'],
+        ['IS/IT Management'],
+        ['IS/ IT Staff'],
+        ['Marketing Manager'],
+        ['Marketing Staff'],
+        ['Partner/Principal'],
+        ['Purchasing Manager'],
+        ['Sales/ Business Dev. Manager'],
+        ['Sales/ Business Dev.'],
+        ['Vice President/Senior Manager'],
+        ['Other'],
     ];
 
-    $countriesList = get_countries_list_from_array();
+    $countriesList = array_map(
+        fn ($country) => [$country],
+        get_countries_list_from_array()
+    );
 
     $languagesList = [
         ['bulgarian', 'Bulgarian'],
@@ -981,8 +957,7 @@ function display_database_settings_form(
 
     try {
         if ('update' === $installType) {
-            /** @var \Database $manager */
-            $manager = connectToDatabase(
+            connectToDatabase(
                 $dbHostForm,
                 $dbUsernameForm,
                 $dbPassForm,
@@ -990,6 +965,7 @@ function display_database_settings_form(
                 $dbPortForm
             );
 
+            $manager = Database::getManager();
             $connection = $manager->getConnection();
             $connection->connect();
             $schemaManager = $connection->getSchemaManager();
@@ -1007,7 +983,7 @@ function display_database_settings_form(
                 $tableDropWorks = false === $schemaManager->tablesExist($table);
             }
         } else {
-            $manager = connectToDatabase(
+            connectToDatabase(
                 $dbHostForm,
                 $dbUsernameForm,
                 $dbPassForm,
@@ -1015,6 +991,7 @@ function display_database_settings_form(
                 $dbPortForm
             );
 
+            $manager = Database::getManager();
             $schemaManager = $manager->getConnection()->createSchemaManager();
             $databases = $schemaManager->listDatabases();
             $databaseExists = in_array($dbNameForm, $databases);
@@ -1034,7 +1011,7 @@ function display_database_settings_form(
         'dbUsernameForm' => $dbUsernameForm,
         'dbPassForm' => $dbPassForm,
         'dbNameForm' => $dbNameForm,
-        'examplePassword' => api_generate_password(),
+        'examplePassword' => api_generate_password(8, false),
         'dbExists' => $databaseExists,
         'dbConnError' => $databaseConnectionError,
         'connParams' => $connectionParams,
@@ -1188,7 +1165,7 @@ function get_countries_list_from_array($combo = false)
 function lockSettings()
 {
     $settings = api_get_locked_settings();
-    $table = Database::get_main_table(TABLE_MAIN_SETTINGS_CURRENT);
+    $table = Database::get_main_table(TABLE_MAIN_SETTINGS);
     foreach ($settings as $setting) {
         $sql = "UPDATE $table SET access_url_locked = 1 WHERE variable  = '$setting'";
         Database::query($sql);
@@ -1200,7 +1177,7 @@ function lockSettings()
  */
 function updateDirAndFilesPermissions()
 {
-    $table = Database::get_main_table(TABLE_MAIN_SETTINGS_CURRENT);
+    $table = Database::get_main_table(TABLE_MAIN_SETTINGS);
     $permissions_for_new_directories = isset($_SESSION['permissions_for_new_directories']) ? $_SESSION['permissions_for_new_directories'] : 0770;
     $permissions_for_new_files = isset($_SESSION['permissions_for_new_files']) ? $_SESSION['permissions_for_new_files'] : 0660;
     // use decoct() to store as string
@@ -1278,7 +1255,7 @@ function installSettings(
     ];
 
     foreach ($settings as $variable => $value) {
-        $sql = "UPDATE settings_current
+        $sql = "UPDATE settings
                 SET selected_value = '$value'
                 WHERE variable = '$variable'";
         Database::query($sql);
@@ -1347,21 +1324,21 @@ function migrate(EntityManager $manager)
         $versionCounter = 1;
         foreach ($versions as $version => $queries) {
             $total = count($queries);
-            echo '----------------------------------------------<br />';
+            //echo '----------------------------------------------<br />';
             $message = "VERSION: $version";
-            echo "$message<br/>";
+            //echo "$message<br/>";
             error_log('-------------------------------------');
             error_log($message);
             $counter = 1;
             foreach ($queries as $query) {
                 $sql = $query->getStatement();
-                echo "<code>$sql</code><br>";
+                //echo "<code>$sql</code><br>";
                 error_log("$counter/$total : $sql");
                 $counter++;
             }
             $versionCounter++;
         }
-        echo '<br/>DONE!<br />';
+        //echo '<br/>DONE!<br />';
         error_log('DONE!');
     }
 
@@ -1383,11 +1360,21 @@ function updateEnvFile($distFile, $envFile, $params)
         'DATABASE_PASSWORD',
         'APP_INSTALLED',
         'APP_ENCRYPT_METHOD',
+        'APP_SECRET',
+        'DB_MANAGER_ENABLED',
+        'SOFTWARE_NAME',
+        'SOFTWARE_URL',
+        'DENY_DELETE_USERS',
+        'HOSTING_TOTAL_SIZE_LIMIT',
+        'THEME_FALLBACK',
+        'PACKAGER',
+        'DEFAULT_TEMPLATE',
+        'ADMIN_CHAMILO_ANNOUNCEMENTS_DISABLE',
     ];
 
     foreach ($requirements as $requirement) {
         if (!isset($params['{{'.$requirement.'}}'])) {
-            throw new \Exception("The parameter $requirement is needed in order to edit the .env.local file");
+            throw new \Exception("The parameter $requirement is needed in order to edit the .env file");
         }
     }
 
@@ -1439,7 +1426,7 @@ function installSchemas($container, $upgrade = false)
         $settingsManager->updateSchemas($accessUrl);
     } else {
         error_log('Install settings');
-        // Installing schemas (filling settings_current table)
+        // Installing schemas (filling settings table)
         $settingsManager->installSchemas($accessUrl);
     }
 }
@@ -1500,7 +1487,8 @@ function finishInstallationWithContainer(
     $siteName,
     $allowSelfReg,
     $allowSelfRegProf,
-    $installationProfile = ''
+    $installationProfile = '',
+    \Chamilo\Kernel $kernel
 ) {
     Container::setContainer($container);
     Container::setLegacyServices($container);
@@ -1511,6 +1499,9 @@ function finishInstallationWithContainer(
     /** @var User $admin */
     $admin = $repo->findOneBy(['username' => 'admin']);
 
+    /** @var AccessUrl $accessUrl */
+    $accessUrl = Container::$container->get(AccessUrlHelper::class)->getCurrent();
+
     $admin
         ->setLastname($adminLastName)
         ->setFirstname($adminFirstName)
@@ -1519,7 +1510,7 @@ function finishInstallationWithContainer(
         ->setPlainPassword($passForm)
         ->setEmail($emailForm)
         ->setOfficialCode('ADMIN')
-        ->setAuthSource(PLATFORM_AUTH_SOURCE)
+        ->addAuthSourceByAuthentication(UserAuthSource::PLATFORM, $accessUrl)
         ->setPhone($adminPhoneForm)
         ->setLocale($languageForm)
         ->setTimezone($timezone)
@@ -1552,6 +1543,9 @@ function finishInstallationWithContainer(
     );
     lockSettings();
     updateDirAndFilesPermissions();
+    executeLexikKeyPair($kernel);
+
+    createExtraConfigFile();
 }
 
 /**
@@ -1592,7 +1586,7 @@ function installProfileSettings($installationProfile = '')
         installProfileSettings($params->parent);
     }
 
-    $tblSettings = Database::get_main_table(TABLE_MAIN_SETTINGS_CURRENT);
+    $tblSettings = Database::get_main_table(TABLE_MAIN_SETTINGS);
 
     foreach ($settings as $id => $param) {
         $conditions = ['variable = ? ' => $param->variable];
@@ -1661,6 +1655,7 @@ function migrateSwitch($fromVersion, $manager, $processFiles = true)
         case '1.11.10':
         case '1.11.12':
         case '1.11.14':
+        case '1.11.16':
             $start = time();
             // Migrate using the migration files located in:
             // /srv/http/chamilo2/src/CoreBundle/Migrations/Schema/V200
@@ -1669,7 +1664,7 @@ function migrateSwitch($fromVersion, $manager, $processFiles = true)
 
             if ($result) {
                 error_log('Migrations files were executed ('.date('Y-m-d H:i:s').')');
-                $sql = "UPDATE settings_current SET selected_value = '2.0.0'
+                $sql = "UPDATE settings SET selected_value = '2.0.0'
                         WHERE variable = 'chamilo_database_version'";
                 $connection->executeQuery($sql);
                 if ($processFiles) {
@@ -1723,4 +1718,262 @@ function checkCanCreateFile(string $file): bool
     }
 
     return false;
+}
+
+/**
+ * Checks if the update option is available.
+ *
+ * This function checks the APP_INSTALLED environment variable to determine if the application is already installed.
+ * If the APP_INSTALLED variable is set to '1', it indicates that an update is available.
+ *
+ * @return bool True if the application is already installed (APP_INSTALLED='1'), otherwise false.
+ */
+function isUpdateAvailable(): bool
+{
+    $dotenv = new Dotenv();
+    $envFile = api_get_path(SYMFONY_SYS_PATH) . '.env';
+    $dotenv->loadEnv($envFile);
+
+    // Check if APP_INSTALLED is set and equals '1'
+    if (isset($_ENV['APP_INSTALLED']) && $_ENV['APP_INSTALLED'] === '1') {
+        return true;
+    }
+
+    // If APP_INSTALLED is not found or not set to '1', assume the application is not installed
+    return false;
+}
+
+/**
+ * Check the current migration status.
+ *
+ * This function calculates the progress of the database migration by comparing the number of executed migrations
+ * with the total number of migration files available in the system. It also retrieves the latest executed migration version.
+ *
+ * @return array {
+ *     An array containing the following keys:
+ *
+ *     @type int    $progress_percentage The percentage of migrations that have been executed.
+ *     @type string $current_migration   The version of the last executed migration, or null if no migrations have been executed.
+ * }
+ */
+function checkMigrationStatus(): array
+{
+    Database::setManager(initializeEntityManager());
+    $manager = Database::getManager();
+    $connection = $manager->getConnection();
+
+    $migrationFiles = glob(__DIR__ . '/../../../src/CoreBundle/Migrations/Schema/V200/Version*.php');
+    $totalMigrations = count($migrationFiles);
+
+    $executedMigrations = $connection->createQueryBuilder()
+        ->select('COUNT(*) as count')
+        ->from('version')
+        ->execute()
+        ->fetchOne();
+
+    $progress_percentage = 0;
+    if ($totalMigrations > 0) {
+        $progress_percentage = ($executedMigrations / $totalMigrations) * 100;
+    }
+
+    $current_migration = $connection->createQueryBuilder()
+        ->select('version')
+        ->from('version')
+        ->orderBy('executed_at', 'DESC')
+        ->setMaxResults(1)
+        ->execute()
+        ->fetchOne();
+
+    return [
+        'progress_percentage' => ceil($progress_percentage),
+        'current_migration' => $current_migration,
+    ];
+}
+
+/**
+ * Initializes the EntityManager by loading environment variables and connecting to the database.
+ *
+ * @return EntityManager The initialized EntityManager
+ */
+function initializeEntityManager(): EntityManager
+{
+    $dotenv = new Dotenv();
+    $envFile = api_get_path(SYMFONY_SYS_PATH) . '.env';
+    $dotenv->loadEnv($envFile);
+
+    connectToDatabase(
+        $_ENV['DATABASE_HOST'],
+        $_ENV['DATABASE_USER'],
+        $_ENV['DATABASE_PASSWORD'],
+        $_ENV['DATABASE_NAME'],
+        $_ENV['DATABASE_PORT']
+    );
+
+    $manager = Database::getManager();
+
+    return $manager;
+}
+
+/**
+ * Checks if the version table in the database is valid.
+ *
+ * @param Connection $connection The database connection
+ *
+ * @return bool True if the version table is valid, false otherwise
+ */
+function isVersionTableValid($connection): bool
+{
+    $schema = $connection->createSchemaManager();
+    if ($schema->tablesExist('version')) {
+        $columns = $schema->listTableColumns('version');
+
+        $requiredColumns = ['version', 'executed_at', 'execution_time'];
+        foreach ($requiredColumns as $column) {
+            if (!isset($columns[$column])) {
+                return false;
+            }
+        }
+
+        $query = $connection->createQueryBuilder()
+            ->select('*')
+            ->from('version')
+            ->orderBy('executed_at', 'DESC')
+            ->setMaxResults(1);
+        $result = $query->execute()->fetchAll();
+
+        if (!empty($result)) {
+            $latestMigrationDate = new DateTime($result[0]['executed_at']);
+            $now = new DateTime();
+
+            if ($latestMigrationDate->diff($now)->days < 1) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Retrieves the last executed migration version from the database.
+ *
+ * @param Connection $connection The database connection
+ *
+ * @return string The last executed migration version
+ */
+function getLastExecutedMigration(Connection $connection): string
+{
+    $query = $connection->createQueryBuilder()
+        ->select('version')
+        ->from('version')
+        ->orderBy('executed_at', 'DESC')
+        ->setMaxResults(1);
+    $result = $query->execute()->fetchAssociative();
+    return $result['version'] ?? '';
+}
+
+
+/**
+ * Executes the database migration and returns the status.
+ *
+ * @return array The result status of the migration
+ */
+function executeMigration(): array
+{
+    $resultStatus = [
+        'status' => false,
+        'message' => 'Error executing migration.',
+        'progress_percentage' => 0,
+        'current_migration' => '',
+    ];
+
+    Database::setManager(initializeEntityManager());
+    $manager = Database::getManager();
+    $connection = $manager->getConnection();
+
+    try {
+        $config = new PhpFile(api_get_path(SYS_CODE_PATH) . 'install/migrations.php');
+        $dependency = DependencyFactory::fromConnection($config, new ExistingConnection($connection));
+
+        if (!isVersionTableValid($connection)) {
+            $schema = $connection->createSchemaManager();
+            $schema->dropTable('version');
+        }
+
+        $dependency->getMetadataStorage()->ensureInitialized();
+
+        $env = $_SERVER['APP_ENV'] ?? 'dev';
+        $kernel = new Chamilo\Kernel($env, false);
+        $kernel->boot();
+
+        $application = new Application($kernel);
+        $application->setAutoExit(false);
+
+        $input = new ArrayInput([
+            'command' => 'doctrine:migrations:migrate',
+            '--no-interaction' => true,
+        ]);
+
+        $output = new BufferedOutput();
+        $application->run($input, $output);
+
+        $result = $output->fetch();
+
+        createExtraConfigFile();
+
+        if (strpos($result, '[OK] Successfully migrated to version') !== false) {
+            $resultStatus['status'] = true;
+            $resultStatus['message'] = 'Migration completed successfully.';
+            $resultStatus['progress_percentage'] = 100;
+        } else {
+            $resultStatus['message'] = 'Migration completed with errors.';
+            $resultStatus['progress_percentage'] = 0;
+        }
+
+        $resultStatus['current_migration'] = getLastExecutedMigration($connection);
+    } catch (Exception $e) {
+        $resultStatus['current_migration'] = getLastExecutedMigration($connection);
+        $resultStatus['message'] = 'Migration failed: ' . $e->getMessage();
+    }
+
+    return $resultStatus;
+}
+
+/**
+ * @throws Exception
+ */
+function executeLexikKeyPair(\Chamilo\Kernel $kernel): void
+{
+    $application = new Application($kernel);
+    $application->setAutoExit(false);
+
+    $input = new ArrayInput([
+        'command' => 'lexik:jwt:generate-keypair',
+    ]);
+
+    $output = new NullOutput();
+
+    $application->run($input, $output);
+}
+
+function createExtraConfigFile(): void {
+    $files = [
+        'authentication',
+        'hosting_limits',
+        'plugin',
+    ];
+
+    $sysPath = api_get_path(SYMFONY_SYS_PATH);
+
+    foreach ($files as $file) {
+        $finalFilename = $sysPath."config/$file.yaml";
+
+        if (!file_exists($finalFilename)) {
+            $distFilename = $sysPath."config/$file.dist.yaml";
+
+            $contents = file_get_contents($distFilename);
+
+            file_put_contents($finalFilename, $contents);
+        }
+    }
 }

@@ -12,7 +12,7 @@ require_once __DIR__.'/../inc/global.inc.php';
 
 api_block_anonymous_users();
 
-if ('false' === api_get_setting('session.allow_search_diagnostic')) {
+if ('false' !== api_get_setting('session.allow_search_diagnostic')) {
     api_not_allowed();
 }
 
@@ -37,16 +37,17 @@ $diagnosisComplete = $extraFieldValue->get_values_by_handler_and_field_variable(
     'diagnosis_completed'
 );
 $diagnosisComplete = false;
-if ($diagnosisComplete && isset($diagnosisComplete['value']) && 1 == $diagnosisComplete['value']) {
+if ($diagnosisComplete && isset($diagnosisComplete['field_value']) && 1 == $diagnosisComplete['field_value']) {
     if (!isset($_GET['result'])) {
         header('Location:'.api_get_self().'?result=1');
         exit;
     }
 }
 
+$defaultValueStatus = '';
 $hide = true;
-if (false !== $wantStage) {
-    $hide = 'yes' === $wantStage['value'];
+if ($wantStage) {
+    $hide = ('yes' === $wantStage['field_value'] || '' === $wantStage['field_value']);
 }
 
 $defaultValueStatus = 'extraFiliere.hide()';
@@ -80,10 +81,22 @@ switch ($targetLanguage) {
         break;
 }
 
-$htmlHeadXtra[] = '<script>
+$htmlHeadXtra[] = '
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var targetBlock = window.location.hash;
+      var targetBlockWithoutHash = targetBlock.substring(1);
+      const diapoButton = document.querySelector("#card_"+targetBlockWithoutHash+" a");
+
+      setTimeout(function() {
+        diapoButton?.click();
+      }, 500);
+    });
+</script>
+<script>
 $(function() {
     var themeDefault = "extra_'.$theme.'";
-    var extraFiliere = $("input[name=\'extra_filiere[extra_filiere]\']").parent().parent().parent();
+    var extraFiliere = $("input[name=\'extra_filiere[extra_filiere]\']").parent().parent();
     '.$defaultValueStatus.'
 
     $("input[name=\'extra_filiere_want_stage[extra_filiere_want_stage]\']").change(function() {
@@ -207,11 +220,11 @@ if (!empty($items)) {
     }
 }
 
-if (isset($defaults['extra_access_start_date']) && isset($defaults['extra_access_start_date'][0])) {
+if (isset($defaults['extra_access_start_date'][0])) {
     $defaults['extra_access_start_date'] = $defaults['extra_access_start_date'][0];
 }
 
-if (isset($defaults['extra_access_end_date']) && isset($defaults['extra_access_end_date'][0])) {
+if (isset($defaults['extra_access_end_date'][0])) {
     $defaults['extra_access_end_date'] = $defaults['extra_access_end_date'][0];
 }
 
@@ -291,12 +304,14 @@ $extra = $extraFieldSession->addElements(
     $adminPermissions
 );
 
-$userForm->addRule(
-    ['extra_access_start_date', 'extra_access_end_date'],
-    get_lang('StartDateMustBeBeforeTheEndDate'),
-    'compare_datetime_text',
-    '< allow_empty'
-);
+if ($userForm->hasElement('extra_access_start_date')) {
+    $userForm->addRule(
+        ['extra_access_start_date', 'extra_access_end_date'],
+        get_lang('StartDateMustBeBeforeTheEndDate'),
+        'compare_datetime_text',
+        '< allow_empty'
+    );
+}
 
 $jqueryExtra .= $extra['jquery_ready_content'];
 
@@ -353,12 +368,14 @@ $extra = $extraField->addElements(
     $adminPermissions
 );
 
-$userForm->addRule(
-    ['extra_datedebutstage', 'extra_datefinstage'],
-    get_lang('StartDateMustBeBeforeTheEndDate'),
-    'compare_datetime_text',
-    '< allow_empty'
-);
+if ($userForm->hasElement('extra_datedebutstage')) {
+    $userForm->addRule(
+        ['extra_datedebutstage', 'extra_datefinstage'],
+        get_lang('StartDateMustBeBeforeTheEndDate'),
+        'compare_datetime_text',
+        '< allow_empty'
+    );
+}
 
 $jqueryExtra .= $extra['jquery_ready_content'];
 
@@ -555,6 +572,7 @@ $(function () {
 </script>';
 
 $userForm->addButtonSave(get_lang('Send'));
+$userForm->addHtml('</div>');
 
 $userForm->setDefaults($defaults);
 
@@ -753,12 +771,11 @@ $tpl->assign('grid', '');
 $tpl->assign('grid_js', '');
 $tpl->assign('form_search', '');
 $tpl->assign('form', '');
-if (false === $result) {
-    $tpl->assign('form', $userFormToString);
-} else {
-    Display::addFlash(Display::return_message(get_lang('Your session search diagnosis is saved')));
+if (false !== $result) {
+    $userFormToString =  Display::return_message(get_lang('Your session search diagnosis is saved'));
 }
 
+$tpl->assign('form', $userFormToString);
 $content = $tpl->fetch($tpl->get_template('search/search_extra_field.tpl'));
 $tpl->assign('content', $content);
 $tpl->display_one_col_template();

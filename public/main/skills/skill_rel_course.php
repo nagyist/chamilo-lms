@@ -6,7 +6,7 @@ use Chamilo\CoreBundle\Entity\SkillRelCourse;
 $cidReset = true;
 require_once __DIR__.'/../inc/global.inc.php';
 
-if (false == api_get_configuration_value('allow_skill_rel_items')) {
+if ('true' !== api_get_setting('skill.allow_skill_rel_items')) {
     api_not_allowed(true);
 }
 
@@ -29,7 +29,7 @@ if (!empty($sessionId)) {
     if (!$courseExistsInSession) {
         api_not_allowed(true);
     }
-    $sessionName = ' '.$session->getName().' - '.$course->getTitleAndCode();
+    $sessionName = ' '.$session->getTitle().' - '.$course->getTitleAndCode();
 }
 
 $form->addHeader(get_lang('Add skills').$sessionName);
@@ -41,7 +41,7 @@ $items = $em->getRepository(SkillRelCourse::class)->findBy(
 );
 /** @var SkillRelCourse $skillRelCourse */
 foreach ($items as $skillRelCourse) {
-    $skillList[$skillRelCourse->getSkill()->getId()] = $skillRelCourse->getSkill()->getName();
+    $skillList[$skillRelCourse->getSkill()->getId()] = $skillRelCourse->getSkill()->getTitle();
 }
 
 $form->addHidden('course_id', $courseId);

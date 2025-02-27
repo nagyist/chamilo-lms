@@ -2,6 +2,7 @@
 /* For licensing terms, see /license.txt */
 
 use ChamiloSession as Session;
+use Chamilo\CoreBundle\Component\Utils\ActionIcon;
 
 /**
  *  Shows the exercise results.
@@ -20,6 +21,7 @@ $origin = api_get_origin();
 $currentUserId = api_get_user_id();
 $printHeaders = 'learnpath' === $origin;
 $id = isset($_REQUEST['id']) ? (int) $_REQUEST['id'] : 0; //exe id
+$exportTypeAllResults = ('export' === $_GET['action'] && (in_array($_GET['export_type'], ['all_results', 'result_pdf'])));
 
 if (empty($id)) {
     api_not_allowed(true);
@@ -38,15 +40,17 @@ $learnpath_id = $track_exercise_info['orig_lp_id'];
 $learnpath_item_id = $track_exercise_info['orig_lp_item_id'];
 $lp_item_view_id = $track_exercise_info['orig_lp_item_view_id'];
 $isBossOfStudent = false;
-if (api_is_student_boss()) {
-    // Check if boss has access to user info.
-    if (UserManager::userIsBossOfStudent($currentUserId, $student_id)) {
-        $isBossOfStudent = true;
+if (!$exportTypeAllResults) {
+    if (api_is_student_boss()) {
+        // Check if boss has access to user info.
+        if (UserManager::userIsBossOfStudent($currentUserId, $student_id)) {
+            $isBossOfStudent = true;
+        } else {
+            api_not_allowed($printHeaders);
+        }
     } else {
-        api_not_allowed($printHeaders);
+        api_protect_course_script($printHeaders, false, true);
     }
-} else {
-    api_protect_course_script($printHeaders, false, true);
 }
 
 // Database table definitions
@@ -79,6 +83,7 @@ if (empty($nbrQuestions)) {
 if (empty($questionList)) {
     $questionList = Session::read('questionList');
 }
+/* @var Exercise $objExercise */
 if (empty($objExercise)) {
     $objExercise = Session::read('objExercise');
 }
@@ -92,7 +97,8 @@ $is_allowedToEdit =
     api_is_course_tutor() ||
     api_is_session_admin() ||
     api_is_drh() ||
-    api_is_student_boss();
+    api_is_student_boss() ||
+    $exportTypeAllResults;
 
 if (!empty($sessionId) && !$is_allowedToEdit) {
     if (api_is_course_session_coach(
@@ -135,8 +141,8 @@ if (!$is_allowedToEdit) {
     }
 }
 
-$allowRecordAudio = 'true' === api_get_setting('enable_record_audio');
-$allowTeacherCommentAudio = true === api_get_configuration_value('allow_teacher_comment_audio');
+$allowRecordAudio = true;
+$allowTeacherCommentAudio = ('true' === api_get_setting('exercise.allow_teacher_comment_audio'));
 
 //$js = '<script>'.api_get_language_translate_html().'</script>';
 //$htmlHeadXtra[] = $js;
@@ -184,7 +190,7 @@ if ('export' != $action) {
 
     echo Display::toolbarAction('toolbar', [
         Display::url(
-            Display::return_icon('pdf.png', get_lang('Export')),
+            Display::getMdiIcon(ActionIcon::EXPORT_PDF, 'ch-tool-icon', null, ICON_SIZE_SMALL, get_lang('Export')),
             api_get_self().'?'.api_get_cidreq().'&id='.$id.'&action=export&'
         ),
     ]); ?>
@@ -325,7 +331,7 @@ if ($show_results || $show_only_total_score || $showTotalScoreAndUserChoicesInLa
         $track_exercise_info,
         false,
         false,
-        api_get_configuration_value('quiz_results_answers_report')
+        ('true' === api_get_setting('exercise.quiz_results_answers_report'))
     );
 }
 
@@ -369,13 +375,6 @@ if (!empty($track_exercise_info['data_tracking'])) {
     }
 } else {
     $questionList = $question_list_from_database;
-}
-
-// Display the text when finished message if we are on a LP #4227
-$end_of_message = $objExercise->getTextWhenFinished();
-if (!empty($end_of_message) && ('learnpath' === $origin)) {
-    echo Display::return_message($end_of_message, 'normal', false);
-    echo "<div class='clear'>&nbsp;</div>";
 }
 
 // for each question
@@ -629,7 +628,7 @@ foreach ($questionList as $questionId) {
             if (!empty($comnt)) {
                 echo ExerciseLib::getFeedbackText($comnt);
             }
-            echo ExerciseLib::getOralFeedbackAudio($id, $questionId, $student_id);
+            echo ExerciseLib::getOralFeedbackAudio($id, $questionId);
             echo '</div>';
 
             echo '<div id="'.$name.'" class="row hidden">';
@@ -660,6 +659,7 @@ foreach ($questionList as $questionId) {
                 );
             } else {
                 $feedback_form->addElement('textarea', $textareaId, ['id' => $textareaId]);
+                $feedback_form->applyFilter($textareaId, 'attr_on_filter');
             }
             $feedback_form->setDefaults($default);
             $feedback_form->display();
@@ -668,7 +668,7 @@ foreach ($questionList as $questionId) {
 
             if ($allowRecordAudio && $allowTeacherCommentAudio) {
                 echo '<div class="col-sm-5">';
-                echo ExerciseLib::getOralFeedbackForm($id, $questionId, $student_id);
+                echo ExerciseLib::getOralFeedbackForm($id, $questionId, $exercise_id);
                 echo '</div>';
             }
             echo '</div>';
@@ -678,7 +678,7 @@ foreach ($questionList as $questionId) {
             if (!empty($comnt)) {
                 echo '<b>'.get_lang('Feedback').'</b>';
                 echo ExerciseLib::getFeedbackText($comnt);
-                echo ExerciseLib::getOralFeedbackAudio($id, $questionId, $student_id);
+                echo ExerciseLib::getOralFeedbackAudio($id, $questionId);
             }
         }
 
@@ -689,7 +689,7 @@ foreach ($questionList as $questionId) {
 
                 echo '<div id="'.$marksname.'" class="hidden">';
 
-                $allowDecimalScore = api_get_configuration_value('quiz_open_question_decimal_score');
+                $allowDecimalScore = ('true' === api_get_setting('exercise.quiz_open_question_decimal_score'));
                 $formMark = new FormValidator('marksform_'.$questionId, 'post');
                 $formMark->addHeader(get_lang('Assign a grade'));
                 $model = ExerciseLib::getCourseScoreModel();
@@ -870,6 +870,13 @@ foreach ($questionList as $questionId) {
     $exercise_content .= Display::panel($questionContent);
 } // end of large foreach on questions
 
+// Display the text when finished message if we are on a LP #4227
+$end_of_message = $objExercise->getFinishText($totalScore, $totalWeighting);
+if (!empty($end_of_message) && ('learnpath' === $origin)) {
+    echo Display::return_message($end_of_message, 'normal', false);
+    echo "<div class='clear'>&nbsp;</div>";
+}
+
 $totalScoreText = '';
 
 if (MULTIPLE_ANSWER_TRUE_FALSE_DEGREE_CERTAINTY != $answerType) {
@@ -972,7 +979,24 @@ if ('export' === $action) {
         'orientation' => 'P',
     ];
     $pdf = new PDF('A4', $params['orientation'], $params);
-    $pdf->html_to_pdf_with_template($content, false, false, true);
+    if ('all_results' === $_GET['export_type']) {
+        $sessionId = api_get_session_id();
+        $courseId = api_get_course_int_id();
+        $exportName = 'S'.$sessionId.'-C'.$courseId.'-T'.$exercise_id;
+        $baseDir = api_get_path(SYS_ARCHIVE_PATH);
+        $folderName = 'pdfexport-'.$exportName;
+        $exportFolderPath = $baseDir.$folderName;
+        if (!is_dir($exportFolderPath)) {
+            @mkdir($exportFolderPath);
+        }
+        $pdfFileName = $user_info['firstname'].' '.$user_info['lastname'].'-attemptId'.$id.'.pdf';
+        $pdfFileName = api_replace_dangerous_char($pdfFileName);
+        $fileNameToSave = $exportFolderPath.'/'.$pdfFileName;
+        $pdf->html_to_pdf_with_template($content, true, false, true, [], 'F', $fileNameToSave);
+    } else {
+        $pdf->html_to_pdf_with_template($content, false, false, true);
+    }
+
     exit;
 }
 

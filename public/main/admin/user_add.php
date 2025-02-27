@@ -2,8 +2,12 @@
 
 /* For licensing terms, see /license.txt */
 
+use Chamilo\CoreBundle\Entity\AccessUrl;
 use Chamilo\CoreBundle\Entity\User;
+use Chamilo\CoreBundle\Entity\UserAuthSource;
 use Chamilo\CoreBundle\Framework\Container;
+use Chamilo\CoreBundle\ServiceHelper\AccessUrlHelper;
+use Chamilo\CoreBundle\ServiceHelper\AuthenticationConfigHelper;
 
 $cidReset = true;
 require_once __DIR__.'/../inc/global.inc.php';
@@ -14,6 +18,12 @@ $this_section = SECTION_PLATFORM_ADMIN;
 // User permissions
 api_protect_admin_script(true);
 api_protect_limit_for_session_admin();
+
+/** @var AuthenticationConfigHelper $authenticationConfigHelper */
+$authenticationConfigHelper = Container::$container->get(AuthenticationConfigHelper::class);
+
+/** @var AccessUrl $accessUrl */
+$accessUrl = Container::$container->get(AccessUrlHelper::class)->getCurrent();
 
 $is_platform_admin = api_is_platform_admin() ? 1 : 0;
 
@@ -127,7 +137,7 @@ if (api_is_western_name_order()) {
 $form->addElement(
     'text',
     'official_code',
-    get_lang('Code'),
+    get_lang('Official code'),
     [
         'size' => '40',
         'id' => 'official_code',
@@ -136,7 +146,7 @@ $form->addElement(
 $form->applyFilter('official_code', 'html_filter');
 $form->applyFilter('official_code', 'trim');
 // e-mail
-$form->addElement('text', 'email', get_lang('e-mail'), ['size' => '40', 'autocomplete' => 'off', 'id' => 'email']);
+$form->addElement('text', 'email', get_lang('E-mail'), ['size' => '40', 'autocomplete' => 'off', 'id' => 'email']);
 $form->addEmailRule('email');
 if ('true' == api_get_setting('registration', 'email')) {
     $form->addRule('email', get_lang('Required field'), 'required');
@@ -153,7 +163,7 @@ if ('true' === api_get_setting('login_is_email')) {
 }
 
 // Phone
-$form->addElement('text', 'phone', get_lang('Phone number'), ['autocomplete' => 'off', 'id' => 'phone']);
+$form->addText('phone', get_lang('Phone number'), false, ['autocomplete' => 'off', 'id' => 'phone']);
 // Picture
 $form->addFile(
     'picture',
@@ -175,23 +185,24 @@ if ('true' !== api_get_setting('login_is_email')) {
 
 // Password
 $group = [];
+$extAuthSource = $authenticationConfigHelper->getAuthSourceAuthentications($accessUrl);
 $auth_sources = 0; //make available wider as we need it in case of form reset (see below)
 $nb_ext_auth_source_added = 0;
-if (isset($extAuthSource) && count($extAuthSource) > 0) {
+if (count($extAuthSource) > 0) {
     $auth_sources = [];
-    foreach ($extAuthSource as $key => $info) {
+    foreach ($extAuthSource as $key) {
         // @todo : make uniform external authentification configuration (ex : cas and external_login ldap)
         // Special case for CAS. CAS is activated from Chamilo > Administration > Configuration > CAS
         // extAuthSource always on for CAS even if not activated
         // same action for file user_edit.php
-        if ((CAS_AUTH_SOURCE == $key && 'true' === api_get_setting('cas_activate')) || (CAS_AUTH_SOURCE != $key)) {
+        if ((UserAuthSource::CAS == $key && 'true' === api_get_setting('cas_activate')) || (UserAuthSource::CAS != $key)) {
             $auth_sources[$key] = $key;
             $nb_ext_auth_source_added++;
         }
     }
     if ($nb_ext_auth_source_added > 0) {
         $group[] = $form->createElement('radio', 'password_auto', null, get_lang('External authentification').' ', 2);
-        $group[] = $form->createElement('select', 'auth_source', null, $auth_sources);
+        $group[] = $form->createElement('select', 'auth_source', null, $auth_sources, ['multiple' => 'multiple']);
         $group[] = $form->createElement('static', '', '', '<br />');
     }
 }
@@ -218,6 +229,7 @@ $group[] = $form->createElement(
         'id' => 'password',
         'autocomplete' => 'off',
         'onkeydown' => 'javascript: password_switch_radio_button();',
+        'show_hide' => true,
         //'required' => 'required'
     ]
 );
@@ -296,17 +308,14 @@ $returnParams = $extraField->addElements(
     true
 );
 
-$allowEmailTemplate = api_get_configuration_value('mail_template_system');
-if ($allowEmailTemplate) {
-    $form->addEmailTemplate(
-        [
-            'subject_registration_platform.tpl',
-            'content_registration_platform.tpl',
-            'new_user_first_email_confirmation.tpl',
-            'new_user_second_email_confirmation.tpl',
-        ]
-    );
-}
+$form->addEmailTemplate(
+    [
+        'subject_registration_platform.tpl',
+        'content_registration_platform.tpl',
+        'new_user_first_email_confirmation.tpl',
+        'new_user_second_email_confirmation.tpl',
+    ]
+);
 
 $jquery_ready_content = $returnParams['jquery_ready_content'];
 
@@ -347,7 +356,7 @@ if ($form->validate()) {
         $official_code = $user['official_code'];
         $email = $user['email'];
         $phone = $user['phone'];
-        $username = $user['username'];
+        $username = 'true' !== api_get_setting('login_is_email') ? $user['username'] : '';
         $status = (int) $user['status'];
         $language = $user['locale'];
         $picture = $_FILES['picture'];
@@ -368,7 +377,7 @@ if ($form->validate()) {
             $auth_source = $user['password']['auth_source'];
             $password = 'PLACEHOLDER';
         } else {
-            $auth_source = PLATFORM_AUTH_SOURCE;
+            $auth_source = [UserAuthSource::PLATFORM];
             $password = '1' === $user['password']['password_auto'] ? api_generate_password() : $user['password']['password'];
         }
 
@@ -462,7 +471,9 @@ if ($form->validate()) {
 
         Display::addFlash(Display::return_message($message, 'normal', false));
 
-        if (isset($_POST['submit_plus'])) {
+        if (isset($_POST['submit_plus'])
+            || (api_is_session_admin() && 'true' === api_get_setting('session.limit_session_admin_list_users'))
+        ) {
             //we want to add more. Prepare report message and redirect to the same page (to clean the form)
             header('Location: user_add.php?sec_token='.$tok);
             exit;

@@ -58,11 +58,11 @@ if (!SkillModel::isToolAvailable()) {
     api_not_allowed(true);
 }
 
-$showLevels = false === api_get_configuration_value('hide_skill_levels');
+$showLevels = ('false' === api_get_setting('skill.hide_skill_levels'));
 
 $skillInfo = [
     'id' => $skill->getId(),
-    'name' => $skill->getName(),
+    'name' => $skill->getTitle(),
     'short_code' => $skill->getShortCode(),
     'description' => $skill->getDescription(),
     'criteria' => $skill->getCriteria(),
@@ -77,7 +77,7 @@ $skillInfo = [
     'courses' => [],
 ];
 
-$titleContent = sprintf(get_lang('I have achieved skill %s on %s'), $skill->getName(), api_get_setting('siteName'));
+$titleContent = sprintf(get_lang('I have achieved skill %s on %s'), $skill->getTitle(), api_get_setting('siteName'));
 
 // Open Graph Markup
 $htmlHeadXtra[] = "
@@ -99,7 +99,7 @@ if (null !== $currentUser) {
 $skillRelUserDate = api_get_local_time($skillRelUser->getAcquiredSkillAt());
 $currentSkillLevel = get_lang('No level acquired yet');
 if ($skillRelUser->getAcquiredLevel()) {
-    $currentSkillLevel = $skillLevelRepo->find(['id' => $skillRelUser->getAcquiredLevel()])->getName();
+    $currentSkillLevel = $skillLevelRepo->find(['id' => $skillRelUser->getAcquiredLevel()])->getTitle();
 }
 
 $author = api_get_user_info($skillRelUser->getArgumentationAuthorId());
@@ -124,7 +124,7 @@ $skillRelUserInfo = [
     'user_complete_name' => UserManager::formatUserFullName($skillRelUser->getUser()),
     'skill_id' => $skillRelUser->getSkill()->getId(),
     'skill_badge_image' => SkillModel::getWebIconPath($skillRelUser->getSkill()),
-    'skill_name' => $skillRelUser->getSkill()->getName(),
+    'skill_name' => $skillRelUser->getSkill()->getTitle(),
     'skill_short_code' => $skillRelUser->getSkill()->getShortCode(),
     'skill_description' => $skillRelUser->getSkill()->getDescription(),
     'skill_criteria' => $skillRelUser->getSkill()->getCriteria(),
@@ -150,7 +150,7 @@ foreach ($skillRelUserComments as $comment) {
 }
 
 $acquiredLevel = [];
-$profile = $skillRepo->find($skillId)->getProfile();
+$profile = $skillRepo->find($skillId)->getLevelProfile();
 
 if (!$profile) {
     $skillRelSkill = new SkillRelSkillModel();
@@ -160,7 +160,7 @@ if (!$profile) {
 
     foreach ($parents as $parent) {
         $skillParentId = $parent['skill_id'];
-        $profile = $skillRepo->find($skillParentId)->getProfile();
+        $profile = $skillRepo->find($skillParentId)->getLevelProfile();
 
         if ($profile) {
             break;
@@ -183,7 +183,7 @@ if ($profile) {
 
     $profileLevels = [];
     foreach ($levels as $level) {
-        $profileLevels[$level->getPosition()][$level->getId()] = $level->getName();
+        $profileLevels[$level->getPosition()][$level->getId()] = $level->getTitle();
     }
 
     ksort($profileLevels); // Sort the array by Position.
@@ -262,6 +262,18 @@ if ($allowExport) {
     }
 }
 
+$returnMessage = '';
+if (api_is_student_boss() || api_is_platform_admin()) {
+    $returnMessage = Display::return_message(
+            sprintf(
+                get_lang('To assign a new skill to this user, click <a href="%s">here</a>'),
+                api_get_path(WEB_CODE_PATH).'skills/assign.php?user='.$user->getId()
+            ),
+            'notice',
+            false
+    );
+}
+
 $template = new Template(get_lang('Issued badge information'));
 $template->assign('issue_info', $skillRelUserInfo);
 $template->assign('allow_comment', $allowComment);
@@ -282,5 +294,5 @@ $template->assign('personal_badge', $personalBadge);
 $template->assign('show_level', $showLevels);
 $content = $template->fetch($template->get_template('skill/issued.tpl'));
 $template->assign('header', get_lang('Issued badge information'));
-$template->assign('content', $content);
+$template->assign('content', $returnMessage.$content);
 $template->display_one_col_template();

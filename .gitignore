@@ -26,6 +26,10 @@ var/upload/*
 /config/configuration.php
 /main/inc/conf/configuration.php
 
+/config/authentication.yaml
+/config/hosting_limits.yaml
+/config/plugin.yaml
+
 # Home
 components/*
 
@@ -50,10 +54,9 @@ public/plugin/vchamilo/templates/*
 
 # Stuff updated through composer - Remove just before release
 vendor
-composer.lock
-symfony.lock
 
 ###> symfony/framework-bundle ###
+/.env
 /.env.local
 /.env.local.php
 /.env.*.local

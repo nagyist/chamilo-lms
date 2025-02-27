@@ -1260,7 +1260,7 @@ class AdvancedSubscriptionPlugin extends Plugin implements HookPluginInterface
     }
 
     /**
-     * List all session (id, name) for select input.
+     * List all session (id, title) for select input.
      *
      * @param int $limit
      *
@@ -1270,11 +1270,11 @@ class AdvancedSubscriptionPlugin extends Plugin implements HookPluginInterface
     {
         $limit = (int) $limit;
         $sessionTable = Database::get_main_table(TABLE_MAIN_SESSION);
-        $columns = 'id, name';
+        $columns = 'id, title';
         $conditions = [];
         if ($limit > 0) {
             $conditions = [
-                'order' => 'name',
+                'order' => 'title',
                 'limit' => $limit,
             ];
         }
@@ -1291,7 +1291,7 @@ class AdvancedSubscriptionPlugin extends Plugin implements HookPluginInterface
      */
     public function generateHash($data)
     {
-        $key = sha1($this->get('secret_key'));
+        $key = hash('sha512', $this->get('secret_key'));
         // Prepare array to have specific type variables
         $dataPrepared['action'] = (string) ($data['action']);
         $dataPrepared['sessionId'] = (int) ($data['sessionId']);
@@ -1301,7 +1301,7 @@ class AdvancedSubscriptionPlugin extends Plugin implements HookPluginInterface
         $dataPrepared['newStatus'] = (int) ($data['newStatus']);
         $dataPrepared = serialize($dataPrepared);
 
-        return sha1($dataPrepared.$key);
+        return hash('sha512', $dataPrepared.$key);
     }
 
     /**
@@ -1491,7 +1491,7 @@ class AdvancedSubscriptionPlugin extends Plugin implements HookPluginInterface
         Database::query($sql);
 
         /* Delete settings */
-        $settingsTable = Database::get_main_table(TABLE_MAIN_SETTINGS_CURRENT);
+        $settingsTable = Database::get_main_table(TABLE_MAIN_SETTINGS);
         Database::query("DELETE FROM $settingsTable WHERE subkey = 'advanced_subscription'");
     }
 
@@ -1535,11 +1535,11 @@ class AdvancedSubscriptionPlugin extends Plugin implements HookPluginInterface
                 $courseCategories = Category::load(
                     null,
                     null,
-                    $course['code'],
+                    $course['real_id'],
                     null,
                     null,
                     $session['id'],
-                    false
+                    null
                 );
 
                 if (count($courseCategories) > 0 &&

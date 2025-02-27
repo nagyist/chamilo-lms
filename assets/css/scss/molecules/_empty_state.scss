@@ -7,11 +7,15 @@
     }
 
     &__icon {
-      @apply mb-4 text-9xl text-transparent bg-clip-text bg-gradient-to-br from-primary to-primary-gradient w-32 h-32;
+      @apply mb-4 text-transparent bg-clip-text bg-gradient-to-br from-primary to-primary-gradient w-32 h-32;
+
+      &.mdi {
+        font-size: 8rem;
+      }
     }
 
     &__summary {
-      @apply text-body-2-bold text-gray-90;
+      @apply text-body-2 font-semibold text-gray-90;
     }
 
     &__detail {

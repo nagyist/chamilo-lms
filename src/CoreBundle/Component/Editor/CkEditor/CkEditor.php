@@ -7,10 +7,10 @@ declare(strict_types=1);
 namespace Chamilo\CoreBundle\Component\Editor\CkEditor;
 
 use Chamilo\CoreBundle\Component\Editor\Editor;
-use Chamilo\CoreBundle\Component\Utils\ChamiloApi;
 use Chamilo\CoreBundle\Entity\Course;
 use Chamilo\CoreBundle\Entity\SystemTemplate;
 use Chamilo\CoreBundle\Entity\Templates;
+use Chamilo\CoreBundle\Framework\Container;
 use Database;
 
 class CkEditor extends Editor
@@ -42,7 +42,7 @@ class CkEditor extends Editor
 
         if ('' === $value || '<html><head><title></title></head><body></body></html>' === $value) {
             $style = api_get_bootstrap_and_font_awesome();
-            $style .= api_get_css(ChamiloApi::getEditorDocStylePath());
+            $style .= Container::getThemeHelper()->getThemeAssetLinkTag('document.css');
         }
 
         $html = '<textarea id="'.$this->getTextareaId().'" name="'.$this->getName().'" >
@@ -67,13 +67,33 @@ class CkEditor extends Editor
         $javascript = $this->toJavascript($config);
 
         // it replaces [browser] by image picker callback
-        $javascript = str_replace('"[browser]"', $this->getImagePicker(), $javascript);
+        $javascript = str_replace('"[browser]"', $this->getFileManagerPicker(), $javascript);
 
         return "<script>
+            window.addEventListener('message', function(event) {
+                // Check if the received message contains the URL data
+                if (event.data.url) {
+                    // Check if we are in an iframe
+                    if (window.parent !== window) {
+                        // Send the message to the parent window
+                        window.parent.postMessage(event.data, '*');
+                        // Access the callback function in the parent window
+                        const parentWindow = window.parent.window[0].window;
+                        if (parentWindow && parentWindow.tinyMCECallback) {
+                            parentWindow.tinyMCECallback(event.data.url);
+                            delete parentWindow.tinyMCECallback;
+                        }
+                    } else if (window.tinyMCECallback) {
+                        // Handle the message in the main context
+                        window.tinyMCECallback(event.data.url);
+                        delete window.tinyMCECallback;
+                    }
+                }
+            });
+
             document.addEventListener('DOMContentLoaded', function() {
-                tinymce.init(
-                    $javascript
-                );
+                window.chEditors = window.chEditors || [];
+                window.chEditors.push($javascript)
            });
            </script>";
     }
@@ -93,7 +113,7 @@ class CkEditor extends Editor
             $cssTheme,
             api_get_path(REL_CODE_PATH).'img/',
             api_get_path(REL_PATH),
-            //api_get_path(REL_DEFAULT_COURSE_DOCUMENT_PATH),
+            // api_get_path(REL_DEFAULT_COURSE_DOCUMENT_PATH),
             '',
         ];
 
@@ -143,10 +163,8 @@ class CkEditor extends Editor
 
     /**
      * Get a custom image picker.
-     *
-     * @return string
      */
-    private function getImagePicker()
+    private function getImagePicker(): string
     {
         return 'function (cb, value, meta) {
             var input = document.createElement("input");
@@ -167,6 +185,64 @@ class CkEditor extends Editor
             };
             input.click();
         }';
+    }
+
+    /**
+     * Generates a JavaScript function for TinyMCE file manager picker.
+     *
+     * @param bool $onlyPersonalfiles if true, only shows personal files
+     *
+     * @return string javaScript function as string
+     */
+    private function getFileManagerPicker(bool $onlyPersonalfiles = true): string
+    {
+        $user = api_get_user_entity();
+        $course = api_get_course_entity();
+
+        if ($onlyPersonalfiles) {
+            if (null !== $user) {
+                $cidReqQuery = '';
+                if (null !== $course) {
+                    $parentResourceNodeId = $course->getResourceNode()->getId();
+                    $cidReqQuery = '&'.api_get_cidreq().'&parentResourceNodeId='.$parentResourceNodeId;
+                }
+                $resourceNodeId = $user->getResourceNode()->getId();
+                $url = api_get_path(WEB_PATH).'resources/filemanager/personal_list/'.$resourceNodeId.'?loadNode=1'.$cidReqQuery;
+            }
+        } else {
+            if (null !== $course) {
+                $resourceNodeId = $course->getResourceNode()->getId();
+                $url = api_get_path(WEB_PATH).'resources/document/'.$resourceNodeId.'/manager?'.api_get_cidreq();
+            } elseif (null !== $user) {
+                $resourceNodeId = $user->getResourceNode()->getId();
+                $url = api_get_path(WEB_PATH).'resources/filemanager/personal_list/'.$resourceNodeId.'?loadNode=1';
+            }
+        }
+
+        if (!isset($url)) {
+            return $this->getImagePicker();
+        }
+
+        return '
+            function(cb, value, meta) {
+                window.tinyMCECallback = cb;
+                let fileType = meta.filetype;
+                let fileManagerUrl = "'.$url.'";
+
+                if (fileType === "image") {
+                    fileManagerUrl += "&type=images";
+                } else if (fileType === "file") {
+                    fileManagerUrl += "&type=files";
+                }
+
+                tinymce.activeEditor.windowManager.openUrl({
+                    title: "File Manager",
+                    url: fileManagerUrl,
+                    width: 980,
+                    height: 600
+                });
+            }
+        ';
     }
 
     /**

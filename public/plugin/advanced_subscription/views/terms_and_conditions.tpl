@@ -4,7 +4,7 @@
 <link href="https://chamilo.org/the-association/" rel="author" />
 <link href="https://chamilo.org/the-association/" rel="copyright" />
 {{ prefetch }}
-{{ favico }}
+<link rel="shortcut icon" href="{{ theme_asset('images/favicon.ico') }}" type="image/x-icon" />
 {{ browser_specific_head }}
 <link rel="apple-touch-icon" href="{{ _p.web }}apple-touch-icon.png" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -23,7 +23,7 @@
 </h2>
 {% if termsRejected == 1 %}
 <div class="error-message legal-terms-popup">
-    {{ "YouMustAcceptTermsAndConditions"  | get_plugin_lang("AdvancedSubscriptionPlugin") | format(session.name) }}
+    {{ "YouMustAcceptTermsAndConditions"  | get_plugin_lang("AdvancedSubscriptionPlugin") | format(session.title) }}
 </div>
 {% endif %}
 

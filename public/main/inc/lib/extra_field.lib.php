@@ -7,7 +7,7 @@ use Chamilo\CoreBundle\Entity\ExtraField as EntityExtraField;
 use Chamilo\CoreBundle\Entity\ExtraFieldRelTag;
 use Chamilo\CoreBundle\Entity\Tag;
 use Chamilo\CoreBundle\Framework\Container;
-
+use Chamilo\CoreBundle\Component\Utils\ActionIcon;
 class ExtraField extends Model
 {
     public const FIELD_TYPE_TEXT = 1;
@@ -54,6 +54,7 @@ class ExtraField extends Model
         //Enable this when field_loggeable is introduced as a table field (2.0)
         //'field_loggeable',
         'created_at',
+        'auto_remove',
     ];
 
     public $ops = [
@@ -137,6 +138,10 @@ class ExtraField extends Model
             'track_exercise' => EntityExtraField::TRACK_EXERCISE_FIELD_TYPE,
             'portfolio' => EntityExtraField::PORTFOLIO_TYPE,
             'lp_view' => EntityExtraField::LP_VIEW_TYPE,
+            'course_announcement' => EntityExtraField::COURSE_ANNOUNCEMENT,
+            'message' =>  EntityExtraField::MESSAGE_TYPE,
+            'document' => EntityExtraField::DOCUMENT_TYPE,
+            'attendance_calendar' => EntityExtraField::ATTENDANCE_CALENDAR_TYPE,
         ];
     }
 
@@ -176,14 +181,16 @@ class ExtraField extends Model
             'exercise',
             'track_exercise',
             'lp_view',
+            'course_announcement',
+            'message',
+            'document',
+            'attendance_calendar',
         ];
 
-        if (api_get_configuration_value('allow_scheduled_announcements')) {
+        if ('true' === api_get_setting('announcement.allow_scheduled_announcements')) {
             $result[] = 'scheduled_announcement';
         }
-        if (api_get_configuration_value('allow_portfolio_tool')) {
-            $result[] = 'portfolio';
-        }
+        $result[] = 'portfolio';
         sort($result);
 
         return $result;
@@ -569,7 +576,7 @@ class ExtraField extends Model
      * @param int    $start
      * @param int    $limit
      *
-     * @return array
+     * @return array<int, EntityExtraField>
      */
     public function getAllGrid($sidx, $sord, $start, $limit)
     {
@@ -595,17 +602,20 @@ class ExtraField extends Model
             case 'filter':
                 $sidx = 'e.filter';
                 break;
+            case 'auto_remove':
+                $sidx = 'e.autoRemove';
+                break;
         }
         $em = Database::getManager();
         $query = $em->getRepository(EntityExtraField::class)->createQueryBuilder('e');
-        $query->select('e')
+        $query
             ->where('e.itemType = :type')
             ->setParameter('type', $this->getItemType())
             ->orderBy($sidx, $sord)
             ->setFirstResult($start)
             ->setMaxResults($limit);
 
-        return $query->getQuery()->getArrayResult();
+        return $query->getQuery()->getResult();
     }
 
     /**
@@ -625,9 +635,9 @@ class ExtraField extends Model
         $result = Database::query($sql);
         $extraFieldRepo = Container::getExtraFieldRepository();
         if (Database::num_rows($result)) {
-            $row = Database::fetch_array($result, 'ASSOC');
+            $row = Database::fetch_assoc($result);
             $extraFieldId = $row['id'];
-            /** @var \Chamilo\CoreBundle\Entity\ExtraField $extraField */
+            /** @var EntityExtraField $extraField */
             $extraField = $extraFieldRepo->find($extraFieldId);
             $row['display_text'] = $extraField->getDisplayText();
 
@@ -636,7 +646,7 @@ class ExtraField extends Model
                     WHERE field_id='".$extraFieldId."'
                     ORDER BY id ASC";
             $result = Database::query($sql);
-            while ($option = Database::fetch_array($result, 'ASSOC')) {
+            while ($option = Database::fetch_assoc($result)) {
                 $row['options'][$option['id']] = $option;
             }
 
@@ -660,7 +670,7 @@ class ExtraField extends Model
                     item_type = $this->itemType";
         $result = Database::query($sql);
         if (Database::num_rows($result)) {
-            $row = Database::fetch_array($result, 'ASSOC');
+            $row = Database::fetch_assoc($result);
 
             // All the options of the field
             $sql = "SELECT * FROM $this->table_field_options
@@ -912,7 +922,7 @@ class ExtraField extends Model
         if (!empty($extraFields)) {
             foreach ($extraFields as &$extraField) {
                 $extraFieldId = $extraField['id'];
-                /** @var \Chamilo\CoreBundle\Entity\ExtraField $field */
+                /** @var EntityExtraField $field */
                 $field = $extraFieldRepo->find($extraFieldId);
                 $extraField['display_text'] = $field->getDisplayText();
                 $extraField['options'] = $option->get_field_options_by_field(
@@ -924,6 +934,79 @@ class ExtraField extends Model
         }
 
         return $extraFields;
+    }
+
+    /**
+     * Fetches extra field data with various display and permission checks.
+     *
+     * This function retrieves the data for extra fields, applies various filters
+     * and checks to determine if each field should be displayed based on
+     * admin permissions, visibility settings, and specific field inclusion or
+     * exclusion lists. It also handles ordering of fields if an order list is provided.
+     */
+    public function getExtraFieldsData(
+        array $extraData,
+        bool $adminPermissions = false,
+        array $extra = [],
+        array $exclude = [],
+        array $showOnlyTheseFields = [],
+        array $orderFields = []
+    ): array {
+        $fieldsData = [];
+
+        if (!empty($extra)) {
+            $orderedExtraFields = [];
+            if (!empty($orderFields)) {
+                foreach ($orderFields as $order) {
+                    foreach ($extra as $fieldDetails) {
+                        if ($order == $fieldDetails['variable']) {
+                            $orderedExtraFields[] = $fieldDetails;
+                        }
+                    }
+                }
+                $extra = $orderedExtraFields;
+            }
+
+            foreach ($extra as $fieldDetails) {
+                $variable = $fieldDetails['variable'];
+
+                if (!empty($showOnlyTheseFields) && !in_array($variable, $showOnlyTheseFields)) {
+                    continue;
+                }
+
+                if (!$adminPermissions && 0 == $fieldDetails['visible_to_self']) {
+                    continue;
+                }
+
+                if (in_array($variable, $exclude)) {
+                    continue;
+                }
+
+                $fieldData = [
+                    'type' => $fieldDetails['value_type'],
+                    'variable' => $variable,
+                    'title' => get_lang($fieldDetails['display_text']),
+                    'defaultValue' => $fieldDetails['field_default_value'] ?? '',
+                ];
+
+                if (!empty($fieldDetails['options'])) {
+                    $fieldData['options'] = array_map(function ($option) {
+                        return [
+                            'value' => $option['option_value'],
+                            'label' => $option['display_text'],
+                        ];
+                    }, $fieldDetails['options']);
+                }
+
+                if (isset($extraData['extra_' . $variable])) {
+                    $fieldData['value'] = $extraData['extra_' . $variable];
+                }
+
+                $fieldsData[] = $fieldData;
+            }
+        }
+
+        return $fieldsData;
     }
 
     /**
@@ -1029,7 +1112,7 @@ class ExtraField extends Model
                 }
 
                 //$translatedDisplayText = $field_details['display_text'];
-                /** @var \Chamilo\CoreBundle\Entity\ExtraField $extraField */
+                /** @var EntityExtraField $extraField */
                 $extraField = $extraFieldRepo->find($field_details['id']);
                 $translatedDisplayText = $extraField->getDisplayText();
 
@@ -1067,6 +1150,8 @@ class ExtraField extends Model
                             'extra_'.$variable,
                             'trim'
                         );
+                        $form->applyFilter('extra_'.$variable, 'html_filter');
+
                         if ($freezeElement) {
                             $form->freeze('extra_'.$variable);
                         }
@@ -1086,6 +1171,7 @@ class ExtraField extends Model
                         );
                         $form->applyFilter('extra_'.$variable, 'stripslashes');
                         $form->applyFilter('extra_'.$variable, 'trim');
+                        $form->applyFilter('extra_'.$variable, 'html_filter');
                         if ($freezeElement) {
                             $form->freeze('extra_'.$variable);
                         }
@@ -1101,7 +1187,7 @@ class ExtraField extends Model
                                     'radio',
                                     'extra_'.$variable,
                                     $option_details['option_value'],
-                                    $option_details['display_text'].'<br />',
+                                    get_lang($option_details['display_text']).'<br />',
                                     $option_details['option_value']
                                 );
                             }
@@ -1126,7 +1212,7 @@ class ExtraField extends Model
                                     'checkbox',
                                     'extra_'.$variable,
                                     $option_details['option_value'],
-                                    $option_details['display_text'].'<br />',
+                                    get_lang($option_details['display_text']).'<br />',
                                     $option_details['option_value']
                                 );
                             }
@@ -1177,7 +1263,7 @@ class ExtraField extends Model
                         }
                         if (isset($field_details['options']) && !empty($field_details['options'])) {
                             foreach ($field_details['options'] as $optionDetails) {
-                                $options[$optionDetails['option_value']] = $optionDetails['display_text'];
+                                $options[$optionDetails['option_value']] = get_lang($optionDetails['display_text']);
                             }
                         }
 
@@ -1548,6 +1634,7 @@ class ExtraField extends Model
                         $form->applyFilter('extra_'.$variable, 'stripslashes');
                         $form->applyFilter('extra_'.$variable, 'trim');
                         $form->applyFilter('extra_'.$variable, 'mobile_phone_number_filter');
+                        $form->applyFilter('extra_'.$variable, 'html_filter');
                         $form->addRule(
                             'extra_'.$variable,
                             get_lang('Mobile phone number is incomplete or contains invalid characters'),
@@ -1676,7 +1763,7 @@ class ExtraField extends Model
                                     );
 
                                     $linkToDelete = '&nbsp;'.Display::url(
-                                        Display::return_icon('delete.png', get_lang('Delete')),
+                                        Display::getMdiIcon(ActionIcon::DELETE, 'ch-tool-icon', null, ICON_SIZE_SMALL, get_lang('Delete')),
                                         'javascript:void(0)',
                                         ['id' => $deleteId]
                                     );
@@ -1978,10 +2065,10 @@ class ExtraField extends Model
         $result = Database::query($sql);
         if (Database::num_rows($result)) {
             $extraFieldRepo = Container::getExtraFieldRepository();
-            $row = Database::fetch_array($result, 'ASSOC');
+            $row = Database::fetch_assoc($result);
             if ($row) {
                 $extraFieldId = $row['id'];
-                /** @var \Chamilo\CoreBundle\Entity\ExtraField $extraField */
+                /** @var EntityExtraField $extraField */
                 $field = $extraFieldRepo->find($extraFieldId);
                 $row['display_text'] = $field->getDisplayText();
 
@@ -2109,20 +2196,10 @@ class ExtraField extends Model
     public function display()
     {
         $actions = '<a href="../admin/index.php">';
-        $actions .= Display::return_icon(
-            'back.png',
-            get_lang('Back to').' '.get_lang('Administration'),
-            '',
-            ICON_SIZE_MEDIUM
-        );
+        $actions .= Display::getMdiIcon(ActionIcon::BACK, 'ch-tool-icon', null, ICON_SIZE_MEDIUM, get_lang('Back to').' '.get_lang('Administration'));
         $actions .= '</a>';
         $actions .= '<a href="'.api_get_self().'?action=add&type='.$this->type.'">';
-        $actions .= Display::return_icon(
-            'add_user_fields.png',
-            get_lang('Add'),
-            '',
-            ICON_SIZE_MEDIUM
-        );
+        $actions .= Display::getMdiIcon(ActionIcon::ADD, 'ch-tool-icon', null, ICON_SIZE_MEDIUM, get_lang('Add'));
         $actions .= '</a>';
 
         echo Display::toolbarAction('toolbar', [$actions]);
@@ -2134,7 +2211,7 @@ class ExtraField extends Model
      */
     public function getJqgridColumnNames()
     {
-        return [
+        $columns = [
             get_lang('Name'),
             get_lang('Field label'),
             get_lang('Type'),
@@ -2145,6 +2222,12 @@ class ExtraField extends Model
             get_lang('Order'),
             get_lang('Detail'),
         ];
+
+        if ($this->type === 'user') {
+            array_splice($columns, -1, 0, get_lang('Auto remove'));
+        }
+
+        return $columns;
     }
 
     /**
@@ -2152,71 +2235,75 @@ class ExtraField extends Model
      */
     public function getJqgridColumnModel()
     {
-        return [
+        $columnModel = [
             [
                 'name' => 'display_text',
                 'index' => 'display_text',
-                'width' => '140',
                 'align' => 'left',
             ],
             [
                 'name' => 'variable',
                 'index' => 'variable',
-                'width' => '90',
                 'align' => 'left',
                 'sortable' => 'true',
             ],
             [
                 'name' => 'value_type',
                 'index' => 'value_type',
-                'width' => '70',
                 'align' => 'left',
                 'sortable' => 'true',
             ],
             [
                 'name' => 'changeable',
                 'index' => 'changeable',
-                'width' => '35',
-                'align' => 'left',
+                'align' => 'center',
                 'sortable' => 'true',
             ],
             [
                 'name' => 'visible_to_self',
                 'index' => 'visible_to_self',
-                'width' => '45',
-                'align' => 'left',
+                'align' => 'center',
                 'sortable' => 'true',
             ],
             [
                 'name' => 'visible_to_others',
                 'index' => 'visible_to_others',
-                'width' => '35',
-                'align' => 'left',
+                'align' => 'center',
                 'sortable' => 'true',
             ],
             [
                 'name' => 'filter',
                 'index' => 'filter',
-                'width' => '30',
-                'align' => 'left',
+                'align' => 'center',
                 'sortable' => 'true',
             ],
             [
                 'name' => 'field_order',
                 'index' => 'field_order',
-                'width' => '25',
-                'align' => 'left',
+                'align' => 'center',
                 'sortable' => 'true',
             ],
             [
                 'name' => 'actions',
                 'index' => 'actions',
-                'width' => '40',
-                'align' => 'left',
+                'align' => 'center',
                 'formatter' => 'action_formatter',
                 'sortable' => 'false',
             ],
         ];
+
+        if ($this->type === 'user') {
+            $autoRemoveColumnModel = [
+                'name' => 'auto_remove',
+                'index' => 'auto_remove',
+                'align' => 'center',
+                'sortable' => 'true',
+            ];
+
+            array_splice($columnModel, -1, 0, [$autoRemoveColumnModel]);
+        }
+
+        return $columnModel;
     }
 
     /**
@@ -2229,9 +2316,9 @@ class ExtraField extends Model
     {
         $form = new FormValidator($this->type.'_field', 'post', $url);
 
-        $form->addElement('hidden', 'type', $this->type);
+        $form->addHidden('type', $this->type);
         $id = isset($_GET['id']) ? (int) $_GET['id'] : null;
-        $form->addElement('hidden', 'id', $id);
+        $form->addHidden('id', $id);
 
         // Setting the form elements
         $header = get_lang('Add');
@@ -2240,26 +2327,26 @@ class ExtraField extends Model
         if ('edit' === $action) {
             $header = get_lang('Edit');
             // Setting the defaults
-            $defaults = $this->get($id, false);
+            $defaults = $this->get($id);
         }
 
-        $form->addElement('header', $header);
+        $form->addHeader($header);
 
         if ('edit' === $action) {
-            $translateUrl = api_get_path(WEB_CODE_PATH).'extrafield/translate.php?'.http_build_query(['id' => $id]);
+            $translateUrl = Container::getRouter()->generate(
+                'legacy_main',
+                ['name' => 'extrafield/translate.php', 'extra_field' => $id]
+            );
             $translateButton = Display::toolbarButton(
                 get_lang('Translate this term'),
                 $translateUrl,
                 'language',
-                'link'
+                'plain'
             );
 
-            $form->addText(
-                'display_text',
-                [get_lang('Name'), $translateButton]
-            );
+            $form->addElement('text', 'display_text', [get_lang('Name'), $translateButton]);
         } else {
-            $form->addElement('text', 'display_text', get_lang('Name'));
+            $form->addText('display_text', get_lang('Name'));
         }
 
         $form->addHtmlEditor('description', get_lang('Description'), false);
@@ -2273,8 +2360,8 @@ class ExtraField extends Model
             $types,
             ['id' => 'field_type']
         );
-        $form->addElement('label', get_lang('Example'), '<div id="example">-</div>');
-        $form->addElement('text', 'variable', get_lang('Field label'), ['class' => 'span5']);
+        $form->addLabel(get_lang('Example'), '<div id="example">-</div>');
+        $form->addText('variable', get_lang('Field label'), false);
         $form->addElement(
             'text',
             'field_options',
@@ -2299,7 +2386,7 @@ class ExtraField extends Model
                     'extra_field_options.php?type='.$this->type.'&field_id='.$id,
                     ['class' => 'btn']
                 );
-                $form->addElement('label', null, $url);
+                $form->addLabel(null, $url);
 
                 if (self::FIELD_TYPE_SELECT == $defaults['value_type']) {
                     $urlWorkFlow = Display::url(
@@ -2307,16 +2394,16 @@ class ExtraField extends Model
                         'extra_field_workflow.php?type='.$this->type.'&field_id='.$id,
                         ['class' => 'btn']
                     );
-                    $form->addElement('label', null, $urlWorkFlow);
+                    $form->addLabel(null, $urlWorkFlow);
                 }
 
                 $form->freeze('field_options');
             }
         }
-        $form->addElement(
-            'text',
+        $form->addText(
             'default_value',
             get_lang('Default value'),
+            false,
             ['id' => 'default_value']
         );
 
@@ -2347,7 +2434,16 @@ class ExtraField extends Model
         $form->addGroup($group, '', get_lang('Field changes should be logged'), '', false);
         */
 
-        $form->addElement('text', 'field_order', get_lang('Order'));
+        $form->addNumeric('field_order', get_lang('Order'), ['step' => 1, 'min' => 0]);
+
+        if ($this->type == 'user') {
+            $form->addElement(
+                'checkbox',
+                'auto_remove',
+                get_lang('Remove on anonymisation'),
+                get_lang('Remove this value when anonymising a user, because it could otherwise help identify the user despite the anonymisation.')
+            );
+        }
 
         if ('edit' == $action) {
             $option = new ExtraFieldOption($this->type);
@@ -2358,6 +2454,7 @@ class ExtraField extends Model
             $defaults['visible_to_others'] = 0;
             $defaults['changeable'] = 0;
             $defaults['filter'] = 0;
+            $defaults['auto_remove'] = 0;
             $form->addButtonCreate(get_lang('Add'));
         }
 
@@ -2380,22 +2477,12 @@ class ExtraField extends Model
      * Gets an element.
      *
      * @param int  $id
-     * @param bool $translateDisplayText Optional
      *
      * @return array
      */
-    public function get($id, $translateDisplayText = true)
+    public function get($id)
     {
-        $info = parent::get($id);
-
-        if ($translateDisplayText) {
-            $extraFieldRepo = Container::getExtraFieldRepository();
-            /** @var \Chamilo\CoreBundle\Entity\ExtraField $extraField */
-            $field = $extraFieldRepo->find($id);
-            $info['display_text'] = $field->getDisplayText();
-        }
-
-        return $info;
+        return parent::get($id);
     }
 
     /**
@@ -2406,8 +2493,8 @@ class ExtraField extends Model
     public function getJqgridActionLinks($token)
     {
         //With this function we can add actions to the jgrid (edit, delete, etc)
-        $editIcon = Display::return_icon('edit.png', get_lang('Edit'), '', ICON_SIZE_SMALL);
-        $deleteIcon = Display::return_icon('delete.png', get_lang('Delete'), '', ICON_SIZE_SMALL);
+        $editIcon = Display::getMdiIcon(ActionIcon::EDIT, 'ch-tool-icon', null, ICON_SIZE_SMALL, get_lang('Edit'));
+        $deleteIcon = Display::getMdiIcon(ActionIcon::DELETE, 'ch-tool-icon', null, ICON_SIZE_SMALL, get_lang('Delete'));
         $confirmMessage = addslashes(
             api_htmlentities(get_lang("Please confirm your choice"), ENT_QUOTES)
         );
@@ -2833,7 +2920,7 @@ JAVASCRIPT;
                             }
                             break;
                         default:
-                            $inject_extra_fields .= " fv$counter.value as {$extra['field']}, ";
+                            $inject_extra_fields .= " fv$counter.field_value as {$extra['field']}, ";
                             break;
                     }
 
@@ -2889,7 +2976,7 @@ JAVASCRIPT;
                                  INNER JOIN $this->table_field_options fvo$counter
                                  ON (
                                     fv$counter.field_id = fvo$counter.field_id AND
-                                    fv$counter.value = fvo$counter.option_value
+                                    fv$counter.field_value = fvo$counter.option_value
                                  )
                                 ";
                             break;
@@ -2913,7 +3000,7 @@ JAVASCRIPT;
                                     $newCounter++;
                                 }
                                 if (!empty($whereTag)) {
-                                    $options['where'] .= ' AND  ('.implode(' AND ', $whereTag).') ';
+                                    $options['where'] .= ' AND  ('.implode(' OR ', $whereTag).') ';
                                 }
                             }
                             break;
@@ -2921,7 +3008,7 @@ JAVASCRIPT;
                             // text, textarea, etc
                             $options['where'] = str_replace(
                                 $extra_info['field'],
-                                'fv'.$counter.'.field_id = '.$extra_info['id'].' AND fv'.$counter.'.value',
+                                'fv'.$counter.'.field_id = '.$extra_info['id'].' AND fv'.$counter.'.field_value',
                                 $options['where']
                             );
                             break;
@@ -3064,6 +3151,9 @@ JAVASCRIPT;
                         );
                     }
                     break;
+                case self::FIELD_TYPE_SELECT_MULTIPLE:
+                    $displayedValue = $valueData['value'] ?? $valueData['field_value'];
+                    break;
                 default:
                     $displayedValue = $valueData['field_value'];
                     break;
@@ -3167,15 +3257,15 @@ JAVASCRIPT;
 
         $value = implode("','", $cleanOptions);
 
-        $sql = "SELECT DISTINCT t.*, v.value, o.display_text
+        $sql = "SELECT DISTINCT t.*, v.field_value as value, o.display_text
                 FROM $tagRelExtraTable te
                 INNER JOIN $tagTable t
                 ON (t.id = te.tag_id AND te.field_id = t.field_id AND te.field_id = $tagId)
                 INNER JOIN $table v
                 ON (te.item_id = v.item_id AND v.field_id = $id)
                 INNER JOIN $optionsTable o
-                ON (o.option_value = v.value)
-                WHERE v.value IN ('".$value."')
+                ON (o.option_value = v.field_value)
+                WHERE v.field_value IN ('".$value."')
                 ORDER BY o.option_order, t.tag
                ";
         $result = Database::query($sql);
@@ -3217,7 +3307,7 @@ JAVASCRIPT;
                 } else {
                     if ($optionsExists) {
                         // Adding always the default value
-                        if ($option_details['id'] == $defaultValueId) {
+                        /*if ($option_details['id'] == $defaultValueId) {
                             $options[$option_details['option_value']] = $option_details['display_text'];
                         } else {
                             if (isset($addOptions) && !empty($addOptions)) {
@@ -3226,7 +3316,7 @@ JAVASCRIPT;
                                     $options[$option_details['option_value']] = $option_details['display_text'];
                                 }
                             }
-                        }
+                        }*/
                     } else {
                         // Normal behaviour
                         $options[$option_details['option_value']] = $option_details['display_text'];
@@ -3274,7 +3364,7 @@ JAVASCRIPT;
             $valueParts = explode('#', $text);
             $dataValue = count($valueParts) > 1 ? array_shift($valueParts) : '';
 
-            $select->addOption(implode('', $valueParts), $value, ['data-value' => $dataValue]);
+            $select->addOption(get_lang(implode('', $valueParts)), $value, ['data-value' => $dataValue]);
         }
 
         if ($freezeElement) {
@@ -3337,13 +3427,13 @@ JAVASCRIPT;
             foreach ($options as $option) {
                 foreach ($option as $sub_option) {
                     if ('0' == $sub_option['option_value']) {
-                        $values[$sub_option['id']] = $sub_option['display_text'];
+                        $values[$sub_option['id']] = get_lang($sub_option['display_text']);
 
                         continue;
                     }
 
                     if ($firstId === $sub_option['option_value']) {
-                        $second_values[$sub_option['id']] = $sub_option['display_text'];
+                        $second_values[$sub_option['id']] = get_lang($sub_option['display_text']);
                     }
                 }
             }
@@ -3414,7 +3504,7 @@ JAVASCRIPT;
                         continue;
                     }
 
-                    $values[$sub_option['id']] = $sub_option['display_text'];
+                    $values[$sub_option['id']] = get_lang($sub_option['display_text']);
                 }
             }
         }
@@ -3572,19 +3662,19 @@ JAVASCRIPT;
         foreach ($level1 as $item1) {
             $valueParts = explode('#', $item1['display_text']);
             $dataValue = count($valueParts) > 1 ? array_shift($valueParts) : '';
-            $slctFirst->addOption(implode('', $valueParts), $item1['id'], ['data-value' => $dataValue]);
+            $slctFirst->addOption(get_lang(implode('', $valueParts)), $item1['id'], ['data-value' => $dataValue]);
         }
 
         foreach ($level2 as $item2) {
             $valueParts = explode('#', $item2['display_text']);
             $dataValue = count($valueParts) > 1 ? array_shift($valueParts) : '';
-            $slctSecond->addOption(implode('', $valueParts), $item2['id'], ['data-value' => $dataValue]);
+            $slctSecond->addOption(get_lang(implode('', $valueParts)), $item2['id'], ['data-value' => $dataValue]);
         }
 
         foreach ($level3 as $item3) {
             $valueParts = explode('#', $item3['display_text']);
             $dataValue = count($valueParts) > 1 ? array_shift($valueParts) : '';
-            $slctThird->addOption(implode('', $valueParts), $item3['id'], ['data-value' => $dataValue]);
+            $slctThird->addOption(get_lang(implode('', $valueParts)), $item3['id'], ['data-value' => $dataValue]);
         }
 
         $form

@@ -3,6 +3,8 @@
 /* For licensing terms, see /license.txt */
 
 use Chamilo\CoreBundle\Entity\Session;
+use Chamilo\CoreBundle\Component\Utils\ActionIcon;
+use Chamilo\CoreBundle\Entity\UserAuthSource;
 
 $cidReset = true;
 
@@ -96,7 +98,7 @@ if (isset($_POST['formSent']) && $_POST['formSent']) {
                                 null,
                                 api_utf8_decode($nodeUser->Phone),
                                 null,
-                                PLATFORM_AUTH_SOURCE,
+                                [UserAuthSource::PLATFORM],
                                 null,
                                 1,
                                 0,
@@ -133,7 +135,7 @@ if (isset($_POST['formSent']) && $_POST['formSent']) {
                                     $lastname,
                                     $username,
                                     $password,
-                                    null,
+                                    [],
                                     $email,
                                     $status,
                                     $officialCode,
@@ -171,10 +173,15 @@ if (isset($_POST['formSent']) && $_POST['formSent']) {
 
                         // Looking up for the teacher.
                         $username = trim(api_utf8_decode($courseNode->CourseTeacher));
-                        $sql = "SELECT id, lastname, firstname FROM $tblUser WHERE username='$username'";
-                        $rs = Database::query($sql);
-                        if (Database::num_rows($rs) > 0) {
-                            [$userId, $lastname, $firstname] = Database::fetch_array($rs);
+                        $rs = Database::select(
+                            ['id', 'lastname', 'firstname'],
+                            $tblUser,
+                            ['where' => ['username = ?' => $username]],
+                            'first',
+                            'NUM'
+                        );
+                        [$userId, $lastname, $firstname] = $rs;
+                        if ($userId > 0) {
                             $params['teachers'] = $userId;
                         } else {
                             $params['teachers'] = api_get_user_id();
@@ -263,7 +270,7 @@ if (isset($_POST['formSent']) && $_POST['formSent']) {
                                     $suffix = ' - '.$i;
                                 }
                                 $sql = 'SELECT id FROM '.$tblSession.'
-                                        WHERE name="'.Database::escape_string($sessionName.$suffix).'"';
+                                        WHERE title = "'.Database::escape_string($sessionName.$suffix).'"';
                                 $rs = Database::query($sql);
                                 if (Database::result($rs, 0, 0)) {
                                     $i++;
@@ -275,7 +282,7 @@ if (isset($_POST['formSent']) && $_POST['formSent']) {
 
                             // Creating the session.
                             $sqlSession = "INSERT IGNORE INTO $tblSession SET
-                                    name = '".Database::escape_string($sessionName)."',
+                                    title = '".Database::escape_string($sessionName)."',
                                     access_start_date = '$dStart',
                                     access_end_date = '$dateEnd',
                                     visibility = '$visibilityAfterExpirationPerSession',
@@ -314,7 +321,7 @@ if (isset($_POST['formSent']) && $_POST['formSent']) {
                             if (false === $mySessionResult) {
                                 // Creating the session.
                                 $sqlSession = "INSERT IGNORE INTO $tblSession SET
-                                        name = '".Database::escape_string($sessionName)."',
+                                        title = '".Database::escape_string($sessionName)."',
                                         access_start_date = '$dStart',
                                         access_end_date = '$dateEnd',
                                         visibility = '$visibilityAfterExpirationPerSession',
@@ -354,9 +361,9 @@ if (isset($_POST['formSent']) && $_POST['formSent']) {
                                         access_end_date = '$dateEnd',
                                         visibility = '$visibilityAfterExpirationPerSession',
                                         session_category_id = '$sessionCategoryId'
-                                    WHERE name = '$sessionName'";
+                                    WHERE title = '$sessionName'";
                                 $rsSession = Database::query($sqlSession);
-                                $sessionId = Database::query("SELECT id FROM $tblSession WHERE name='$sessionName'");
+                                $sessionId = Database::query("SELECT id FROM $tblSession WHERE title='$sessionName'");
                                 [$sessionId] = Database::fetch_array($sessionId);
                                 Database::query("DELETE FROM $tblSessionUser WHERE session_id ='$sessionId'");
                                 Database::query("DELETE FROM $tblSessionCourse WHERE session_id='$sessionId'");
@@ -532,7 +539,7 @@ if (isset($_POST['formSent']) && $_POST['formSent']) {
 
 Display::display_header($toolName);
 $actions = '<a href="../session/session_list.php">'.
-    Display::return_icon('back.png', get_lang('Back to').' '.get_lang('Administration'), '', ICON_SIZE_MEDIUM).
+    Display::getMdiIcon(ActionIcon::BACK, 'ch-tool-icon', null, ICON_SIZE_MEDIUM, get_lang('Back to').' '.get_lang('Administration')).
     '</a>';
 echo Display::toolbarAction('session_import', [$actions]);
 
@@ -586,7 +593,7 @@ $form->addButtonImport(get_lang('Import session(s)'));
 
 $defaults = ['sendMail' => 'true', 'file_type' => 'csv'];
 
-$options = api_get_configuration_value('session_import_settings');
+$options = api_get_setting('session.session_import_settings', true);
 if (!empty($options) && isset($options['options'])) {
     if (isset($options['options']['session_exists_default_option'])) {
         $defaults['overwrite'] = $options['options']['session_exists_default_option'];

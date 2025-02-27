@@ -1,6 +1,7 @@
 <?php
 /* For licensing terms, see /license.txt */
 
+use Chamilo\CoreBundle\Entity\UserAuthSource;
 use Chamilo\CoreBundle\Entity\UserRelUser;
 use ChamiloSession as Session;
 
@@ -76,10 +77,17 @@ function LoginCheck($uid)
 function preventMultipleLogin($userId)
 {
     $table = Database::get_main_table(TABLE_STATISTIC_TRACK_E_ONLINE);
-    $userId = intval($userId);
+    $userId = (int) $userId;
     if ('true' === api_get_setting('prevent_multiple_simultaneous_login')) {
         if (!empty($userId) && !api_is_anonymous()) {
             $isFirstLogin = Session::read('first_user_login');
+            $currentIp = Session::read('current_ip');
+            $differentIp = false;
+            if (!empty($currentIp) && api_get_real_ip() !== $currentIp) {
+                $isFirstLogin = null;
+                $differentIp = true;
+            }
+
             if (empty($isFirstLogin)) {
                 $sql = "SELECT login_id FROM $table
                         WHERE login_user_id = $userId
@@ -94,7 +102,7 @@ function preventMultipleLogin($userId)
                 $userIsReallyOnline = user_is_online($userId);
 
                 // Trying double login.
-                if (!empty($loginData) && true == $userIsReallyOnline) {
+                if (!empty($loginData) && true == $userIsReallyOnline || $differentIp) {
                     session_regenerate_id();
                     Session::destroy();
                     header('Location: '.api_get_path(WEB_PATH).'index.php?loginFailed=1&error=multiple_connection_not_allowed');
@@ -102,6 +110,7 @@ function preventMultipleLogin($userId)
                 } else {
                     // First time
                     Session::write('first_user_login', 1);
+                    Session::write('current_ip', api_get_real_ip());
                 }
             }
         }
@@ -169,12 +178,14 @@ function online_logout($user_id = null, $logout_redirect = false)
     // (using *authent_name*_logout as the function name) and the following code
     // will find and execute it
     $uinfo = api_get_user_info($user_id);
-    if ((PLATFORM_AUTH_SOURCE != $uinfo['auth_source']) && is_array($extAuthSource)) {
-        if (is_array($extAuthSource[$uinfo['auth_source']])) {
-            $subarray = $extAuthSource[$uinfo['auth_source']];
+    if (!in_array(UserAuthSource::PLATFORM, $uinfo['auth_sources']) && is_array($extAuthSource)) {
+        $firstAuthSource = $uinfo['auth_sources'][0];
+
+        if (is_array($extAuthSource[$firstAuthSource])) {
+            $subarray = $extAuthSource[$firstAuthSource];
             if (!empty($subarray['logout']) && file_exists($subarray['logout'])) {
                 require_once $subarray['logout'];
-                $logout_function = $uinfo['auth_source'].'_logout';
+                $logout_function = $firstAuthSource.'_logout';
                 if (function_exists($logout_function)) {
                     $logout_function($uinfo);
                 }
@@ -201,7 +212,7 @@ function online_logout($user_id = null, $logout_redirect = false)
     Session::destroy();
 
     $pluginKeycloak = 'true' === api_get_plugin_setting('keycloak', 'tool_enable');
-    if ($pluginKeycloak && 'keycloak' === $uinfo['auth_source']) {
+    if ($pluginKeycloak && in_array('keycloak', $uinfo['auth_sources'])) {
         $pluginUrl = api_get_path(WEB_PLUGIN_PATH).'keycloak/start.php?slo';
         header('Location: '.$pluginUrl);
         exit;
@@ -316,7 +327,7 @@ function who_is_online(
         $query = "SELECT DISTINCT login_user_id, login_date
                     FROM ".$track_online_table." e
                     INNER JOIN ".$table_user." u ON (u.id = e.login_user_id)
-                  WHERE u.status != ".ANONYMOUS." AND login_date >= '".$current_date."'
+                  WHERE u.active <> ".USER_SOFT_DELETED." AND u.status != ".ANONYMOUS." AND login_date >= '".$current_date."'
                   ORDER BY `$column` $direction
                   LIMIT $from, $number_of_items";
     }
@@ -341,7 +352,7 @@ function who_is_online(
                           FROM ".$track_online_table." track
                           INNER JOIN ".$table_user." u
                           ON (u.id=track.login_user_id)
-                          WHERE u.status != ".ANONYMOUS." AND track.access_url_id =  $access_url_id AND
+                          WHERE u.active <> ".USER_SOFT_DELETED." AND u.status != ".ANONYMOUS." AND track.access_url_id =  $access_url_id AND
                                 login_date >= '".$current_date."'
                           ORDER BY `$column` $direction
                           LIMIT $from, $number_of_items";
@@ -400,7 +411,7 @@ function who_is_online_count($time_limit = null, $friends = false)
         $query = "SELECT count(login_id) as count
                   FROM $track_online_table track INNER JOIN $table_user u
                   ON (u.id=track.login_user_id)
-                  WHERE u.status != ".ANONYMOUS." AND login_date >= '$current_date'  ";
+                  WHERE u.active <> ".USER_SOFT_DELETED." AND u.status != ".ANONYMOUS." AND login_date >= '$current_date'  ";
     }
 
     if (api_get_multiple_access_url()) {
@@ -421,6 +432,7 @@ function who_is_online_count($time_limit = null, $friends = false)
                 $query = "SELECT count(login_id) as count FROM $track_online_table  track
                           INNER JOIN $table_user u ON (u.id=track.login_user_id)
 						  WHERE
+						    u.active <> ".USER_SOFT_DELETED." AND
 						    u.status != ".ANONYMOUS." AND
 						    track.access_url_id =  $access_url_id AND
 						    login_date >= '$current_date' ";
@@ -488,6 +500,7 @@ function who_is_online_in_this_course($from, $number_of_items, $uid, $time_limit
               ON (o.login_user_id = u.id)
               $urlJoin
               WHERE
+                u.active <> ".USER_SOFT_DELETED." AND
                 u.status <> '".ANONYMOUS."' AND
                 o.c_id = $courseId AND
                 o.login_date >= '$current_date'
@@ -545,6 +558,7 @@ function who_is_online_in_this_course_count(
               ON (login_user_id = u.id)
               $urlJoin
               WHERE
+                u.active <> ".USER_SOFT_DELETED." AND
                 u.status <> '".ANONYMOUS."' AND
                 c_id = $courseId AND
                 login_date >= '$current_date'
@@ -594,6 +608,7 @@ function whoIsOnlineInThisSessionCount($timeLimit, $sessionId)
               ON (login_user_id = u.id)
               $urlJoin
               WHERE
+                    u.active <> ".USER_SOFT_DELETED." AND
                     u.status <> '".ANONYMOUS."' AND
                     session_id = $sessionId AND
                     login_date >= '$current_date'

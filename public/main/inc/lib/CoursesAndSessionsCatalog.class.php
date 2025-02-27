@@ -4,6 +4,7 @@
 use Chamilo\CoreBundle\Entity\ExtraField;
 use Chamilo\CoreBundle\Entity\User;
 use Doctrine\ORM\Query\Expr\Join;
+use Chamilo\CoreBundle\Component\Utils\ObjectIcon;
 
 /**
  * @todo change class name
@@ -87,7 +88,7 @@ class CoursesAndSessionsCatalog
                 WHERE
                     tcf.item_type = $extraFieldType AND
                     tcf.variable = 'hide_from_catalog' AND
-                    tcfv.value = 1
+                    tcfv.field_value = 1
                 ";
 
         $result = Database::query($sql);
@@ -179,7 +180,7 @@ class CoursesAndSessionsCatalog
         $allCategories = CourseCategory::getAllCategories();
         $categoryToAvoid = '';
         if (api_is_student()) {
-            $categoryToAvoid = api_get_configuration_value('course_category_code_to_use_as_model');
+            $categoryToAvoid = api_get_setting('course.course_category_code_to_use_as_model');
         }
         foreach ($allCategories as $category) {
             $categoryCode = $category['code'];
@@ -240,11 +241,11 @@ class CoursesAndSessionsCatalog
      * @param string $categoryCode
      * @param int    $randomValue
      * @param array  $limit        will be used if $randomValue is not set.
-     *                             This array should contains 'start' and 'length' keys
+     *                             This array should contain 'start' and 'length' keys
      *
      * @return array
      */
-    public static function getCoursesInCategory($categoryCode, $randomValue = null, $limit = [])
+    public static function getCoursesInCategory(string $categoryCode, $randomValue = null, $limit = [])
     {
         $tbl_course = Database::get_main_table(TABLE_MAIN_COURSE);
         $avoidCoursesCondition = self::getAvoidCourseCondition();
@@ -262,7 +263,7 @@ class CoursesAndSessionsCatalog
                 $tbl_url_rel_course = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_COURSE);
 
                 $urlCondition = ' access_url_id = '.$urlId.' ';
-                $allowBaseCategories = api_get_configuration_value('allow_base_course_category');
+                $allowBaseCategories = ('true' === api_get_setting('course.allow_base_course_category'));
                 if ($allowBaseCategories) {
                     $urlCondition = ' (access_url_id = '.$urlId.' OR access_url_id = 1)  ';
                 }
@@ -479,7 +480,7 @@ class CoursesAndSessionsCatalog
             if (-1 != $urlId) {
                 $tbl_url_rel_course = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_COURSE);
                 $urlCondition = ' access_url_id = '.$urlId.' AND';
-                $allowBaseCategories = api_get_configuration_value('allow_base_course_category');
+                $allowBaseCategories = ('true' === api_get_setting('course.allow_base_course_category'));
                 if ($allowBaseCategories) {
                     $urlCondition = ' (access_url_id = '.$urlId.' OR access_url_id = 1) AND ';
                 }
@@ -813,7 +814,7 @@ class CoursesAndSessionsCatalog
                         ->where(
                             $qb->expr()->eq('fv.field', $extraFieldInfo['id'])
                         )->andWhere(
-                            $qb->expr()->eq('fv.value ', 1)
+                            $qb->expr()->eq('fv.fieldValue ', 1)
                         )
                         ->getDQL()
                 )
@@ -930,7 +931,7 @@ class CoursesAndSessionsCatalog
                 'url.sessionId = s.id'
             )
             ->andWhere($qb->expr()->eq('url.accessUrlId', $urlId))
-            ->andWhere('s.name LIKE :keyword')
+            ->andWhere('s.title LIKE :keyword')
             ->andWhere($qb->expr()->gt('s.nbrCourses', 0))
             ->setParameter('keyword', "%$keyword%")
         ;
@@ -1335,11 +1336,12 @@ class CoursesAndSessionsCatalog
      */
     public static function getSessionIcon($sessionName)
     {
-        return Display::return_icon(
-            'window_list.png',
-            $sessionName,
+        return Display::getMdiIcon(
+            ObjectIcon::SESSION,
+            'ch-tool-icon',
             null,
-            ICON_SIZE_MEDIUM
+            ICON_SIZE_MEDIUM,
+            $sessionName
         );
     }
 
@@ -1444,7 +1446,7 @@ class CoursesAndSessionsCatalog
 
     public static function getCatalogSearchSettings()
     {
-        $settings = api_get_configuration_value('catalog_settings');
+        $settings = api_get_setting('session.catalog_settings', true);
         if (empty($settings)) {
             // Default everything is visible
             $settings = [
@@ -1504,7 +1506,7 @@ class CoursesAndSessionsCatalog
      */
     public static function sessionsListByCoursesTag(array $limit)
     {
-        $searchTag = isset($_REQUEST['search_tag']) ? $_REQUEST['search_tag'] : '';
+        $searchTag = $_REQUEST['search_tag'] ? Security::remove_XSS($_REQUEST['search_tag']) : '';
         $searchDate = isset($_REQUEST['date']) ? $_REQUEST['date'] : date('Y-m-d');
         $courseUrl = self::getCatalogUrl(
             1,
@@ -1630,7 +1632,7 @@ class CoursesAndSessionsCatalog
                 $cat = null;
                 $catName = '';
             } else {
-                $catName = $cat->getName();
+                $catName = $cat->getTitle();
             }
 
             $actions = null;
@@ -1643,7 +1645,7 @@ class CoursesAndSessionsCatalog
 
             $sessionsBlock = [
                 'id' => $session->getId(),
-                'name' => $session->getName(),
+                'name' => $session->getTitle(),
                 'image' => isset($imageField['value']) ? $imageField['value'] : null,
                 'nbr_courses' => $session->getNbrCourses(),
                 'nbr_users' => $session->getNbrUsers(),
@@ -1661,12 +1663,12 @@ class CoursesAndSessionsCatalog
                     $session->getId(),
                     $userId
                 ),
-                'icon' => self::getSessionIcon($session->getName()),
+                'icon' => self::getSessionIcon($session->getTitle()),
                 'date' => $sessionDates['display'],
                 'price' => !empty($isThisSessionOnSale['html']) ? $isThisSessionOnSale['html'] : '',
                 'subscribe_button' => isset($isThisSessionOnSale['buy_button']) ? $isThisSessionOnSale['buy_button'] : self::getRegisteredInSessionButton(
                     $session->getId(),
-                    $session->getName(),
+                    $session->getTitle(),
                     $hasRequirements
                 ),
                 'show_description' => $session->getShowDescription(),
@@ -1852,7 +1854,7 @@ class CoursesAndSessionsCatalog
         $action = isset($action) ? Security::remove_XSS($action) : $requestAction;
         $searchTerm = isset($_REQUEST['search_term']) ? Security::remove_XSS($_REQUEST['search_term']) : '';
         $keyword = isset($_REQUEST['keyword']) ? Security::remove_XSS($_REQUEST['keyword']) : '';
-        $searchTag = isset($_REQUEST['search_tag']) ? $_REQUEST['search_tag'] : '';
+        $searchTag = $_REQUEST['search_tag'] ? Security::remove_XSS($_REQUEST['search_tag']) : '';
 
         if ('subscribe_user_with_password' === $action) {
             $action = 'subscribe';

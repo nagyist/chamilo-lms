@@ -4,6 +4,7 @@
 use Chamilo\CoreBundle\Entity\Career as CareerEntity;
 use Fhaculty\Graph\Graph;
 use Fhaculty\Graph\Vertex;
+use Chamilo\CoreBundle\Component\Utils\ActionIcon;
 
 class Career extends Model
 {
@@ -76,10 +77,10 @@ class Career extends Model
     public function display()
     {
         $actions = '<a href="career_dashboard.php">'.
-            Display::return_icon('back.png', get_lang('Back'), '', ICON_SIZE_MEDIUM).'</a>';
+            Display::getMdiIcon(ActionIcon::BACK, 'ch-tool-icon', null, ICON_SIZE_MEDIUM, get_lang('Back')).'</a>';
         if (api_is_platform_admin()) {
             $actions .= '<a href="'.api_get_self().'?action=add">'.
-                    Display::return_icon('new_career.png', get_lang('Add'), '', ICON_SIZE_MEDIUM).'</a>';
+                    Display::getMdiIcon(ActionIcon::ADD, 'ch-tool-icon', null, ICON_SIZE_MEDIUM, get_lang('Add')).'</a>';
         }
         $html = Display::toolbarAction('career_actions', [$actions]);
         $html .= Display::grid_html('careers');
@@ -120,7 +121,7 @@ class Career extends Model
         $id = isset($_GET['id']) ? (int) $_GET['id'] : '';
         $form->addHeader($header);
         $form->addHidden('id', $id);
-        $form->addElement('text', 'name', get_lang('Name'), ['size' => '70']);
+        $form->addText('name', get_lang('Name'), true, ['size' => '70']);
         $form->addHtmlEditor(
             'description',
             get_lang('Description'),
@@ -239,7 +240,7 @@ class Career extends Model
     {
         $career = new CareerEntity();
         $career
-            ->setName($params['name'])
+            ->setTitle($params['name'])
             ->setStatus((int) $params['status'])
             ->setDescription($params['description']);
 

@@ -2,160 +2,136 @@
   <aside class="app-sidebar">
     <div class="app-sidebar__container">
       <h3 class="app-sidebar__top">
-        {{ t('Menu') }}
+        {{ t("Menu") }}
       </h3>
-      <div class="app-sidebar__panel">
-        <PanelMenu :model="items" />
+      <div
+        class="app-sidebar__panel"
+        @click="handlePanelHeaderClick"
+      >
+        <BaseSidebarPanelMenu v-model="menuItemsBeforeMyCourse" />
+
+        <BaseSidebarPanelMenu
+          v-if="enrolledStore.isInitialized"
+          v-model="menuItemMyCourse"
+        />
+        <div
+          v-else
+          class="flex mx-7 my-1.5 py-2 ml-8 gap-4"
+        >
+          <BaseIcon
+            class="text-sm"
+            icon="courses"
+            size="small"
+          />
+          <div
+            v-if="sidebarIsOpen"
+            class="font-bold text-sm self-center"
+          >
+            {{ t("Course") }}
+          </div>
+          <BaseIcon
+            class="text-sm animate-spin"
+            icon="sync"
+            size="small"
+          />
+        </div>
+
+        <BaseSidebarPanelMenu v-model="menuItemsAfterMyCourse" />
       </div>
       <div class="app-sidebar__bottom">
-        <p>{{ t('Created with Chamilo &copy; {year}', { 'year': 2022 }) }}</p>
+        <PageList category-title="footer_private" />
+
+        <p v-html="t('Created with Chamilo copyright year', [currentYear])" />
       </div>
       <a
-        v-if="isAuthenticated"
-        href="/logout"
+        v-if="securityStore.isAuthenticated"
         class="app-sidebar__logout-link"
+        href="/logout"
       >
-        <span class="pi pi-fw pi-sign-out" />
-        <span class="logout-text">{{ t('Sign out') }}</span>
+        <span class="mdi mdi-logout-variant" />
+        <span class="logout-text">{{ t("Sign out") }}</span>
       </a>
     </div>
     <ToggleButton
       v-model="sidebarIsOpen"
       class="app-sidebar__button"
-      off-icon="pi pi-fw pi-chevron-right"
-      on-icon="pi pi-fw pi-chevron-left"
+      off-icon="mdi mdi-chevron-right"
+      on-icon="mdi mdi-chevron-left"
     />
   </aside>
 
-  <Teleport to=".p-megamenu .p-megamenu-end">
+  <Teleport to=".app-topbar__end">
     <a
+      class="app-sidebar__topbar-button item-button"
       tabindex="0"
-      class="app-sidebar__topbar-button"
       @click="sidebarIsOpen = !sidebarIsOpen"
     >
-      <i class="pi pi-times" />
+      <i class="mdi mdi-close" />
     </a>
   </Teleport>
 </template>
 
 <script setup>
-import {computed, ref, watch} from 'vue';
-import PanelMenu from 'primevue/panelmenu';
-import ToggleButton from 'primevue/togglebutton';
-import {useI18n} from "vue-i18n";
-import {useStore} from "vuex";
+import { onMounted, ref, watch } from "vue"
+import ToggleButton from "primevue/togglebutton"
+import { useI18n } from "vue-i18n"
+import { useSecurityStore } from "../../store/securityStore"
+import { useSidebarMenu } from "../../composables/sidebarMenu"
+import PageList from "../page/PageList.vue"
+import { useEnrolledStore } from "../../store/enrolledStore"
+import BaseIcon from "../basecomponents/BaseIcon.vue"
+import BaseSidebarPanelMenu from "../basecomponents/BaseSidebarPanelMenu.vue"
 
-const store = useStore();
-const {t} = useI18n();
+const { t } = useI18n()
+const securityStore = useSecurityStore()
+const enrolledStore = useEnrolledStore()
 
-const isAuthenticated = computed(() => store.getters['security/isAuthenticated']);
-const isAdmin = computed(() => store.getters['security/isAdmin']);
-const isBoss = computed(() => store.getters['security/isBoss']);
-const isStudent = computed(() => store.getters['security/isStudent']);
+const { menuItemsBeforeMyCourse, menuItemMyCourse, menuItemsAfterMyCourse, initialize } = useSidebarMenu()
 
-const items = ref([
-  {
-    label: t('Home'),
-    to: '/home',
-    icon: 'pi pi-fw pi-home',
-  },
+const sidebarIsOpen = ref(window.localStorage.getItem("sidebarIsOpen") === "true")
+const expandingDueToPanelClick = ref(false)
 
-  {
-    label: t('Courses'),
-    icon: 'pi pi-fw pi-book',
-    visible: isAuthenticated,
-    items: [
-      {
-        label: t('My courses'),
-        to: '/courses',
-      },
-      {
-        label: t('My sessions'),
-        to: '/sessions',
-      },
-    ],
-  },
-  {
-    label: t('Events'),
-    to: '/resources/ccalendarevent',
-    icon: 'pi pi-fw pi-calendar',
-    visible: isAuthenticated,
-  },
-  {
-    label: t('My progress'),
-    url: '/main/auth/my_progress.php',
-    icon: 'pi pi-fw pi-chart-line',
-    visible: isAuthenticated,
-  },
-  {
-    label: t('Social network'),
-    to: '/social',
-    icon: 'pi pi-fw pi-sitemap',
-    visible: isAuthenticated,
-  },
-
-  {
-    label: t('Diagnosis'),
-    icon: 'pi pi-fw pi-search',
-    visible: isBoss.value || isStudent.value,
-    items: [
-      {
-        label: t('Management'),
-        url: '/main/search/load_search.php',
-        visible: isBoss,
-      },
-      {
-        label: t('Search'),
-        url: '/main/search/search.php',
-        visible: isBoss.value || isStudent.value,
-      },
-    ],
-  },
-
-  {
-    label: t('Administration'),
-    icon: 'pi pi-fw pi-table',
-    visible: isAdmin,
-    items: [
-      {
-        label: t('Administration'),
-        url: '/main/admin/index.php',
-      },
-      {
-        label: t('Users'),
-        url: '/main/admin/user_list.php',
-      },
-      {
-        label: t('Courses'),
-        url: '/main/admin/course_list.php',
-      },
-      {
-        label: t('Sessions'),
-        url: '/main/session/session_list.php',
-      },
-      {
-        label: t('Reporting'),
-        url: '/main/mySpace/index.php',
-      },
-    ],
-  },
-]);
-
-const sidebarIsOpen = ref(
-  window.localStorage.getItem('sidebarIsOpen') === 'true'
-);
+const currentYear = new Date().getFullYear()
 
 watch(
   sidebarIsOpen,
   (newValue) => {
-    const appEl = document.querySelector('#app');
+    const appEl = document.querySelector("#app")
+    window.localStorage.setItem("sidebarIsOpen", newValue.toString())
+    appEl.classList.toggle("app--sidebar-inactive", !newValue)
 
-    window.localStorage.setItem('sidebarIsOpen', newValue.toString());
-
-    appEl.classList.toggle('app--sidebar-inactive', !newValue);
+    if (!newValue) {
+      if (!expandingDueToPanelClick.value) {
+        const expandedHeaders = document.querySelectorAll(".p-panelmenu-header.p-highlight")
+        expandedHeaders.forEach((header) => {
+          header.click()
+        })
+        sidebarIsOpen.value = false
+        window.localStorage.setItem("sidebarIsOpen", "false")
+      }
+    }
+    expandingDueToPanelClick.value = false
   },
-  {
-    immediate: true,
+  { immediate: true },
+)
+
+const handlePanelHeaderClick = (event) => {
+  const header = event.target.closest(".p-panelmenu-header")
+  if (!header) return
+
+  const contentId = header.getAttribute("aria-controls")
+  const contentPanel = document.getElementById(contentId)
+
+  if (contentPanel && contentPanel.querySelector(".p-toggleable-content")) {
+    if (!sidebarIsOpen.value) {
+      expandingDueToPanelClick.value = true
+      sidebarIsOpen.value = true
+      window.localStorage.setItem("sidebarIsOpen", "true")
+    }
   }
-);
+}
+
+onMounted(async () => {
+  await initialize()
+})
 </script>

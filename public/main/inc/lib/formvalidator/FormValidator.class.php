@@ -2,6 +2,8 @@
 
 /* For licensing terms, see /license.txt */
 
+use Chamilo\CoreBundle\Component\HTMLPurifier\Filter\RemoveOnAttributes;
+
 /**
  * Class FormValidator
  * create/manipulate/validate user input.
@@ -50,10 +52,8 @@ class FormValidator extends HTML_QuickForm
 
         switch ($layout) {
             case self::LAYOUT_BOX_SEARCH:
-                $attributes['class'] = 'form--search';
-                break;
             case self::LAYOUT_INLINE:
-                $attributes['class'] = 'gap-3 ';
+                $attributes['class'] = 'flex flex-row gap-3 items-center ';
                 break;
             case self::LAYOUT_BOX:
                 $attributes['class'] = 'ch flex gap-1 ';
@@ -217,6 +217,8 @@ EOT;
         }
 
         $this->applyFilter($name, 'trim');
+        $this->applyFilter($name, 'html_filter');
+
         if ($required) {
             $this->addRule($name, get_lang('Required field'), 'required');
         }
@@ -229,7 +231,7 @@ EOT;
      */
     public function addCourseHiddenParams()
     {
-        $this->addHidden('cid', api_get_course_id());
+        $this->addHidden('cid', api_get_course_int_id());
         $this->addHidden('sid', api_get_session_id());
     }
 
@@ -334,7 +336,7 @@ EOT;
 
     /**
      * @param string $name
-     * @param string $value
+     * @param string|mixed $value
      * @param array  $attributes
      */
     public function addHidden($name, $value, $attributes = [])
@@ -1009,57 +1011,62 @@ EOT;
         return true;
     }
 
-    public function addStartPanel(string $id, string $title, bool $open = false)
+    public function addStartPanel(string $id, string $title, bool $open = false, $icon = null): void
     {
+        // Same code as in Display::panelCollapse
         $parent = null;
-        $html = '
-                <script>
-                 document.addEventListener("DOMContentLoaded", function() {
-                    const query = window.location.hash.replace("#", "#collapse_");
-                    if (query) {
-                        const selected = document.querySelector(query);
-                        if (selected) {
-                             if (selected.classList.contains("hidden")) {
-                                selected.classList.remove("hidden");
-                            }
-                        }
-                    }
+        $javascript = '
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                const buttons = document.querySelectorAll("#card_'.$id.' a");
+                const menus = document.querySelectorAll("#collapse_'.$id.'");
 
-                    const button = document.querySelector("#card_'.$id.'");
-                        button.addEventListener("click", (e) => {
-                        let menu = document.querySelector("#collapse_'.$id.'");
-                        if (menu.classList.contains("hidden")) {
-                            menu.classList.remove("hidden");
-                        } else {
-                            menu.classList.add("hidden");
-                        }
+                buttons.forEach((button, index) => {
+                    button.addEventListener("click", function() {
+                        menus.forEach((menu, menuIndex) => {
+                            if (index === menuIndex) {
+                                button.setAttribute("aria-expanded", "true" === button.getAttribute("aria-expanded") ? "false" : "true")
+                                button.classList.toggle("mdi-chevron-down")
+                                button.classList.toggle("mdi-chevron-up")
+                                menu.classList.toggle("active");
+                            } else {
+                                menu.classList.remove("active");
+                            }
+                        });
                     });
                 });
-                </script>
-                <div class="mt-4 rounded-lg">
-                    <div class="px-4 bg-gray-100 border border-gray-50" id="card_'.$id.'">
-                        <h5>
-                            <a role="button"
-                                class="'.(($open) ? 'collapse' : ' ').'"
-                                data-toggle="collapse"
-                                data-target="#collapse_'.$id.'"
-                                aria-expanded="true"
-                                aria-controls="collapse_'.$id.'"
-                            >
-                                '.$title.'
-                            </a>
-                        </h5>
-                    </div>
-                    <div
-                        id="collapse_'.$id.'"
-                        class="px-4 border border-gray-50 bg-white hidden collapse '.(($open) ? 'show' : ' ').'"
-                        aria-labelledby="heading_'.$id.'" data-parent="#'.$parent.'">
-                    <div id="collapse_contant_'.$id.'"  class="card-body ">';
+            });
+        </script>';
+
+        $this->addHtml($javascript);
+
+        $htmlIcon = '';
+        if ($icon) {
+            $htmlIcon = Display::getMdiIcon($icon, 'ch-tool-icon', 'float:left;', ICON_SIZE_SMALL);
+        }
+        $html = '
+        <div class="display-panel-collapse field">
+            <div class="display-panel-collapse__header" id="card_'.$id.'">
+                <a role="button"
+                    class="mdi mdi-chevron-down"
+                    data-toggle="collapse"
+                    data-target="#collapse_'.$id.'"
+                    aria-expanded="'.(($open) ? 'true' : 'false').'"
+                    aria-controls="collapse_'.$id.'"
+                >
+                    '.$htmlIcon.'&nbsp;'.$title.'
+                </a>
+            </div>
+            <div
+                id="collapse_'.$id.'"
+                class="display-panel-collapse__collapsible '.(($open) ? 'active' : '').'"
+            >
+                <div id="collapse_contant_'.$id.'"  class="card-body ">';
 
         $this->addHtml($html);
     }
 
-    public function addEndPanel()
+    public function addEndPanel(): void
     {
         $this->addHtml('</div></div></div>');
     }
@@ -1071,21 +1078,9 @@ EOT;
      * @param string $title     visible title
      * @param array  $groupList list of group or elements
      */
-    public function addPanelOption($name, $title, $groupList, $icon, $open, $parent)
+    public function addPanelOption($name, $title, $groupList, $icon, $open)
     {
-        $html = '<div class="card">';
-        $html .= '<div class="card-header" id="card_'.$name.'">';
-        $html .= '<h5 class="card-title">';
-        $html .= '<a role="button" class="'.(($open) ? 'collapse' : ' ').'"  data-toggle="collapse" data-target="#collapse_'.$name.'" aria-expanded="true" aria-controls="collapse_'.$name.'">';
-        if ($icon) {
-            $html .= Display::return_icon($icon, null, null, ICON_SIZE_SMALL);
-        }
-        $html .= $title;
-        $html .= '</a></h5></div>';
-        $html .= '<div id="collapse_'.$name.'" class="collapse '.(($open) ? 'show' : ' ').'" aria-labelledby="heading_'.$name.'" data-parent="#'.$parent.'">';
-        $html .= '<div class="card-body">';
-
-        $this->addHtml($html);
+        $this->addStartPanel($name, $title, $open, $icon);
 
         foreach ($groupList as $groupName => $group) {
             // Add group array
@@ -1098,7 +1093,7 @@ EOT;
             }
         }
 
-        $this->addHtml('</div></div></div>');
+        $this->addEndPanel();
     }
 
     /**
@@ -1136,6 +1131,7 @@ EOT;
 
         $this->addElement('html_editor', $name, $label, $attributes, $config);
         $this->applyFilter($name, 'trim');
+        $this->applyFilter($name, 'attr_on_filter');
         if ($required) {
             $this->addRule($name, get_lang('Required field'), 'required');
         }
@@ -1152,6 +1148,17 @@ EOT;
         if ($element->editor) {
             $element->editor->processConfig($config);
         }
+    }
+
+    /**
+     * Prevent execution of event handlers in HTML elements.
+     *
+     * @param string $html
+     * @return string
+     */
+    function attr_on_filter($html) {
+        $prefix = uniqid('data-cke-').'-';
+        return preg_replace('/(\s)(on)/i', '$1'.$prefix.'$2', $html);
     }
 
     /**
@@ -1757,7 +1764,7 @@ EOT;
             $(function() {
                 var defaultValue = '$defaultId';
                 $('#$typeNoDots').val(defaultValue);
-                $('#$typeNoDots').selectpicker('render');
+                //$('#$typeNoDots').selectpicker('render');
                 if (defaultValue != '') {
                     var selected = $('#$typeNoDots option:selected').val();
                     $.ajax({
@@ -1809,7 +1816,7 @@ EOT;
         if (!empty($urlToRedirect)) {
             $redirectCondition = "window.location.replace('$urlToRedirect'); ";
         }
-        $icon = Display::return_icon('file_txt.gif');
+        $icon = Display::getMdiIcon('text-box-outline', 'ch-tool-icon', null, ICON_SIZE_SMALL);
         $this->addHtml("
         <script>
         $(function () {
@@ -1983,3 +1990,30 @@ function mobile_phone_number_filter($mobilePhoneNumber)
 
     return ltrim($mobilePhoneNumber, '0');
 }
+
+/**
+ * Cleans JS from a URL.
+ *
+ * @param string $html URL to clean
+ * @param int    $mode (optional)
+ *
+ * @return string The cleaned URL
+ */
+function plain_url_filter($html, $mode = NO_HTML)
+{
+    $allowed_tags = HTML_QuickForm_Rule_HTML::get_allowed_tags($mode);
+    $html = kses_no_null($html);
+    $html = kses_js_entities($html);
+    $allowed_html_fixed = kses_array_lc($allowed_tags);
+
+    return kses_split($html, $allowed_html_fixed, ['http', 'https']);
+}
+
+/**
+ * Prevent execution of event handlers in HTML elements.
+ */
+function attr_on_filter(string $html): string
+{
+    return RemoveOnAttributes::filter($html);
+}
+

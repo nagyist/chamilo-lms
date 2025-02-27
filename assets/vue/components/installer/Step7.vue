@@ -1,16 +1,14 @@
 <template>
   <div class="install-step">
-    <h2
-      v-if="'update' !== installerData.installType"
-      v-t="'Step 7 - Installation process execution'"
-      class="RequirementHeading mb-8"
+    <SectionHeader
+      :title="
+        'update' !== installerData.installType
+          ? t('Step 7 - Installation process execution')
+          : t('Step 7 - Update process execution')
+      "
+      class="RequirementHeading"
     />
-    <h2
-      v-else
-      v-t="'Step 7 - Update process execution'"
-      class="RequirementHeading mb-8"
-    />
-      
+
     <p
       v-if="installerData.installationProfile"
       class="mb-4"
@@ -19,10 +17,12 @@
 
     <div class="RequirementContent">
       <p
-        v-t="'When you enter your portal for the first time, the best way to understand it is to create a course with the \'Create course\' link in the menu and play around a little.'"
+        v-t="
+          'When you enter your portal for the first time, the best way to understand it is to create a course with the \'Create course\' link in the menu and play around a little.'
+        "
         class="mb-3"
       />
-      
+
       <Message
         :closable="false"
         severity="warn"
@@ -30,22 +30,23 @@
         <strong v-t="'Security advice'" />
 
         <i18n-t
-          keypath="To protect your site, make the whole {0} directory read-only (chmod -R 0555 on Linux) and delete the {1} directory."
+          keypath="To protect your site, make the whole %s directory read-only (chmod -R 0555 on Linux) and delete the %s directory."
           tag="p"
         >
-          <code>var/config/</code>
+          <code>config/</code>
           <code>main/install/</code>
         </i18n-t>
       </Message>
 
       <div class="formgroup-inline">
         <div class="field">
-          <Button
-            :label="t('Go to your newly created portal.')"
-            class="p-button-success"
-            type="button"
-            @click="btnFinishOnClick"
-          />
+          <BaseAppLink url="../../">
+            <Button
+              :label="t('Go to your newly created portal.')"
+              class="p-button-success"
+              type="button"
+            />
+          </BaseAppLink>
         </div>
       </div>
     </div>
@@ -53,17 +54,15 @@
 </template>
 
 <script setup>
-import { inject } from 'vue';
-import { useI18n } from 'vue-i18n';
+import { inject } from "vue"
+import { useI18n } from "vue-i18n"
 
-import Message from 'primevue/message';
-import Button from 'primevue/button';
+import Message from "primevue/message"
+import Button from "primevue/button"
+import SectionHeader from "../layout/SectionHeader.vue"
+import BaseAppLink from "../basecomponents/BaseAppLink.vue"
 
-const { t } = useI18n();
+const { t } = useI18n()
 
-const installerData = inject('installerData');
-
-function btnFinishOnClick () {
-  window.location = '../../';
-}
+const installerData = inject("installerData")
 </script>

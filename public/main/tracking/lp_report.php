@@ -5,6 +5,7 @@
 use Chamilo\CoreBundle\Framework\Container;
 use Chamilo\CourseBundle\Entity\CLp;
 use ChamiloSession as Session;
+use Chamilo\CoreBundle\Component\Utils\ActionIcon;
 
 require_once __DIR__.'/../inc/global.inc.php';
 
@@ -52,7 +53,7 @@ function prepare_user_sql_query($getCount)
                     u.email AS col6,
                     u.status AS col7,
                     u.active AS col8,
-                    u.registration_date AS col9,
+                    u.created_at AS col9,
                     u.last_login as col10,
                     u.id AS col11,
                     u.expiration_date AS exp,
@@ -84,7 +85,7 @@ function prepare_user_sql_query($getCount)
     foreach ($keywordList as $keyword) {
         $keywordListValues[$keyword] = null;
         if (isset($_GET[$keyword]) && !empty($_GET[$keyword])) {
-            $keywordListValues[$keyword] = $_GET[$keyword];
+            $keywordListValues[$keyword] = Security::remove_XSS($_GET[$keyword]);
             $atLeastOne = true;
         }
     }
@@ -403,10 +404,10 @@ $headers[] = get_lang('FirstName');
 $headers[] = get_lang('LastName');
 $headers[] = get_lang('Username');
 foreach ($lps as $lp) {
-    $lpName = $lp->getName();
+    $lpName = $lp->getTitle();
     $headers[] = get_lang('Progress').': '.$lpName;
-    $headers[] = get_lang('FirstAccess').': '.$lpName;
-    $headers[] = get_lang('LastAccess').': '.$lpName;
+    $headers[] = get_lang('First access').': '.$lpName;
+    $headers[] = get_lang('Latest access').': '.$lpName;
     $headers[] = get_lang('Time').': '.$lpName;
     $headers[] = get_lang('Score').': '.$lpName;
 }
@@ -426,7 +427,7 @@ if (!empty($action)) {
 $actionsLeft = TrackingCourseLog::actionsLeft('lp', api_get_session_id(), false);
 $actionsCenter = '';
 $actionsRight = Display::url(
-    Display::return_icon('export_excel.png', get_lang('ExportAsXLS'), null, ICON_SIZE_MEDIUM),
+    Display::getMdiIcon(ActionIcon::EXPORT_SPREADSHEET, 'ch-tool-icon', null, ICON_SIZE_MEDIUM, get_lang('ExportAsXLS')),
     api_get_self().'?action=export&'.api_get_cidreq()
 );
 

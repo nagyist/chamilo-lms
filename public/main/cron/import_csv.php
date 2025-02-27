@@ -1,6 +1,7 @@
 <?php
 /* For licensing terms, see /license.txt */
 
+use Chamilo\CoreBundle\Entity\UserAuthSource;
 use Chamilo\CourseBundle\Entity\CCalendarEvent;
 use Chamilo\CourseBundle\Entity\CItemProperty;
 use Chamilo\PluginBundle\Entity\StudentFollowUp\CarePost;
@@ -557,7 +558,7 @@ class ImportCsv
         $row['email'] = $row['Email'];
         $row['username'] = $row['UserName'];
         $row['password'] = $row['Password'];
-        $row['auth_source'] = isset($row['AuthSource']) ? $row['AuthSource'] : PLATFORM_AUTH_SOURCE;
+        $row['auth_source'] = $row['AuthSource'] ?? UserAuthSource::PLATFORM;
         $row['official_code'] = $row['OfficialCode'];
         $row['phone'] = isset($row['PhoneNumber']) ? $row['PhoneNumber'] : '';
 
@@ -678,7 +679,7 @@ class ImportCsv
                         $language, //$row['language'],
                         $row['phone'],
                         null, //$row['picture'], //picture
-                        $row['auth_source'], // ?
+                        [$row['auth_source']], // ?
                         $expirationDateOnCreation, //'0000-00-00 00:00:00', //$row['expiration_date'], //$expiration_date = '0000-00-00 00:00:00',
                         1, //active
                         0,
@@ -721,7 +722,7 @@ class ImportCsv
                         $row['lastname'], // <<-- changed
                         $userInfo['username'],
                         null, //$password = null,
-                        $row['auth_source'],
+                        [$row['auth_source']],
                         $userInfo['email'],
                         COURSEMANAGER,
                         $userInfo['official_code'],
@@ -851,7 +852,7 @@ class ImportCsv
                             $value = $extraFieldValue['value'];
                         }
                         if (!empty($user_id) && $value != $user_id) {
-                            $emails = api_get_configuration_value('cron_notification_help_desk');
+                            $emails = api_get_setting('mail.cron_notification_help_desk', true);
                             if (!empty($emails)) {
                                 $this->logger->addInfo('Preparing email to users in configuration: "cron_notification_help_desk"');
                                 $subject = 'User not added due to same username';
@@ -880,7 +881,7 @@ class ImportCsv
                         $language, //$row['language'],
                         $row['phone'],
                         null, //$row['picture'], //picture
-                        $row['auth_source'], // ?
+                        [$row['auth_source']], // ?
                         $expirationDateOnCreate,
                         1, //active
                         0,
@@ -983,7 +984,7 @@ class ImportCsv
                         $row['lastname'], // <<-- changed
                         $row['username'], // <<-- changed
                         $password, //$password = null,
-                        $row['auth_source'],
+                        [$row['auth_source']],
                         $email,
                         STUDENT,
                         $userInfo['official_code'],
@@ -3017,7 +3018,7 @@ class ImportCsv
                 $result = Database::query($sql);
                 $rows = Database::num_rows($result);
                 if ($rows > 0) {
-                    $userCourseData = Database::fetch_array($result, 'ASSOC');
+                    $userCourseData = Database::fetch_assoc($result);
                     if (!empty($userCourseData)) {
                         $teacherBackup[$userId][$courseInfo['code']] = $userCourseData;
                     }
@@ -3030,7 +3031,7 @@ class ImportCsv
                         ";
 
                 $result = Database::query($sql);
-                while ($groupData = Database::fetch_array($result, 'ASSOC')) {
+                while ($groupData = Database::fetch_assoc($result)) {
                     $groupBackup['user'][$userId][$courseInfo['code']][$groupData['group_id']] = $groupData;
                 }
 
@@ -3041,7 +3042,7 @@ class ImportCsv
                         ";
 
                 $result = Database::query($sql);
-                while ($groupData = Database::fetch_array($result, 'ASSOC')) {
+                while ($groupData = Database::fetch_assoc($result)) {
                     $groupBackup['tutor'][$userId][$courseInfo['code']][$groupData['group_id']] = $groupData;
                 }
 
@@ -3113,7 +3114,7 @@ class ImportCsv
             Database::get_main_table(TABLE_STATISTIC_TRACK_E_DOWNLOADS),
             Database::get_main_table(TABLE_STATISTIC_TRACK_E_EXERCISES),
             Database::get_main_table(TABLE_STATISTIC_TRACK_E_ATTEMPT),
-            Database::get_main_table(TABLE_STATISTIC_TRACK_E_ATTEMPT_RECORDING),
+            Database::get_main_table(TABLE_STATISTIC_TRACK_E_ATTEMPT_QUALIFY),
             Database::get_main_table(TABLE_STATISTIC_TRACK_E_DEFAULT),
             Database::get_main_table(TABLE_STATISTIC_TRACK_E_UPLOADS),
             Database::get_main_table(TABLE_STATISTIC_TRACK_E_HOTSPOT),
@@ -3201,7 +3202,7 @@ class ImportCsv
 }
 
 $logger = new Logger('cron');
-$emails = isset($_configuration['cron_notification_mails']) ? $_configuration['cron_notification_mails'] : null;
+$emails = api_get_setting('mail.cron_notification_help_desk', true);
 
 $minLevel = Logger::DEBUG;
 
@@ -3256,7 +3257,8 @@ if (isset($_configuration['import_csv_disable_dump']) &&
     $import->setDumpValues($dump);
 }
 
-$import->setUpdateEmailToDummy(api_get_configuration_value('update_users_email_to_dummy_except_admins'));
+$settingEmailDummy = ('true' === api_get_setting('mail.update_users_email_to_dummy_except_admins'));
+$import->setUpdateEmailToDummy($settingEmailDummy);
 
 // Do not moves the files to treated
 if (isset($_configuration['import_csv_test'])) {

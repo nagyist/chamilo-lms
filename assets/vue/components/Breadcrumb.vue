@@ -1,159 +1,144 @@
 <template>
-  <Breadcrumb
-    :home="home"
-    :model="foo"
+  <div
+    v-if="itemList.length > 0"
     class="app-breadcrumb"
-  />
+  >
+    <Breadcrumb :model="itemList">
+      <template #item="{ item, props }">
+        <BaseAppLink
+          :to="item.route"
+          :url="item.url"
+          v-bind="props.action"
+        >
+          {{ item.label }}
+        </BaseAppLink>
+      </template>
+
+      <template #separator> /</template>
+    </Breadcrumb>
+    <div
+      v-if="session"
+      class="app-breadcrumb__session-title"
+      v-text="session.title"
+    />
+  </div>
 </template>
 
 <script setup>
-import {useStore} from "vuex";
-import {computed} from "vue";
-import {useRoute} from "vue-router";
-import {useI18n} from "vue-i18n";
-import Breadcrumb from 'primevue/breadcrumb';
+import { ref, watchEffect } from "vue"
+import { useRoute, useRouter } from "vue-router"
+import { useI18n } from "vue-i18n"
+import Breadcrumb from "primevue/breadcrumb"
+import { useCidReqStore } from "../store/cidReq"
+import { storeToRefs } from "pinia"
 
-// eslint-disable-next-line no-undef
-const props = defineProps({
-  layoutClass: {
-    type: String,
-    default: null,
-  },
-  legacy: {
-    type: Array,
-    default: () => [],
-  }
-});
+const legacyItems = ref(window.breadcrumb)
 
-const store = useStore();
-const route = useRoute();
-const {t} = useI18n();
+const cidReqStore = useCidReqStore()
+const route = useRoute()
+const router = useRouter()
+const { t } = useI18n()
 
-const resourceNode = computed(() => store.getters['resourcenode/getResourceNode']);
-const course = computed(() => store.getters['course/getCourse']);
-const session = computed(() => store.getters['session/getSession']);
+const { course, session } = storeToRefs(cidReqStore)
 
-const home = {
-  icon: 'pi pi-home',
-  to: '/'
-};
+const specialRouteNames = [
+  "MyCourses",
+  "MySessions",
+  "MySessionsUpcoming",
+  "MySessionsPast",
+  "Home",
+  "MessageList",
+  "MessageNew",
+  "MessageShow",
+  "MessageCreate",
+]
 
-const foo = computed(() => {
-  const list = [
-    'CourseHome',
-    'MyCourses',
-    'MySessions',
-    'MySessionsUpcoming',
-    'MySessionsPast',
-    'Home',
-    'MessageList',
-    'MessageNew',
-    'MessageShow',
-    'MessageCreate',
-  ];
+const itemList = ref([])
 
-  const items = [];
-
-  if (route.name && route.name.includes('Page')) {
-    items.push({
-      label: t('Pages'),
-      to: '/resources/pages',
-    });
+watchEffect(() => {
+  if ("/" === route.fullPath) {
+    return
   }
 
-  if (route.name && route.name.includes('Message')) {
-    items.push({
-      label: t('Messages'),
+  itemList.value = []
+
+  if (route.fullPath.startsWith("/admin")) {
+    const parts = route.path.split("/").filter(Boolean)
+    parts.forEach((part, index) => {
+      const path = `/${parts.slice(0, index + 1).join("/")}`
+      const matchedRoute = router.getRoutes().find((r) => r.path === path)
+      if (matchedRoute) {
+        const label = matchedRoute.meta?.breadcrumb || t(part.charAt(0).toUpperCase() + part.slice(1))
+        itemList.value.push({
+          label: t(label),
+          route: { path },
+        })
+      }
+    })
+  }
+
+  if (route.name && route.name.includes("Page")) {
+    itemList.value.push({
+      label: t("Pages"),
+      to: "/resources/pages",
+    })
+  }
+
+  if (route.name && route.name.includes("Message")) {
+    itemList.value.push({
+      label: t("Messages"),
       //disabled: route.path === path || lastItem.path === route.path,
-      to: '/resources/messages',
-    });
+      to: "/resources/messages",
+    })
   }
 
-  if (list.includes(route.name)) {
-    return items;
+  if (specialRouteNames.includes(route.name)) {
+    return
   }
-
-  if (0 < props.legacy.length) {
-    const mainUrl = window.location.href;
-    const mainPath = mainUrl.indexOf("main/");
-
-    props.legacy.forEach(item => {
-      let url = item.url.toString();
-      let newUrl = url;
-
-      if (url.indexOf('main/') > 0) {
-        newUrl = '/' + url.substring(mainPath, url.length);
-      }
-
-      if (newUrl === '/') {
-        newUrl = '#';
-      }
-
-      items.push({
-        label: item['name'],
-        href: newUrl
-      });
-    });
-  }
-
-  let queryParams = '';
-
-  Object.keys(route.query)
-    .filter(key => !!key)
-    .forEach(key => {
-      if ('' !== queryParams) {
-        queryParams += "&";
-      }
-
-      queryParams += key + '=' + encodeURIComponent(route.query[key].toString());
-    });
-
   if (course.value) {
-    let sessionTitle = '';
-
     if (session.value) {
-      sessionTitle = ' (' + session.value.name + ') ';
+      itemList.value.push({
+        label: t("My sessions"),
+        route: { name: "MySessions" },
+      })
+    } else {
+      itemList.value.push({
+        label: t("My courses"),
+        route: { name: "MyCourses" },
+      })
     }
-
-    items.push({
-      label: course.value.title + sessionTitle,
-      to: '/course/' + course.value.id + '/home?' + queryParams
-    });
   }
 
-  const {path, matched} = route;
-  const lastItem = matched[matched.length - 1];
+  if (legacyItems.value.length > 0) {
+    const mainUrl = window.location.href
+    const mainPath = mainUrl.indexOf("main/")
 
-  if (resourceNode.value) {
-    resourceNode.value.path.split('/').forEach((pathItem, i, pathItems) => {
-      let itemParts = pathItem.split('-');
+    legacyItems.value.forEach((item) => {
+      let url = item.url.toString()
+      let newUrl = url
 
-      if (0 === i) {
-        let firstParts = pathItems[i + 1].split('-');
-
-        items.push({
-          label: matched[0].name,
-          to: '/resources/document/' + firstParts[1] + '/?' + queryParams
-        });
-      } else if (itemParts[0]) {
-        items.push({
-          label: itemParts[0],
-          to: '/resources/document/' + itemParts[1] + '/?' + queryParams
-        });
+      if (url.indexOf("main/") > 0) {
+        newUrl = "/" + url.substring(mainPath, url.length)
       }
-    });
-  }
 
-  matched.forEach(pathItem => {
-    if (pathItem.path) {
-      items.push({
-        label: pathItem.name,
-        disabled: route.path === path || lastItem.path === route.path,
-        href: pathItem.path,
-      });
+      if (newUrl === "/") {
+        newUrl = "#"
+      }
+
+      itemList.value.push({
+        label: item["name"],
+        url: newUrl,
+      })
+    })
+
+    legacyItems.value = []
+  } else {
+    if (course.value && "CourseHome" !== route.name) {
+      itemList.value.push({
+        label: course.value.title,
+        route: { name: "CourseHome", params: { id: course.value.id }, query: route.query },
+      })
     }
-  });
-
-  return items;
-});
+  }
+})
 </script>

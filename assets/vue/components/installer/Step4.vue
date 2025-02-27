@@ -1,18 +1,19 @@
 <template>
   <div class="install-step">
-    <h2
-      v-t="'Step 4 - Database settings'"
-      class="RequirementHeading mb-8"
-    />
+    <SectionHeader :title="t('Step 4 - Database settings')" />
 
     <p
       v-if="'update' === installerData.installType"
-      v-t="'The upgrade script will recover and update the Chamilo database(s). In order to do this, this script will use the databases and settings defined below. Because our software runs on a wide range of systems and because all of them might not have been tested, we strongly recommend you do a full backup of your databases before you proceed with the upgrade!'"
+      v-t="
+        'The upgrade script will recover and update the Chamilo database(s). In order to do this, this script will use the databases and settings defined below. Because our software runs on a wide range of systems and because all of them might not have been tested, we strongly recommend you do a full backup of your databases before you proceed with the upgrade!'
+      "
       class="RequirementContent mb-4"
     />
     <p
       v-else
-      v-t="'The install script will create (or use) the Chamilo database using the database name given here. Please make sure the user you give has the right to create the database by the name given here. If a database with this name exists, it will be overwritten. Please do not use the root user as the Chamilo database user. This can lead to serious security issues.'"
+      v-t="
+        'The install script will create (or use) the Chamilo database using the database name given here. Please make sure the user you give has the right to create the database by the name given here. If a database with this name exists, it will be overwritten. Please do not use the root user as the Chamilo database user. This can lead to serious security issues.'
+      "
       class="RequirementContent mb-4"
     />
 
@@ -85,7 +86,9 @@
           for="dbPassForm"
         />
       </div>
-      <small v-t="{ path: 'ex. {examplePassword}', args: { examplePassword: installerData.stepData.examplePassword } }" />
+      <small
+        v-t="{ path: 'ex. {examplePassword}', args: { examplePassword: installerData.stepData.examplePassword } }"
+      />
     </div>
 
     <div class="field">
@@ -126,10 +129,7 @@
       :closable="false"
       severity="warn"
     >
-      <i18n-t keypath="A database with the name {0}. It will be {1}.">
-        <b>already exists</b>
-        <b>deleted</b>
-      </i18n-t>
+      <span v-html="t('A database with the name already exists. It will be <b>deleted</b>.')" />
     </Message>
 
     <Message
@@ -139,32 +139,36 @@
       severity="success"
     >
       <table>
-        <tr>
-          <td v-t="'Database host'" />
-          <td v-text="installerData.stepData.connParams.host" />
-        </tr>
-        <tr>
-          <td v-t="'Database port'" />
-          <td v-text="installerData.stepData.connParams.port" />
-        </tr>
-        <tr>
-          <td v-t="'Database driver'" />
-          <td v-text="installerData.stepData.connParams.driver" />
-        </tr>
+        <tbody>
+          <tr>
+            <td v-t="'Database host'" />
+            <td v-text="installerData.stepData.connParams.host" />
+          </tr>
+          <tr>
+            <td v-t="'Database port'" />
+            <td v-text="installerData.stepData.connParams.port" />
+          </tr>
+          <tr>
+            <td v-t="'Database driver'" />
+            <td v-text="installerData.stepData.connParams.driver" />
+          </tr>
+        </tbody>
       </table>
       <table v-if="'update' === installerData.installType">
-        <tr>
-          <td v-t="'CREATE TABLE works'" />
-          <td v-t="'OK'" />
-        </tr>
-        <tr>
-          <td v-t="'ALTER TABLE works'" />
-          <td v-t="'OK'" />
-        </tr>
-        <tr>
-          <td v-t="'DROP COLUMN works'" />
-          <td v-t="'OK'" />
-        </tr>
+        <tbody>
+          <tr>
+            <td v-t="'CREATE TABLE works'" />
+            <td v-t="'OK'" />
+          </tr>
+          <tr>
+            <td v-t="'ALTER TABLE works'" />
+            <td v-t="'OK'" />
+          </tr>
+          <tr>
+            <td v-t="'DROP COLUMN works'" />
+            <td v-t="'OK'" />
+          </tr>
+        </tbody>
       </table>
     </Message>
     <Message
@@ -173,11 +177,15 @@
       :closable="false"
       severity="error"
     >
-      {{ t('The database connection has failed. This is generally due to the wrong user, the wrong password or the wrong database prefix being set above. Please review these settings and try again.') }}
+      {{
+        t(
+          "The database connection has failed. This is generally due to the wrong user, the wrong password or the wrong database prefix being set above. Please review these settings and try again.",
+        )
+      }}
       <code v-t="installerData.stepData.dbConnError" />
     </Message>
 
-    <hr>
+    <hr />
 
     <div class="formgroup-inline">
       <div class="field">
@@ -202,26 +210,27 @@
         name="is_executable"
         type="hidden"
         value="-"
-      >
+      />
     </div>
   </div>
 </template>
 
 <script setup>
-import { inject } from 'vue';
-import { useI18n } from 'vue-i18n';
+import { inject } from "vue"
+import { useI18n } from "vue-i18n"
 
-import InputText from 'primevue/inputtext';
-import Password from 'primevue/password';
-import Button from 'primevue/button';
-import Message from 'primevue/message';
+import InputText from "primevue/inputtext"
+import Password from "primevue/password"
+import Button from "primevue/button"
+import Message from "primevue/message"
+import SectionHeader from "../layout/SectionHeader.vue"
 
-const { t } = useI18n();
+const { t } = useI18n()
 
-const installerData = inject('installerData');
+const installerData = inject("installerData")
 
 // Database Name fix replace weird chars
-if ('update' !== installerData.value.installType) {
-  installerData.value.dbNameForm = installerData.value.dbNameForm.replace(/[-*$ .]/g, '');
+if ("update" !== installerData.value.installType) {
+  installerData.value.dbNameForm = installerData.value.dbNameForm.replace(/[-*$ .]/g, "")
 }
 </script>

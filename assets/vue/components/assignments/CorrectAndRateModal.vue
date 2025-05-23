@@ -23,6 +23,30 @@
       />
 
       <div class="flex flex-col gap-2">
+        <label>{{ t("Score") }}</label>
+
+        <template v-if="!forceStudentView">
+          <input
+            type="number"
+            v-model.number="qualification"
+            class="input border p-2 rounded"
+            min="0"
+            :max="maxQualification"
+            step="0.1"
+          />
+          <template v-if="maxQualification">
+            <span class="text-xs text-gray-600"> {{ t("Max grade") }}: {{ maxQualification }} </span>
+          </template>
+        </template>
+
+        <template v-else>
+          <span class="border p-2 rounded bg-gray-100 text-sm">
+            {{ qualification ?? t("Not graded yet") }}
+          </span>
+        </template>
+      </div>
+
+      <div class="flex flex-col gap-2">
         <label>{{ t("Attach file (optional)") }}</label>
         <input
           type="file"
@@ -47,6 +71,7 @@
         />
         <Button
           :label="t('Send')"
+          :disabled="submitting"
           @click="submit"
         />
       </div>
@@ -90,7 +115,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from "vue"
+import { computed, ref, watch } from "vue"
 import { useNotification } from "../../composables/notification"
 import { useI18n } from "vue-i18n"
 import Textarea from "primevue/textarea"
@@ -98,6 +123,8 @@ import Button from "primevue/button"
 import Dialog from "primevue/dialog"
 import BaseCheckbox from "../basecomponents/BaseCheckbox.vue"
 import cStudentPublicationService from "../../services/cstudentpublication"
+import { useRoute } from "vue-router"
+import { useSecurityStore } from "../../store/securityStore"
 
 const props = defineProps({
   modelValue: Boolean,
@@ -112,6 +139,17 @@ const sendMail = ref(false)
 const selectedFile = ref(null)
 const { t } = useI18n()
 const notification = useNotification()
+const qualification = ref(null)
+const route = useRoute()
+const parentResourceNodeId = parseInt(route.params.node)
+const securityStore = useSecurityStore()
+const isEditor = securityStore.isCourseAdmin || securityStore.isTeacher
+const isStudentView = route.query.isStudentView === "true"
+const forceStudentView = !isEditor || isStudentView
+const maxQualification = computed(() =>
+  props.item?.publicationParent?.qualification ?? null
+)
+const submitting = ref(false)
 
 watch(
   () => props.modelValue,
@@ -121,6 +159,7 @@ watch(
       comment.value = ""
       sendMail.value = false
       selectedFile.value = null
+      qualification.value = props.item.qualification ?? null
       comments.value = await cStudentPublicationService.loadComments(props.item.iid)
     }
   },
@@ -152,46 +191,59 @@ function handleFileUpload(event) {
 }
 
 async function submit() {
-  if (!comment.value.trim()) {
-    notification.showErrorNotification(t("Comment is required"))
+  if (submitting.value) return
+  submitting.value = true
+
+  const trimmedComment = comment.value.trim()
+
+  const hasComment = trimmedComment.length > 0
+  const hasFile = !!selectedFile.value
+  const hasQualificationChange = qualification.value !== props.item.qualification
+
+  if (!hasComment && !hasFile && !hasQualificationChange) {
+    notification.showErrorNotification(t("Please add a comment, a grade or a file"))
+    submitting.value = false
+    return
+  }
+
+  if (!hasComment && !hasFile && hasQualificationChange) {
+    try {
+      await cStudentPublicationService.updateScore(props.item.iid, qualification.value)
+      notification.showSuccessNotification(t("Score updated successfully"))
+      emit("commentSent")
+      close()
+    } catch (error) {
+      notification.showErrorNotification(error)
+    } finally {
+      submitting.value = false
+    }
     return
   }
 
   try {
     const formData = new FormData()
+    formData.append("submissionId", props.item.iid)
+    formData.append("qualification", qualification.value ?? "")
+
     if (selectedFile.value) {
       formData.append("uploadFile", selectedFile.value)
     }
-    formData.append("comment", comment.value)
 
-    await cStudentPublicationService.uploadComment(
-      props.item.iid,
-      getResourceNodeId(props.item.resourceNode),
-      formData,
-      sendMail.value,
-    )
+    if (hasComment) {
+      formData.append("comment", trimmedComment)
+    }
+
+    await cStudentPublicationService.uploadComment(props.item.iid, parentResourceNodeId, formData, sendMail.value)
 
     notification.showSuccessNotification(t("Comment added successfully"))
-
     comments.value = await cStudentPublicationService.loadComments(props.item.iid)
     comment.value = ""
     selectedFile.value = null
+    emit("commentSent")
   } catch (error) {
     notification.showErrorNotification(error)
+  } finally {
+    submitting.value = false
   }
-}
-
-function getResourceNodeId(resourceNode) {
-  if (!resourceNode) return 0
-
-  if (typeof resourceNode === "object" && "id" in resourceNode) {
-    return parseInt(resourceNode.id, 10)
-  }
-
-  const idString = typeof resourceNode === "string" ? resourceNode : resourceNode["@id"]
-  if (!idString || typeof idString !== "string") return 0
-
-  const match = idString.match(/\/(\d+)$/)
-  return match ? parseInt(match[1], 10) : 0
 }
 </script>

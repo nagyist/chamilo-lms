@@ -28,7 +28,10 @@
         />
       </div>
 
-      <div v-if="requires2FA" class="field">
+      <div
+        v-if="requires2FA"
+        class="field"
+      >
         <InputText
           v-model="totp"
           :placeholder="t('Enter 2FA code')"
@@ -82,6 +85,7 @@
 
 <script setup>
 import { computed, ref } from "vue"
+import { useRouter } from "vue-router"
 import Button from "primevue/button"
 import InputText from "primevue/inputtext"
 import Password from "primevue/password"
@@ -92,6 +96,9 @@ import LoginOAuth2Buttons from "./login/LoginOAuth2Buttons.vue"
 import { usePlatformConfig } from "../store/platformConfig"
 
 const { t } = useI18n()
+
+const router = useRouter()
+
 const platformConfigStore = usePlatformConfig()
 const allowRegistration = computed(() => "false" !== platformConfigStore.getSetting("registration.allow_registration"))
 
@@ -106,17 +113,26 @@ const requires2FA = ref(false)
 redirectNotAuthenticated()
 
 async function onSubmitLoginForm() {
-  const response = await performLogin({
-    login: login.value,
-    password: password.value,
-    totp: requires2FA.value ? totp.value : null,
-    _remember_me: remember.value,
-  })
+  try {
+    const response = await performLogin({
+      login: login.value,
+      password: password.value,
+      totp: requires2FA.value ? totp.value : null,
+      _remember_me: remember.value,
+    })
 
-  if (response.requires2FA) {
-    requires2FA.value = true
-  } else {
-    router.replace({ name: "Home" })
+    if (!response) {
+      console.warn("[Login] No response from performLogin.")
+      return
+    }
+
+    if (response.requires2FA) {
+      requires2FA.value = true
+    } else {
+      await router.replace({ name: "Home" })
+    }
+  } catch (error) {
+    console.error("[Login] performLogin failed:", error)
   }
 }
 </script>

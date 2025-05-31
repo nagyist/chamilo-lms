@@ -11,9 +11,13 @@ async function findStudentAssignments() {
   return response.json()
 }
 
-async function getAssignmentMetadata(assignmentId) {
-  const { sid, cid, gid } = useCidReq()
-  const params = new URLSearchParams({ cid, ...(sid && { sid }), ...(gid && { gid }) }).toString()
+async function getAssignmentMetadata(assignmentId, cid, sid = 0, gid = 0) {
+  const params = new URLSearchParams({
+    cid,
+    ...(sid && { sid }),
+    ...(gid && { gid }),
+  }).toString()
+
   const response = await axios.get(`${ENTRYPOINT}c_student_publications/${assignmentId}?${params}`)
   return response.data
 }
@@ -106,15 +110,15 @@ async function sendEmailToUnsubmitted(assignmentId, queryParams = {}) {
   return response.data
 }
 
-async function deleteAllCorrections(assignmentId) {
-  const { cid, sid } = useCidReq()
+async function deleteAllCorrections(assignmentId, cid, sid = 0) {
+  const params = { cid, ...(sid && { sid }) }
+
   await axios.delete(`/assignments/${assignmentId}/corrections/delete`, {
-    params: { cid, ...(sid && { sid }) },
+    params,
   })
 }
 
-async function exportAssignmentPdf(assignmentId) {
-  const { cid, sid, gid } = useCidReq()
+async function exportAssignmentPdf(assignmentId, cid, sid = 0, gid = 0) {
   const params = { cid, ...(sid && { sid }), ...(gid && { gid }) }
 
   const response = await axios.get(`/assignments/${assignmentId}/export/pdf`, {
@@ -144,6 +148,12 @@ async function uploadCorrectionsPackage(assignmentId, file) {
   return response.data
 }
 
+async function updateScore(iid, qualification) {
+  return axios.put(`${ENTRYPOINT}c_student_publications/${iid}`, {
+    qualification: qualification,
+  })
+}
+
 export default {
   ...makeService("c_student_publications"),
   findStudentAssignments,
@@ -163,4 +173,5 @@ export default {
   exportAssignmentPdf,
   downloadAssignments,
   uploadCorrectionsPackage,
+  updateScore,
 }

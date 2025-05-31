@@ -43,10 +43,11 @@ final class CStudentPublicationPostStateProcessor implements ProcessorInterface
         array $uriVariables = [],
         array $context = []
     ): CStudentPublication {
-        $result = $this->persistProcessor->process($data, $operation, $uriVariables, $context);
-
         /** @var CStudentPublication $publication */
         $publication = $data;
+
+        $result = $this->persistProcessor->process($publication, $operation, $uriVariables, $context);
+
         $assignment = $publication->getAssignment();
         $courseLink = $publication->getFirstResourceLink();
         $course = $courseLink->getCourse();
@@ -56,31 +57,59 @@ final class CStudentPublicationPostStateProcessor implements ProcessorInterface
         /** @var User $currentUser */
         $currentUser = $this->security->getUser();
 
-        if ($publication->getQualification() > 0) {
+        $isUpdate = $publication->getIid() !== null;
+
+        if (!$assignment) {
+            $assignment = new CStudentPublicationAssignment();
+            $assignment->setPublication($publication);
+            $publication->setAssignment($assignment);
+            $this->entityManager->persist($assignment);
+        }
+
+        $payload = $context['request']->toArray();
+
+        if (array_key_exists('qualification', $payload)) {
+            $publication->setQualification((float) $payload['qualification']);
+
+            $user = $this->security->getUser();
+            if ($user instanceof User) {
+                $publication->setQualificatorId($user->getId());
+                $publication->setDateOfQualification(new \DateTime());
+            }
+        }
+
+        if (isset($payload['expiresOn'])) {
+            $assignment->setExpiresOn(new \DateTime($payload['expiresOn']));
+        }
+        if (isset($payload['endsOn'])) {
+            $assignment->setEndsOn(new \DateTime($payload['endsOn']));
+        }
+
+        if (!$isUpdate || $publication->getQualification() > 0) {
             $assignment->setEnableQualification(true);
         }
 
         if ($publication->addToCalendar) {
             $event = $this->saveCalendarEvent($publication, $assignment, $courseLink, $course, $session, $group);
-
             $assignment->setEventCalendarId($event->getIid());
-        } else {
+        } elseif (!$isUpdate) {
             $assignment->setEventCalendarId(0);
         }
 
+        if ($assignment->getIid() !== null) {
+            $publication->setHasProperties($assignment->getIid());
+        }
         $publication
-            ->setHasProperties($assignment->getIid())
             ->setViewProperties(true)
-            ->setUser($currentUser)
-        ;
+            ->setUser($currentUser);
 
         $this->entityManager->flush();
 
         $this->saveGradebookConfig($publication, $course, $session);
 
-        // Save extrafields
-
-        $this->sendEmailAlertStudentsOnNewHomework($publication, $course, $session);
+        if (!$isUpdate) {
+            $this->sendEmailAlertStudentsOnNewHomework($publication, $course, $session);
+        }
 
         return $result;
     }

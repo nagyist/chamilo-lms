@@ -30,7 +30,7 @@
       />
 
       <div v-if="chkAddToGradebook">
-        <BaseDropdrown
+        <BaseSelect
           v-model="v$.gradebookId.$model"
           :error-text="v$.gradebookId.$errors.map((error) => error.$message).join('<br>')"
           :is-invalid="v$.gradebookId.$error"
@@ -59,7 +59,7 @@
         name="enableExpiryDate"
       />
 
-      <BaseInputDate
+      <BaseCalendar
         v-if="chkExpiresOn"
         id="expires_on"
         v-model="v$.expiresOn.$model"
@@ -76,14 +76,13 @@
         name="enableEndDate"
       />
 
-      <BaseInputDate
+      <BaseCalendar
         v-if="chkEndsOn"
         id="ends_on"
         v-model="v$.endsOn.$model"
         :error-text="v$.endsOn.$errors.map((error) => error.$message).join('<br>')"
         :is-invalid="v$.endsOn.$error"
         :label="t('Ends at (completely closed)')"
-        show-time
       />
 
       <BaseCheckbox
@@ -93,7 +92,7 @@
         name="add_to_calendar"
       />
 
-      <BaseDropdrown
+      <BaseSelect
         v-model="v$.allowTextAssignment.$model"
         :error-text="v$.allowTextAssignment.$errors.map((error) => error.$message).join('<br>')"
         :is-invalid="v$.allowTextAssignment.$error"
@@ -118,12 +117,12 @@
 </template>
 
 <script setup>
-import BaseInputDate from "../basecomponents/BaseInputDate.vue"
+import BaseCalendar from "../basecomponents/BaseCalendar.vue"
 import BaseInputText from "../basecomponents/BaseInputText.vue"
 import BaseAdvancedSettingsButton from "../basecomponents/BaseAdvancedSettingsButton.vue"
 import BaseButton from "../basecomponents/BaseButton.vue"
 import BaseCheckbox from "../basecomponents/BaseCheckbox.vue"
-import BaseDropdrown from "../basecomponents/BaseDropdown.vue"
+import BaseSelect from "../basecomponents/BaseSelect.vue"
 import BaseInputNumber from "../basecomponents/BaseInputNumber.vue"
 import useVuelidate from "@vuelidate/core"
 import { computed, reactive, ref, watchEffect } from "vue"
@@ -261,18 +260,11 @@ const v$ = useVuelidate(rules, assignment)
 
 const onSubmit = async () => {
   const result = await v$.value.$validate()
-
-  if (!result) {
-    return
-  }
+  if (!result) return
 
   const publicationStudent = {
     title: assignment.title,
     description: assignment.description,
-    assignment: {
-      expiresOn: null,
-      endsOn: null,
-    },
     parentResourceNode: route.params.node * 1,
     resourceLinkList: [
       {
@@ -282,32 +274,26 @@ const onSubmit = async () => {
         visibility: RESOURCE_LINK_PUBLISHED,
       },
     ],
+    qualification: assignment.qualification,
+    addToCalendar: assignment.addToCalendar,
+    allowTextAssignment: assignment.allowTextAssignment.value,
   }
 
-  if (showAdvancedSettings.value) {
-    publicationStudent.qualification = assignment.qualification
-
-    publicationStudent.addToCalendar = assignment.addToCalendar
-
-    if (chkAddToGradebook.value) {
-      publicationStudent.gradebookCategoryId = assignment.gradebookId.id
-      publicationStudent.weight = assignment.weight
-    }
-
-    if (chkExpiresOn.value) {
-      publicationStudent.assignment.expiresOn = assignment.expiresOn
-    }
-
-    if (chkEndsOn.value) {
-      publicationStudent.assignment.endsOn = assignment.endsOn
-    }
-
-    publicationStudent.allowTextAssignment = assignment.allowTextAssignment.value
+  if (chkAddToGradebook.value) {
+    publicationStudent.gradebookCategoryId = assignment.gradebookId.id
+    publicationStudent.weight = assignment.weight
   }
 
-  if (props.defaultAssignment) {
+  if (chkExpiresOn.value) {
+    publicationStudent.expiresOn = assignment.expiresOn.toISOString()
+  }
+
+  if (chkEndsOn.value) {
+    publicationStudent.endsOn = assignment.endsOn.toISOString()
+  }
+
+  if (props.defaultAssignment?.["@id"]) {
     publicationStudent["@id"] = props.defaultAssignment["@id"]
-    publicationStudent.assignment["@id"] = props.defaultAssignment.assignment["@id"]
   }
 
   emit("submit", publicationStudent)

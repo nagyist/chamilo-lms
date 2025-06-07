@@ -18,15 +18,15 @@
 
     <p
       class="text-sm m-2 text-gray-500"
-      v-if="props.modelValue.slug || v$.item.slug.$model"
+      v-if="pageId"
     >
       {{ t("Preview") }}:
       <a
-        :href="`/page/${v$.item.slug.$model || props.modelValue.slug}`"
+        :href="`/pages/${pageId}/preview`"
         target="_blank"
         class="text-blue-600 underline"
       >
-        {{ window.location.origin + "/page/" + (v$.item.slug.$model || props.modelValue.slug) }}
+        {{ window.location.origin + `/pages/${pageId}/preview` }}
       </a>
     </p>
 
@@ -37,7 +37,7 @@
       name="enabled"
     />
 
-    <BaseDropdown
+    <BaseSelect
       v-model="v$.item.category.$model"
       :error-text="v$.item.category.$errors.map((error) => error.$message).join('<br>')"
       :is-invalid="v$.item.category.$error"
@@ -49,7 +49,7 @@
       option-value="@id"
     />
 
-    <BaseDropdown
+    <BaseSelect
       v-model="v$.item.locale.$model"
       :error-text="v$.item.locale.$errors.map((error) => error.$message).join('<br>')"
       :is-invalid="v$.item.locale.$error"
@@ -84,7 +84,7 @@
 import { computed, nextTick, ref, watch } from "vue"
 import BaseInputText from "../basecomponents/BaseInputText.vue"
 import BaseCheckbox from "../basecomponents/BaseCheckbox.vue"
-import BaseDropdown from "../basecomponents/BaseDropdown.vue"
+import BaseSelect from "../basecomponents/BaseSelect.vue"
 import useVuelidate from "@vuelidate/core"
 import { required } from "@vuelidate/validators"
 import isEmpty from "lodash/isEmpty"
@@ -108,6 +108,13 @@ let locales = ref(window.languages)
 let categories = ref([])
 
 const findAllPageCategories = async () => (categories.value = await pageCategoryService.findAll())
+
+const pageId = computed(() => {
+  const rawId = props.modelValue?.["@id"]
+  if (!rawId) return null
+  const matches = rawId.match(/\/(\d+)$/)
+  return matches ? matches[1] : null
+})
 
 findAllPageCategories()
 

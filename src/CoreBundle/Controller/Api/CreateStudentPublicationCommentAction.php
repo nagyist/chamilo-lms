@@ -6,18 +6,18 @@ declare(strict_types=1);
 
 namespace Chamilo\CoreBundle\Controller\Api;
 
-use Chamilo\CoreBundle\Controller\Api\BaseResourceFileAction;
 use Chamilo\CoreBundle\Entity\User;
 use Chamilo\CoreBundle\ServiceHelper\MessageHelper;
-use Chamilo\CourseBundle\Entity\CStudentPublicationComment;
 use Chamilo\CourseBundle\Entity\CStudentPublication;
+use Chamilo\CourseBundle\Entity\CStudentPublicationComment;
 use Chamilo\CourseBundle\Repository\CStudentPublicationCommentRepository;
 use Chamilo\CourseBundle\Repository\CStudentPublicationRepository;
+use DateTime;
 use Doctrine\ORM\EntityManager;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 class CreateStudentPublicationCommentAction extends BaseResourceFileAction
@@ -36,14 +36,24 @@ class CreateStudentPublicationCommentAction extends BaseResourceFileAction
 
         $commentEntity = new CStudentPublicationComment();
 
-        $result = $this->handleCreateCommentRequest(
-            $commentEntity,
-            $commentRepo,
-            $request,
-            $em,
-            $fileExistsOption,
-            $translator
-        );
+        $hasFile = $request->files->get('uploadFile');
+        $hasComment = '' !== trim((string) $request->get('comment'));
+
+        if ($hasFile || $hasComment) {
+            $result = $this->handleCreateCommentRequest(
+                $commentEntity,
+                $commentRepo,
+                $request,
+                $em,
+                $fileExistsOption,
+                $translator
+            );
+
+            $filename = $result['filename'] ?? null;
+            if (!empty($filename)) {
+                $commentEntity->setFile($filename);
+            }
+        }
 
         $commentText = $request->get('comment');
         $submissionId = (int) $request->get('submissionId');
@@ -62,16 +72,29 @@ class CreateStudentPublicationCommentAction extends BaseResourceFileAction
         /** @var User $user */
         $user = $security->getUser();
 
-        $commentEntity->setUser($user);
-        $commentEntity->setPublication($submission);
-        $commentEntity->setComment($commentText ?? '');
+        $qualification = $request->get('qualification', null);
+        $hasQualification = null !== $qualification;
 
-        $filename = $result['filename'] ?? null;
-        if (!empty($filename)) {
-            $commentEntity->setFile($filename);
+        if ($hasFile || $hasComment) {
+            $commentEntity->setUser($user);
+            $commentEntity->setPublication($submission);
+            $commentEntity->setComment($commentText ?? '');
+
+            if (!empty($filename)) {
+                $commentEntity->setFile($filename);
+            }
+
+            $em->persist($commentEntity);
         }
 
-        $em->persist($commentEntity);
+        if ($hasQualification) {
+            $submission->setQualification((float) $qualification);
+            $submission->setQualificatorId($user->getId());
+            $submission->setDateOfQualification(new DateTime());
+
+            $em->persist($submission);
+        }
+
         $em->flush();
 
         if ($sendMail && $submission->getUser() instanceof User) {
@@ -79,8 +102,8 @@ class CreateStudentPublicationCommentAction extends BaseResourceFileAction
             $receiverUser = $submission->getUser();
             $senderUserId = $user?->getId() ?? 0;
 
-            $subject = sprintf('New feedback for your submission "%s"', $submission->getTitle());
-            $content = sprintf(
+            $subject = \sprintf('New feedback for your submission "%s"', $submission->getTitle());
+            $content = \sprintf(
                 'Hello %s, there is a new comment on your assignment submission "%s". Please review it in the platform.',
                 $receiverUser->getFullname(),
                 $submission->getTitle()

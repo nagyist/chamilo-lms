@@ -12,10 +12,13 @@ import BaseButton from "./BaseButton.vue"
 
 const { t } = useI18n()
 const platformConfigStore = usePlatformConfig()
+/**
+ * @type {Number}
+ */
 const timepicketIncrement = platformConfigStore.getSetting("platform.timepicker_increment")
 
 const modelValue = defineModel({
-  type: [Date, Array, String, undefined, null],
+  type: [Date, Array, String, null],
   required: false,
   default: null,
 })
@@ -74,8 +77,8 @@ function getLocalePrefix(locale) {
   return typeof locale === "string" ? locale.split("_")[0] : defaultLang
 }
 
-function getDateFormat(locale) {
-  switch (locale) {
+const dateFormat = computed(() => {
+  switch (localePrefix.value) {
     case "en":
       return "mm/dd/yy"
     case "fr":
@@ -87,10 +90,6 @@ function getDateFormat(locale) {
     default:
       return "dd/mm/yy"
   }
-}
-
-const dateFormat = computed(() => {
-  return getDateFormat(localePrefix.value)
 })
 
 const selectedLocale = computed(() => calendarLocales[localePrefix.value] || calendarLocales.en)
@@ -161,7 +160,6 @@ const onCancelClick = () => {
         :date-format="dateFormat"
         :input-id="id"
         :invalid="isInvalid"
-        :locale="selectedLocale"
         :manual-input="allowManualInput"
         :selection-mode="type"
         :show-time="showTime"

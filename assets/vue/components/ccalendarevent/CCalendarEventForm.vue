@@ -1,6 +1,7 @@
 <template>
   <form>
     <BaseInputText
+      id="event-title"
       v-model="item.title"
       :error-text="v$.item.title.$errors.map((error) => error.$message).join('<br>')"
       :is-invalid="v$.item.title.$invalid"
@@ -10,7 +11,6 @@
     <BaseCalendar
       id="calendar-id"
       v-model="dateRange"
-      :initial-value="[item.startDate, item.endDate]"
       :is-invalid="v$.item.startDate.$invalid || v$.item.endDate.$invalid"
       :label="t('Date')"
       show-time
@@ -62,7 +62,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch, onMounted } from "vue"
+import { computed, ref, watch, onMounted, watchEffect } from "vue"
 import { useRoute } from "vue-router"
 import { useVuelidate } from "@vuelidate/core"
 import { required } from "@vuelidate/validators"
@@ -94,23 +94,10 @@ const props = defineProps({
     type: Object,
     default: () => ({}),
   },
-  initialValues: {
-    type: Object,
-    default: () => ({}),
-  },
   isGlobal: Boolean,
 })
 
-function isNonEmptyObject(v) {
-  return v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length > 0
-}
-
-const item = computed(() => {
-  if (isNonEmptyObject(props.initialValues)) {
-    return props.initialValues
-  }
-  return props.values
-})
+const item = computed(() => props.values)
 
 const rules = computed(() => ({
   item: {
@@ -135,23 +122,11 @@ defineExpose({
   v$,
 })
 
-const dateRange = ref([null, null])
+const dateRange = ref([item.value?.startDate, item.value?.endDate])
 
-watch(
-  () => [item.value?.startDate, item.value?.endDate],
-  ([start, end]) => {
-    dateRange.value = [start ?? null, end ?? null]
-  },
-  { immediate: true },
-)
-
-watch(dateRange, (newValue) => {
-  if (!Array.isArray(newValue)) {
-    return
-  }
-
-  item.value.startDate = newValue[0] ?? null
-  item.value.endDate = newValue[1] ?? null
+watchEffect(() => {
+  item.value.startDate = dateRange.value[0] ?? null
+  item.value.endDate = dateRange.value[1] ?? null
 })
 
 watch(

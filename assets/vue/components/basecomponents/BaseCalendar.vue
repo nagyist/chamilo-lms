@@ -8,6 +8,7 @@ import { calendarLocales } from "../../utils/calendarLocales"
 import { useLocale } from "../../composables/locale"
 import { usePrimeVue } from "primevue/config"
 import { useI18n } from "vue-i18n"
+import BaseButton from "./BaseButton.vue"
 
 const { t } = useI18n()
 const platformConfigStore = usePlatformConfig()
@@ -175,20 +176,20 @@ const onCancelClick = () => {
           #footer
         >
           <div class="base-calendar-footer">
-            <button
-              type="button"
-              class="base-calendar-footer__button base-calendar-footer__button--secondary"
+            <BaseButton
+              :label="t('Cancel')"
+              icon="close"
+              size="small"
+              type="black"
               @click="onCancelClick"
-            >
-              {{ t("Cancel") }}
-            </button>
-            <button
-              type="button"
-              class="base-calendar-footer__button base-calendar-footer__button--primary"
+            />
+            <BaseButton
+              :label="t('Select')"
+              icon="confirm"
+              size="small"
+              type="secondary"
               @click="onApplyClick"
-            >
-              {{ t("OK") }}
-            </button>
+            />
           </div>
         </template>
       </DatePicker>
@@ -207,26 +208,3 @@ const onCancelClick = () => {
     </Message>
   </div>
 </template>
-<style scoped>
-.base-calendar-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem 0.75rem;
-}
-.base-calendar-footer__button {
-  border-radius: 9999px;
-  padding: 0.25rem 0.75rem;
-  font-size: 0.75rem;
-  border: 1px solid transparent;
-  cursor: pointer;
-}
-.base-calendar-footer__button--secondary {
-  background-color: transparent;
-  border-color: var(--gray-40, #d4d4d4);
-}
-.base-calendar-footer__button--primary {
-  background-color: var(--primary-color, #0d9488);
-  color: #ffffff;
-}
-</style>

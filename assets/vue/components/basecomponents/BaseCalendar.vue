@@ -12,7 +12,7 @@ import BaseButton from "./BaseButton.vue"
 
 const { t } = useI18n()
 const platformConfigStore = usePlatformConfig()
-const timepicketIncrement = Number(platformConfigStore.getSetting("platform.timepicker_increment"))
+const timepicketIncrement = platformConfigStore.getSetting("platform.timepicker_increment")
 
 const modelValue = defineModel({
   type: [Date, Array, String, undefined, null],

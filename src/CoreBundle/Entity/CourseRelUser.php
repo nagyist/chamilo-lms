@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Chamilo\CoreBundle\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiProperty;
@@ -72,6 +73,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         'course.code',
     ]
 )]
+#[ApiFilter(OrderFilter::class, properties: ['cru.sort' => 'ASC', 'c.title' => 'ASC'])]
 #[ORM\Table(name: 'course_rel_user')]
 #[ORM\Index(columns: ['id', 'user_id'], name: 'course_rel_user_user_id')]
 #[ORM\Index(columns: ['id', 'c_id', 'user_id'], name: 'course_rel_user_c_id_user_id')]

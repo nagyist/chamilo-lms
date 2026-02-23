@@ -18,6 +18,9 @@ use Psr\Log\LogLevel;
 use RuntimeException;
 use Throwable;
 
+use const JSON_UNESCAPED_SLASHES;
+use const JSON_UNESCAPED_UNICODE;
+
 final class UserMergeHelper
 {
     private const LOG_PREFIX = '[UserMergeHelper]';
@@ -27,13 +30,12 @@ final class UserMergeHelper
         private readonly EntityManagerInterface $em,
         private readonly UserRepository $userRepository,
         private readonly LoggerInterface $logger
-    ) {
-    }
+    ) {}
 
     /**
      * Merge $mergeUserId into $keepUserId.
      *
-     * @param bool|null $enableLogs Optional override for this call only (default: null = keep current flag).
+     * @param bool|null $enableLogs optional override for this call only (default: null = keep current flag)
      */
     public function mergeUsers(int $keepUserId, int $mergeUserId, ?bool $enableLogs = null): bool
     {
@@ -57,6 +59,7 @@ final class UserMergeHelper
                     'keepUserId' => $keepUserId,
                     'mergeUserId' => $mergeUserId,
                 ]);
+
                 return false;
             }
 
@@ -73,6 +76,7 @@ final class UserMergeHelper
                     'keepUserId' => $keepUserId,
                     'mergeUserId' => $mergeUserId,
                 ]);
+
                 return false;
             }
 
@@ -113,7 +117,7 @@ final class UserMergeHelper
 
                 $this->log(LogLevel::ERROR, 'Merge failed with exception.', [
                     'message' => $e->getMessage(),
-                    'class' => get_class($e),
+                    'class' => $e::class,
                     'file' => $e->getFile(),
                     'line' => $e->getLine(),
                 ]);
@@ -231,15 +235,15 @@ final class UserMergeHelper
 
         $insertCols = $this->getInsertableColumns($colsMeta);
 
-        if (!in_array($userField, $insertCols, true)) {
+        if (!\in_array($userField, $insertCols, true)) {
             throw new RuntimeException(self::LOG_PREFIX." Column '{$userField}' not found in '{$table}'.");
         }
 
         $allColNames = array_keys($colsMeta);
-        $matchColumns = array_values(array_filter($matchColumns, static fn ($c) => is_string($c) && $c !== ''));
+        $matchColumns = array_values(array_filter($matchColumns, static fn ($c) => \is_string($c) && '' !== $c));
 
         foreach ($matchColumns as $mc) {
-            if (!in_array($mc, $allColNames, true)) {
+            if (!\in_array($mc, $allColNames, true)) {
                 throw new RuntimeException(self::LOG_PREFIX." Match column '{$mc}' not found in '{$table}'.");
             }
         }
@@ -378,6 +382,7 @@ final class UserMergeHelper
         $colsMeta = $this->listTableColumnsMeta($conn, $table);
         if (empty($colsMeta)) {
             $this->log(LogLevel::ERROR, 'extra_field_rel_tag columns not found. Skipping.');
+
             return;
         }
 
@@ -557,18 +562,21 @@ final class UserMergeHelper
                 'table' => $table,
                 'message' => $e->getMessage(),
             ]);
+
             return [];
         } catch (Throwable $e) {
             $this->log(LogLevel::ERROR, 'Failed to list table columns (Throwable).', [
                 'table' => $table,
                 'message' => $e->getMessage(),
             ]);
+
             return [];
         }
     }
 
     /**
      * @param array<string, Column> $colsMeta
+     *
      * @return string[]
      */
     private function getInsertableColumns(array $colsMeta): array
@@ -591,7 +599,7 @@ final class UserMergeHelper
     private function pickColumn(array $available, array $candidates): string
     {
         foreach ($candidates as $c) {
-            if (in_array($c, $available, true)) {
+            if (\in_array($c, $available, true)) {
                 return $c;
             }
         }

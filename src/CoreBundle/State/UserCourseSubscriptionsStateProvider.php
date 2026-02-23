@@ -7,7 +7,9 @@ declare(strict_types=1);
 namespace Chamilo\CoreBundle\State;
 
 use ApiPlatform\Doctrine\Orm\Extension\FilterExtension;
+use ApiPlatform\Doctrine\Orm\Extension\OrderExtension;
 use ApiPlatform\Doctrine\Orm\Extension\PaginationExtension;
+use ApiPlatform\Doctrine\Orm\Extension\QueryResultCollectionExtensionInterface;
 use ApiPlatform\Doctrine\Orm\Util\QueryNameGenerator;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
@@ -28,15 +30,24 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
  */
 final class UserCourseSubscriptionsStateProvider implements ProviderInterface
 {
+    private array $extensions;
+
     public function __construct(
         private readonly UserHelper $userHelper,
         private readonly AccessUrlHelper $accessUrlHelper,
         private readonly CourseRelUserRepository $courseRelUserRepository,
         private readonly CourseStudentInfoHelper $courseStudentInfoHelper,
         private readonly SequenceResourceRepository $sequenceResourceRepository,
-        private readonly FilterExtension $filterExtension,
-        private readonly PaginationExtension $paginationExtension,
-    ) {}
+        FilterExtension $filterExtension,
+        PaginationExtension $paginationExtension,
+        OrderExtension $orderExtension,
+    ) {
+        $this->extensions = [
+            $filterExtension,
+            $orderExtension,
+            $paginationExtension,
+        ];
+    }
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): array|object|null
     {
@@ -50,44 +61,39 @@ final class UserCourseSubscriptionsStateProvider implements ProviderInterface
             throw new RuntimeException('Access URL not found');
         }
 
-        $qb = $this->courseRelUserRepository->createQueryBuilder('cru')
+        $qb = $this->courseRelUserRepository->createQueryBuilder('cru');
+        $qb
             ->innerJoin('cru.course', 'c')
             ->addSelect('c')
             ->innerJoin('c.urls', 'cur')
             ->innerJoin('cur.url', 'u')
             ->andWhere('cru.user = :user')
             ->andWhere('u = :url')
+            ->andWhere(
+                $qb->expr()->eq('c.sticky', $qb->expr()->literal(false))
+            )
             ->setParameter('user', $currentUser->getId())
             ->setParameter('url', $url->getId())
-            ->addOrderBy('cru.sort', 'ASC')
-            ->addOrderBy('c.title', 'ASC')
         ;
 
         $queryNameGenerator = new QueryNameGenerator();
 
-        $this->filterExtension->applyToCollection(
-            $qb,
-            $queryNameGenerator,
-            CourseRelUser::class,
-            $operation,
-            $context
-        );
-
-        $this->paginationExtension->applyToCollection(
-            $qb,
-            $queryNameGenerator,
-            CourseRelUser::class,
-            $operation,
-            $context
-        );
-
         /** @var array<int, CourseRelUser> $items */
-        $items = $this->paginationExtension->getResult(
-            $qb,
-            CourseRelUser::class,
-            $operation,
-            $context
-        );
+        $items = [];
+
+        foreach ($this->extensions as $extension) {
+            $extension->applyToCollection($qb, $queryNameGenerator, CourseRelUser::class, $operation, $context);
+
+            if ($extension instanceof QueryResultCollectionExtensionInterface
+                && $extension->supportsResult(CourseRelUser::class, $operation, $context)
+            ) {
+                $items = $extension->getResult($qb, CourseRelUser::class, $operation, $context);
+            }
+        }
+
+        if (empty($items)) {
+            $items = $qb->getQuery()->getResult();
+        }
 
         if (empty($items)) {
             return [];

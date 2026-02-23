@@ -22,12 +22,14 @@ use Chamilo\CoreBundle\Repository\ResourceRepository;
 use Chamilo\CoreBundle\Repository\SessionRepository;
 use Chamilo\CourseBundle\Entity\CGroup;
 use Chamilo\CourseBundle\Repository\CGroupRepository;
+use DateTime;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\Migrations\AbstractMigration;
 use Doctrine\ORM\EntityManagerInterface;
+use finfo;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Filesystem\Filesystem;
@@ -35,6 +37,7 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Throwable;
 
 use const FILE_APPEND;
+use const FILEINFO_MIME_TYPE;
 use const LOCK_EX;
 use const PATHINFO_EXTENSION;
 
@@ -65,7 +68,7 @@ abstract class AbstractMigrationChamilo extends AbstractMigration
     /**
      * Internal finfo handler for faster MIME detection (optional).
      */
-    private ?\finfo $mimeFinfo = null;
+    private ?finfo $mimeFinfo = null;
 
     /**
      * Existence caches to avoid repeated lookups during migration.
@@ -226,6 +229,10 @@ abstract class AbstractMigrationChamilo extends AbstractMigration
     /**
      * Optimized: skip directories, require readable regular files, robust MIME type detection.
      * Logic stays the same: if file missing => warn & return false.
+     *
+     * @param mixed $id
+     * @param mixed $fileName
+     * @param mixed $description
      */
     public function addLegacyFileToResource(
         string $filePath,
@@ -240,6 +247,7 @@ abstract class AbstractMigrationChamilo extends AbstractMigration
 
         if (!is_file($filePath) || !is_readable($filePath)) {
             $this->warnIf(true, "Cannot migrate {$class} #{$id} file not found: {$documentPath}");
+
             return false;
         }
 
@@ -261,10 +269,8 @@ abstract class AbstractMigrationChamilo extends AbstractMigration
      * Prefetch c_item_property rows for many refs in one shot (chunked IN()).
      * This is intentionally implemented here to:
      * - avoid "IN (?)" parameter binding issues
-     * - avoid N+1 queries in fixItemProperty()
+     * - avoid N+1 queries in fixItemProperty().
      *
-     * @param string     $tool
-     * @param int        $courseId
      * @param array<int> $refs
      *
      * @return array<int, array<int, array<string,mixed>>> Map: ref => rows[]
@@ -321,7 +327,7 @@ abstract class AbstractMigrationChamilo extends AbstractMigration
      * Fast existence check with caching.
      * Returns:
      * - true/false if the query ran successfully
-     * - null if a DB error happened (caller should fallback to repository->find() to preserve behavior)
+     * - null if a DB error happened (caller should fallback to repository->find() to preserve behavior).
      */
     private function idExistsFast(string $table, int $id, array &$cache): ?bool
     {
@@ -372,6 +378,11 @@ abstract class AbstractMigrationChamilo extends AbstractMigration
      * - If the fast existence check fails (DB error), falls back to repository->find() to preserve behavior.
      * - persist($resource) is done once (not inside loop).
      * Logic is the same.
+     *
+     * @param mixed $tool
+     * @param mixed $course
+     * @param mixed $admin
+     * @param mixed $parentResource
      */
     public function fixItemProperty(
         $tool,
@@ -445,8 +456,8 @@ abstract class AbstractMigrationChamilo extends AbstractMigration
 
             $lastEdit = (string) ($item['lastedit_date'] ?? '');
             $lastUpdatedAt = '' === $lastEdit
-                ? new \DateTime('now', $utc)
-                : new \DateTime($lastEdit, $utc);
+                ? new DateTime('now', $utc)
+                : new DateTime($lastEdit, $utc);
 
             $newVisibility = ResourceLink::VISIBILITY_DRAFT;
 
@@ -454,13 +465,18 @@ abstract class AbstractMigrationChamilo extends AbstractMigration
             switch ($visibility) {
                 case 0:
                     $newVisibility = ResourceLink::VISIBILITY_DRAFT;
+
                     break;
+
                 case 1:
                     $newVisibility = ResourceLink::VISIBILITY_PUBLISHED;
+
                     break;
+
                 default:
                     // Keep legacy behavior: anything else becomes DRAFT unless explicitly handled.
                     $newVisibility = ResourceLink::VISIBILITY_DRAFT;
+
                     break;
             }
 
@@ -564,6 +580,8 @@ abstract class AbstractMigrationChamilo extends AbstractMigration
 
     /**
      * Keep behavior but slightly stricter: only regular readable files.
+     *
+     * @param mixed $filePath
      */
     public function fileExists($filePath): bool
     {
@@ -839,12 +857,14 @@ abstract class AbstractMigrationChamilo extends AbstractMigration
 
             if (str_contains($relDecoded, '..')) {
                 @error_log('[Migration][Documents] Skipping suspicious legacy link containing "..": '.$url);
+
                 return $url;
             }
 
             $fsPath = $updateRootPath.'/app/courses/'.$currentCourseDirectory.'/document/'.$relDecoded;
             if (!is_file($fsPath)) {
                 @error_log('[Migration][Documents] Legacy token "'.$token.'" does not exist and file not found in current course "'.$currentCourseDirectory.'": '.$url);
+
                 return $url;
             }
 
@@ -937,15 +957,15 @@ abstract class AbstractMigrationChamilo extends AbstractMigration
      */
     private function detectMimeTypeInternal(string $filePath): string
     {
-        if (null === $this->mimeFinfo && \class_exists(\finfo::class)) {
+        if (null === $this->mimeFinfo && class_exists(finfo::class)) {
             try {
-                $this->mimeFinfo = new \finfo(\FILEINFO_MIME_TYPE);
+                $this->mimeFinfo = new finfo(FILEINFO_MIME_TYPE);
             } catch (Throwable) {
                 $this->mimeFinfo = null;
             }
         }
 
-        if ($this->mimeFinfo instanceof \finfo) {
+        if ($this->mimeFinfo instanceof finfo) {
             try {
                 $mime = $this->mimeFinfo->file($filePath);
                 if (\is_string($mime) && '' !== $mime) {

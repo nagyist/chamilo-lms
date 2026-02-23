@@ -172,10 +172,7 @@ if ($langParam !== null && $langParam !== '') {
 } elseif (ChamiloSession::has('install_language')) {
     $installationLanguage = ChamiloSession::read('install_language');
 } else {
-    $tempLanguage = $httpRequest->getPreferredLanguage();
-    if ($tempLanguage) {
-        $installationLanguage = $tempLanguage;
-    }
+    $installationLanguage = detectBrowserLanguage($httpRequest);
 }
 
 // Set translation

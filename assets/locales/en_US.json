@@ -1502,15 +1502,15 @@
     "IP address": "IP address",
     "IPv4 or IPv6": "IPv4 or IPv6",
     "IP mask": "IP mask",
-    "e.g. /24": "e.g. /24",
+    "e.g. \/24": "e.g. \/24",
     "Parent branch": "Parent branch",
     "Unique identifier": "Unique identifier",
     "Latitude": "Latitude",
     "e.g. 48.8566": "e.g. 48.8566",
     "Longitude": "Longitude",
     "e.g. 2.3522": "e.g. 2.3522",
-    "Download speed (KB/s)": "Download speed (KB/s)",
-    "Upload speed (KB/s)": "Upload speed (KB/s)",
+    "Download speed (KB\/s)": "Download speed (KB\/s)",
+    "Upload speed (KB\/s)": "Upload speed (KB\/s)",
     "Delay (ms)": "Delay (ms)",
     "admin@example.com": "admin@example.com",
     "Administrator name": "Administrator name",
@@ -1520,5 +1520,6 @@
     "Last synchronization type": "Last synchronization type",
     "SSL public key": "SSL public key",
     "Branch type": "Branch type",
-    "Room": "Room"
+    "Room": "Room",
+    "{0} (current)": "{0} (current)"
 }

@@ -58,7 +58,7 @@ async function loadThemes() {
 
   options.value = serverThemes.map((colorTheme) => ({
     "@id": colorTheme["@id"],
-    displayTitle: colorTheme["@id"] === currentColorThemeIri ? t("%d (Current)", [colorTheme.title]) : colorTheme.title,
+    displayTitle: colorTheme["@id"] === currentColorThemeIri ? t("{0} (current)", [colorTheme.title]) : colorTheme.title,
   }))
 
   if (currentColorThemeIri) {

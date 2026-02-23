@@ -18,6 +18,8 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Uid\Uuid;
 use Throwable;
 
+use const PATHINFO_EXTENSION;
+
 final class Version20201212203625 extends AbstractMigrationChamilo
 {
     /**
@@ -54,41 +56,41 @@ final class Version20201212203625 extends AbstractMigrationChamilo
 
         // Prepared statements.
         $stmtTeacherAudioDocs = $this->connection->prepare(
-            "SELECT iid, path
+            'SELECT iid, path
              FROM c_document
              WHERE c_id = :cid
-               AND path LIKE :pattern"
+               AND path LIKE :pattern'
         );
 
         $stmtAttemptUserId = $this->connection->prepare(
-            "SELECT user_id
+            'SELECT user_id
              FROM track_e_attempt
-             WHERE id = :id"
+             WHERE id = :id'
         );
 
         $stmtStudentAudioDocs = $this->connection->prepare(
-            "SELECT iid, path
+            'SELECT iid, path
              FROM c_document
              WHERE c_id = :cid
                AND path NOT LIKE :notPattern
-               AND path LIKE :pattern"
+               AND path LIKE :pattern'
         );
 
         $stmtFindAttemptId = $this->connection->prepare(
-            "SELECT id
+            'SELECT id
              FROM track_e_attempt
              WHERE user_id = :uid
                AND question_id = :qid
-               AND filename = :fn"
+               AND filename = :fn'
         );
 
         $stmtCourseDocuments = $this->connection->prepare(
-            "SELECT iid, path, session_id, filetype
+            'SELECT iid, path, session_id, filetype
              FROM c_document
              WHERE c_id = :cid
                AND path NOT LIKE :exPattern
                AND path NOT LIKE :chatPattern
-             ORDER BY filetype DESC, path"
+             ORDER BY filetype DESC, path'
         );
 
         // --------------------------
@@ -123,7 +125,7 @@ final class Version20201212203625 extends AbstractMigrationChamilo
                 }
 
                 // attemptId is the first folder name in the relative path.
-                $attemptIdStr = \strtok(ltrim($path, '/'), '/');
+                $attemptIdStr = strtok(ltrim($path, '/'), '/');
                 $attemptId = (\is_string($attemptIdStr) && ctype_digit($attemptIdStr)) ? (int) $attemptIdStr : 0;
                 if ($attemptId <= 0) {
                     continue;
@@ -146,7 +148,8 @@ final class Version20201212203625 extends AbstractMigrationChamilo
                     $asset = (new Asset())
                         ->setCategory(Asset::EXERCISE_FEEDBACK)
                         ->setTitle($fileName)
-                        ->setFile($file);
+                        ->setFile($file)
+                    ;
 
                     $this->entityManager->persist($asset);
                     $this->entityManager->flush();
@@ -228,7 +231,8 @@ final class Version20201212203625 extends AbstractMigrationChamilo
                     $asset = (new Asset())
                         ->setCategory(Asset::EXERCISE_ATTEMPT)
                         ->setTitle($fileName)
-                        ->setFile($file);
+                        ->setFile($file)
+                    ;
 
                     $this->entityManager->persist($asset);
                     $this->entityManager->flush();
@@ -321,7 +325,7 @@ final class Version20201212203625 extends AbstractMigrationChamilo
                 }
 
                 $idsToLoad = array_values(array_unique(array_filter($idsToLoad, static function ($v): bool {
-                    return is_int($v) && $v > 0;
+                    return \is_int($v) && $v > 0;
                 })));
 
                 /** @var CDocument[] $docs */
@@ -383,6 +387,7 @@ final class Version20201212203625 extends AbstractMigrationChamilo
 
                     if (null === $parent->getResourceNode()) {
                         $this->logItemPropertyInconsistency('document', $documentId, $documentPath);
+
                         continue;
                     }
 
@@ -404,6 +409,7 @@ final class Version20201212203625 extends AbstractMigrationChamilo
                     $effectiveFiletype = (string) ($document->getFiletype() ?? $legacyFiletype);
                     if (\in_array($effectiveFiletype, self::FOLDER_LIKE_FILETYPES, true)) {
                         $this->entityManager->persist($document);
+
                         continue;
                     }
 
@@ -412,16 +418,18 @@ final class Version20201212203625 extends AbstractMigrationChamilo
 
                     if (!$this->fileExists($filePath)) {
                         $this->entityManager->persist($document);
+
                         continue;
                     }
 
                     $filePathToUpload = $filePath;
 
-                    $ext = strtolower((string) pathinfo($filePath, \PATHINFO_EXTENSION));
+                    $ext = strtolower((string) pathinfo($filePath, PATHINFO_EXTENSION));
                     if ('html' === $ext || 'htm' === $ext) {
                         $filePathToUpload = $this->rewriteHtmlFileLegacyLinksIfNeeded($filePath, $courseDirectory);
                         if (!$this->fileExists($filePathToUpload)) {
                             $this->entityManager->persist($document);
+
                             continue;
                         }
                     }
@@ -448,9 +456,7 @@ final class Version20201212203625 extends AbstractMigrationChamilo
         $this->entityManager->clear();
     }
 
-    public function down(Schema $schema): void
-    {
-    }
+    public function down(Schema $schema): void {}
 
     private function attemptHasFeedback(int $attemptId): bool
     {

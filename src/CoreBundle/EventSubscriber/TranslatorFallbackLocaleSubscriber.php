@@ -57,7 +57,7 @@ final class TranslatorFallbackLocaleSubscriber implements EventSubscriberInterfa
         }
 
         // Ensure English is always last fallback.
-        if ('en_US' !== $locale && !in_array('en_US', $fallbacks, true)) {
+        if ('en_US' !== $locale && !\in_array('en_US', $fallbacks, true)) {
             $fallbacks[] = 'en_US';
         }
 

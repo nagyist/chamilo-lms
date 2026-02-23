@@ -154,8 +154,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Removed global <Loading/> to avoid full-screen overlay -->
   </div>
 </template>
 
@@ -359,10 +357,6 @@ async function loadEvents() {
   try {
     isLoading.value = true
     const params = computeCommonParams()
-
-    // Debug hint: list fetch should match calendar fetch range when view+date are shared.
-    // console.info("[CalendarList] fetch", apiRangeStart.value.toISO(), apiRangeEnd.value.toISO(), params)
-
     const events = await getCalendarEvents(apiRangeStart.value.toJSDate(), apiRangeEnd.value.toJSDate(), params)
     rawEvents.value = Array.isArray(events) ? events : []
   } catch (e) {

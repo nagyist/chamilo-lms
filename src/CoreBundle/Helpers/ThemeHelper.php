@@ -269,12 +269,6 @@ final class ThemeHelper
     }
 
     /**
-     * Port of C1 ChamiloApi::getColorPalette(), but using the theme filesystem.
-     *
-     * Expected file format: one line per color, "r,g,b,a"
-     * - "a" in C1 is often 0..100 (pChart), but CSS rgba() expects 0..1
-     * - When wrapInRGBA=true we will normalize alpha to 0..1 automatically.
-     *
      * Default palette file path (inside the theme FS):
      * - palettes/pchart/default.color
      *
@@ -315,7 +309,7 @@ final class ThemeHelper
             $aRaw = $components[3] ?? '1';
             $a = is_numeric($aRaw) ? (float) $aRaw : 1.0;
 
-            // C1 optional conversion: 0..100 -> 0..1 (1 decimal)
+            // optional conversion: 0..100 -> 0..1 (1 decimal)
             if ($decimalOpacity && $a > 1.0) {
                 $a = round($a / 100.0, 1);
             }

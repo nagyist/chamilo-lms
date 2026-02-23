@@ -63,8 +63,7 @@ final class SessionPlanStateProvider implements ProviderInterface
         ;
 
         if (\count($sessions) > self::MAX_SESSIONS) {
-            // Same message key used in C1
-            throw new AccessDeniedHttpException('TooMuchSessionsInPlanification');
+            throw new AccessDeniedHttpException('Too much sessions in planification');
         }
 
         // Filter by visibility rules (consistent with SessionRepository logic)
@@ -83,7 +82,6 @@ final class SessionPlanStateProvider implements ProviderInterface
 
     private function isVisibleForUser(Session $session, User $user): bool
     {
-        // Keep it consistent with existing logic in repository
         $visibility = $session->setAccessVisibilityByUser($user, true);
 
         if (Session::VISIBLE !== $visibility) {
@@ -104,8 +102,6 @@ final class SessionPlanStateProvider implements ProviderInterface
     private function buildPlanItems(array $sessions, User $user, AccessUrl $accessUrl, int $year): array
     {
         $items = [];
-
-        // Theme-aware palette (port of C1 getColorPalette()).
         // It reads from "palettes/pchart/default.color" inside the theme FS,
         // and falls back to a built-in palette if missing.
         $colors = $this->themeHelper->getColorPalette(false, true, \count($sessions));
@@ -116,7 +112,7 @@ final class SessionPlanStateProvider implements ProviderInterface
         foreach ($sessions as $session) {
             [$start, $end] = $this->resolveEffectiveDatesForUser($session, $user, $tz);
 
-            // Duration sessions with no first access should be skipped (C1 behavior)
+            // Duration sessions with no first access should be skipped
             if (!$start && ($session->getDuration() ?? 0) > 0) {
                 continue;
             }
@@ -175,7 +171,7 @@ final class SessionPlanStateProvider implements ProviderInterface
     }
 
     /**
-     * C1-compatible effective dates:
+     * Effective dates:
      * - duration>0: based on user's first access date (+ duration + user extension duration)
      * - else: prefer subscription dates, fallback to session access/display dates
      *
@@ -228,9 +224,6 @@ final class SessionPlanStateProvider implements ProviderInterface
         return [$startI, $endI];
     }
 
-    /**
-     * Same validity rules as C1 getSubscribedSessionsByYear()
-     */
     private function isValidForYear(?DateTimeInterface $start, ?DateTimeInterface $end, int $year): bool
     {
         $startYear = (int) $start?->format('Y');
@@ -252,7 +245,7 @@ final class SessionPlanStateProvider implements ProviderInterface
     }
 
     /**
-     * Port of C1 getSessionsCalendarByYear() week logic.
+     * Week logic.
      *
      * @return array{start:int,duration:int,start_in_last_year:bool,end_in_next_year:bool,no_start:bool,no_end:bool}
      */

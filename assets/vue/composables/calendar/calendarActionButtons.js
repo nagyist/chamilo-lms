@@ -5,10 +5,6 @@ import { usePlatformConfig } from "../../store/platformConfig"
 import { useSecurityStore } from "../../store/securityStore"
 import { checkIsAllowedToEdit } from "../userPermissions"
 
-/**
- * Extracted from Agenda::displayActions
- * Note: This is still a simplified version for the fake-data phase.
- */
 export function useCalendarActionButtons() {
   const cidReqStore = useCidReqStore()
   const platformConfigStore = usePlatformConfig()
@@ -56,7 +52,6 @@ export function useCalendarActionButtons() {
       }
     }
 
-    // In C1, the list view exists in many contexts. Keep it enabled for authenticated users.
     if (securityStore.isAuthenticated) {
       showAgendaListButton.value = true
     }

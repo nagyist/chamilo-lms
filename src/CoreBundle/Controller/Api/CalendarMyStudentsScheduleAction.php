@@ -130,9 +130,6 @@ final class CalendarMyStudentsScheduleAction
     private function findCalendarEventsForSession(Session $session, DateTimeImmutable $start, DateTimeImmutable $end): array
     {
         $qb = $this->em->createQueryBuilder();
-
-        // NOTE: This assumes CCalendarEvent is a resource linked through ResourceNode -> ResourceLinks.
-        // If your field names differ, adjust start/end fields accordingly.
         $qb
             ->select('e')
             ->from(CCalendarEvent::class, 'e')

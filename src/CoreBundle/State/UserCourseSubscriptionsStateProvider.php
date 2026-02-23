@@ -61,13 +61,17 @@ final class UserCourseSubscriptionsStateProvider implements ProviderInterface
             throw new RuntimeException('Access URL not found');
         }
 
-        $qb = $this->courseRelUserRepository->createQueryBuilder('cru')
+        $qb = $this->courseRelUserRepository->createQueryBuilder('cru');
+        $qb
             ->innerJoin('cru.course', 'c')
             ->addSelect('c')
             ->innerJoin('c.urls', 'cur')
             ->innerJoin('cur.url', 'u')
             ->andWhere('cru.user = :user')
             ->andWhere('u = :url')
+            ->andWhere(
+                $qb->expr()->eq('c.sticky', $qb->expr()->literal(false))
+            )
             ->setParameter('user', $currentUser->getId())
             ->setParameter('url', $url->getId())
         ;

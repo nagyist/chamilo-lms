@@ -32742,3 +32742,6 @@ msgstr "Parametre"
 msgid "URI"
 msgstr "URI"
 
+msgid "%s (current)"
+msgstr "%s (güncel)"
+

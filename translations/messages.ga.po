@@ -32740,3 +32740,6 @@ msgstr "Paraiméadar"
 msgid "URI"
 msgstr "URI"
 
+msgid "%s (current)"
+msgstr "%s (reatha)"
+

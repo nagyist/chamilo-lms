@@ -32736,3 +32736,6 @@ msgstr "Kigeuza"
 msgid "URI"
 msgstr "URI"
 
+msgid "%s (current)"
+msgstr "%s (sasa)"
+

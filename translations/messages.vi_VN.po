@@ -32742,3 +32742,6 @@ msgstr "Tham số"
 msgid "URI"
 msgstr "URI"
 
+msgid "%s (current)"
+msgstr "%s (hiện tại)"
+

@@ -32806,3 +32806,6 @@ msgstr "パラメータ"
 msgid "URI"
 msgstr "URI"
 
+msgid "%s (current)"
+msgstr "%s (現在)"
+

@@ -32740,3 +32740,6 @@ msgstr "Параметар"
 msgid "URI"
 msgstr "URI"
 
+msgid "%s (current)"
+msgstr "%s (тековен)"
+

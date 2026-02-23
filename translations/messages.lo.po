@@ -35086,3 +35086,6 @@ msgstr "ພາລາເມດເຕີ"
 msgid "URI"
 msgstr "URI"
 
+msgid "%s (current)"
+msgstr "%s (ປະຈຸບັນ)"
+

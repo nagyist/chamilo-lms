@@ -344,7 +344,7 @@ msgid "Sincerely"
 msgstr "உண்மையாகவே"
 
 msgid "Formula sample: sqrt( [x] / [y] ) * ( e ^ ( ln(pi) ) )"
-msgstr "சூத்திர நட样: sqrt( [x] / [y] ) * ( e ^ ( ln(pi) ) )"
+msgstr "பூரணசமனின் மாதிரி: sqrt( [x] / [y] ) * ( e ^ ( ln(pi) ) )"
 
 msgid "Variable ranges"
 msgstr "மாறியின் வரம்புகள்"
@@ -32739,4 +32739,7 @@ msgstr "பரமேட்டர்"
 
 msgid "URI"
 msgstr "URI"
+
+msgid "%s (current)"
+msgstr "%s (தற்போதைய)"
 

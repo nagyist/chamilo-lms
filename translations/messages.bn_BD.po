@@ -32577,3 +32577,162 @@ msgstr "যদি আপনি এই অ্যাকাউন্টটি ন�
 msgid "Current authentication method"
 msgstr "বর্তমান প্রমাণীকরণ পদ্ধতি"
 
+msgid "Branches"
+msgstr "শাখা"
+
+msgid "Rooms"
+msgstr "কক্ষ"
+
+msgid "Room availability finder"
+msgstr "কক্ষের উপলব্ধতা খুঁজুন"
+
+msgid "New branch"
+msgstr "নতুন শাখা"
+
+msgid "New room"
+msgstr "নতুন কক্ষ"
+
+msgid "Branch"
+msgstr "শাখা"
+
+msgid "Default room"
+msgstr "ডিফল্ট কক্ষ"
+
+msgid "Room occupation: %s"
+msgstr "কক্ষের ব্যবহার: %s"
+
+msgid "Find available rooms"
+msgstr "উপলব্ধ কক্ষ খুঁজুন"
+
+msgid "Available rooms"
+msgstr "উপলব্ধ কক্ষ"
+
+msgid "Occupied rooms"
+msgstr "ব্যবহৃত কক্ষ"
+
+msgid "No available rooms found for this time range"
+msgstr "এই সময় পরিসরের জন্য কোন উপলব্ধ কক্ষ পাওয়া যায়নি"
+
+msgid "No rooms have been created yet"
+msgstr "এখনও কোন কক্ষ তৈরি করা হয়নি"
+
+msgid "Courses linked to %s"
+msgstr "%s এর সাথে যুক্ত কোর্স"
+
+msgid "No branches have been created yet"
+msgstr "এখনও কোন শাখা তৈরি করা হয়নি"
+
+msgid "Occupation"
+msgstr "ব্যবহার"
+
+msgid "Cannot delete branch with rooms attached"
+msgstr "কক্ষ সংযুক্ত শাখা মুছে ফেলা যাবে না"
+
+msgid "Cannot delete room with courses attached"
+msgstr "কোর্স সংযুক্ত কক্ষ মুছে ফেলা যাবে না"
+
+msgid "Conflicts"
+msgstr "সংঘাত"
+
+msgid "Geolocation"
+msgstr "ভৌগলিক অবস্থান"
+
+msgid "Latitude, Longitude (e.g. 48.8566, 2.3522)"
+msgstr "অক্ষাংশ, দ্রাঘিমাংশ (যেমন ৪৮.৮৫৬৬, ২.৩৫২২)"
+
+msgid "IPv4 or IPv6"
+msgstr "IPv4 বা IPv6"
+
+msgid "IP mask"
+msgstr "IP মাস্ক"
+
+msgid "e.g. /24"
+msgstr "যেমন /24"
+
+msgid "Parent branch"
+msgstr "মূল শাখা"
+
+msgid "Unique identifier"
+msgstr "অনন্য পরিচয়ক"
+
+msgid "Latitude"
+msgstr "অক্ষাংশ"
+
+msgid "e.g. 48.8566"
+msgstr "যেমন ৪৮.৮৫৬৬"
+
+msgid "Longitude"
+msgstr "দ্রাঘিমাংশ"
+
+msgid "e.g. 2.3522"
+msgstr "যেমন ২.৩৫২২"
+
+msgid "Download speed (KB/s)"
+msgstr "ডাউনলোড গতি (KB/s)"
+
+msgid "Upload speed (KB/s)"
+msgstr "আপলোড গতি (KB/s)"
+
+msgid "Delay (ms)"
+msgstr "বিলম্ব (ms)"
+
+msgid "admin@example.com"
+msgstr "admin@example.com"
+
+msgid "Administrator name"
+msgstr "প্রশাসকের নাম"
+
+msgid "Administrator phone number"
+msgstr "প্রশাসকের ফোন নম্বর"
+
+msgid "ID of last synch transaction"
+msgstr "সর্বশেষ সিঙ্ক ট্রানজেকশনের আইডি"
+
+msgid "Time of last synchronization"
+msgstr "সর্বশেষ সিঙ্করণের সময়"
+
+msgid "Last synchronization type"
+msgstr "সর্বশেষ সিঙ্করণের ধরন"
+
+msgid "SSL public key"
+msgstr "SSL পাবলিক কী"
+
+msgid "Branch type"
+msgstr "শাখার ধরন"
+
+msgid "Room"
+msgstr "কক্ষ"
+
+msgid "Simple IDS"
+msgstr "সরল IDS"
+
+msgid "IDS is currently disabled. Set IDS_ENABLED=true in your .env to activate scanning."
+msgstr "IDS বর্তমানে নিষ্ক্রিয়। আপনার .env-এ IDS_ENABLED=true সেট করে স্ক্যানিং সক্রিয় করুন।"
+
+msgid "All event types"
+msgstr "সকল ইভেন্টের ধরন"
+
+msgid "Events by day (last 7 days)"
+msgstr "দিন অনুযায়ী ইভেন্ট (সর্বশেষ ৭ দিন)"
+
+msgid "Events by type (last 30 days)"
+msgstr "ধরন অনুযায়ী ইভেন্ট (সর্বশেষ ৩০ দিন)"
+
+msgid "Top attacking IPs (last 30 days)"
+msgstr "শীর্ষ আক্রমণকারী আইপি (সর্বশেষ ৩০ দিন)"
+
+msgid "Flagged IDS events"
+msgstr "অনুসূচিত IDS ইভেন্ট"
+
+msgid "No suspicious events detected."
+msgstr "কোন সন্দেহজনক ইভেন্ট শনাক্ত হয়নি।"
+
+msgid "Detection type"
+msgstr "শনাক্তকরণের ধরন"
+
+msgid "Parameter"
+msgstr "প্যারামিটার"
+
+msgid "URI"
+msgstr "ইউআরআই"
+

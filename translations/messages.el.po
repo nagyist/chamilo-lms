@@ -345,7 +345,7 @@ msgid "Sincerely"
 msgstr "Ειλικρινά"
 
 msgid "Formula sample: sqrt( [x] / [y] ) * ( e ^ ( ln(pi) ) )"
-msgstr "Δείγμα τύπου: sqrt( [x] / [y] ) * ( e ^ ( ln(pi) ) )"
+msgstr "Δείγμα τύπou: sqrt( [x] / [y] ) * ( e ^ ( ln(pi) ) )"
 
 msgid "Variable ranges"
 msgstr "Μεταβλητά όρια"
@@ -32595,4 +32595,163 @@ msgstr "Αν δεν εγγράψατε αυτόν τον λογαριασμό, �
 
 msgid "Current authentication method"
 msgstr "Τρέχουσα μέθοδος πιστοποίησης"
+
+msgid "Branches"
+msgstr "Κλάδοι"
+
+msgid "Rooms"
+msgstr "Αίθουσες"
+
+msgid "Room availability finder"
+msgstr "Εύρεση διαθέσιμων αιθουσών"
+
+msgid "New branch"
+msgstr "Νέος κλάδος"
+
+msgid "New room"
+msgstr "Νέα αίθουσα"
+
+msgid "Branch"
+msgstr "Κλάδος"
+
+msgid "Default room"
+msgstr "Προεπιλεγμένη αίθουσα"
+
+msgid "Room occupation: %s"
+msgstr "Κατάληψη αίθουσας: %s"
+
+msgid "Find available rooms"
+msgstr "Εύρεση διαθέσιμων αιθουσών"
+
+msgid "Available rooms"
+msgstr "Διαθέσιμες αίθουσες"
+
+msgid "Occupied rooms"
+msgstr "Κατειλημμένες αίθουσες"
+
+msgid "No available rooms found for this time range"
+msgstr "Δεν βρέθηκαν διαθέσιμες αίθουσες για αυτό το χρονικό διάστημα"
+
+msgid "No rooms have been created yet"
+msgstr "Δεν έχουν δημιουργηθεί αίθουσες ακόμα"
+
+msgid "Courses linked to %s"
+msgstr "Μαθήματα συνδεδεμένα με %s"
+
+msgid "No branches have been created yet"
+msgstr "Δεν έχουν δημιουργηθεί κλάδοι ακόμα"
+
+msgid "Occupation"
+msgstr "Κατάληψη"
+
+msgid "Cannot delete branch with rooms attached"
+msgstr "Δεν μπορεί να διαγραφεί κλάδος με συνδεδεμένες αίθουσες"
+
+msgid "Cannot delete room with courses attached"
+msgstr "Δεν μπορεί να διαγραφεί αίθουσα με συνδεδεμένα μαθήματα"
+
+msgid "Conflicts"
+msgstr "Συγκρούσεις"
+
+msgid "Geolocation"
+msgstr "Γεωτοποθεσία"
+
+msgid "Latitude, Longitude (e.g. 48.8566, 2.3522)"
+msgstr "Γεωγρ. πλάτος, Γεωγρ. μήκος (π.χ. 48.8566, 2.3522)"
+
+msgid "IPv4 or IPv6"
+msgstr "IPv4 ή IPv6"
+
+msgid "IP mask"
+msgstr "Μάσκα IP"
+
+msgid "e.g. /24"
+msgstr "π.χ. /24"
+
+msgid "Parent branch"
+msgstr "Γονικός κλάδος"
+
+msgid "Unique identifier"
+msgstr "Μοναδικός αναγνωριστικός κωδικός"
+
+msgid "Latitude"
+msgstr "Γεωγρ. πλάτος"
+
+msgid "e.g. 48.8566"
+msgstr "π.χ. 48.8566"
+
+msgid "Longitude"
+msgstr "Γεωγρ. μήκος"
+
+msgid "e.g. 2.3522"
+msgstr "π.χ. 2.3522"
+
+msgid "Download speed (KB/s)"
+msgstr "Ταχύτητα λήψης (KB/s)"
+
+msgid "Upload speed (KB/s)"
+msgstr "Ταχύτητα αποστολής (KB/s)"
+
+msgid "Delay (ms)"
+msgstr "Καθυστέρηση (ms)"
+
+msgid "admin@example.com"
+msgstr "admin@example.com"
+
+msgid "Administrator name"
+msgstr "Όνομα διαχειριστή"
+
+msgid "Administrator phone number"
+msgstr "Τηλέφωνο διαχειριστή"
+
+msgid "ID of last synch transaction"
+msgstr "ID τελευταίας συναλλαγής συγχρονισμού"
+
+msgid "Time of last synchronization"
+msgstr "Ώρα τελευταίου συγχρονισμού"
+
+msgid "Last synchronization type"
+msgstr "Τύπος τελευταίου συγχρονισμού"
+
+msgid "SSL public key"
+msgstr "Δημόσιο κλειδί SSL"
+
+msgid "Branch type"
+msgstr "Τύπος υποκαταστήματος"
+
+msgid "Room"
+msgstr "Αίθουσα"
+
+msgid "Simple IDS"
+msgstr "Απλό IDS"
+
+msgid "IDS is currently disabled. Set IDS_ENABLED=true in your .env to activate scanning."
+msgstr "Το IDS είναι προς το παρόν απενεργοποιημένο. Ορίστε IDS_ENABLED=true στο .env σας για ενεργοποίηση σάρωσης."
+
+msgid "All event types"
+msgstr "Όλοι οι τύποι συμβάντων"
+
+msgid "Events by day (last 7 days)"
+msgstr "Συμβάντα ανά ημέρα (τελευταίες 7 ημέρες)"
+
+msgid "Events by type (last 30 days)"
+msgstr "Συμβάντα ανά τύπο (τελευταίες 30 ημέρες)"
+
+msgid "Top attacking IPs (last 30 days)"
+msgstr "Κορυφαίες επιτιθέμενες IPs (τελευταίες 30 ημέρες)"
+
+msgid "Flagged IDS events"
+msgstr "Σημειωμένα συμβάντα IDS"
+
+msgid "No suspicious events detected."
+msgstr "Δεν εντοπίστηκαν ύποπτα συμβάντα."
+
+msgid "Detection type"
+msgstr "Τύπος ανίχνευσης"
+
+msgid "Parameter"
+msgstr "Παράμετρος"
+
+msgid "URI"
+msgstr "URI"
 

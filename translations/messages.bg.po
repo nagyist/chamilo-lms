@@ -32583,3 +32583,162 @@ msgstr "Ако не сте регистрирали този акаунт, мо�
 msgid "Current authentication method"
 msgstr "Текущ метод за автентикация"
 
+msgid "Branches"
+msgstr "Филиали"
+
+msgid "Rooms"
+msgstr "Стаи"
+
+msgid "Room availability finder"
+msgstr "Търсачка на свободни стаи"
+
+msgid "New branch"
+msgstr "Нов филиал"
+
+msgid "New room"
+msgstr "Нова стая"
+
+msgid "Branch"
+msgstr "Филиал"
+
+msgid "Default room"
+msgstr "Стандартна стая"
+
+msgid "Room occupation: %s"
+msgstr "Заетост на стаята: %s"
+
+msgid "Find available rooms"
+msgstr "Намери свободни стаи"
+
+msgid "Available rooms"
+msgstr "Свободни стаи"
+
+msgid "Occupied rooms"
+msgstr "Заети стаи"
+
+msgid "No available rooms found for this time range"
+msgstr "Не са намерени свободни стаи за този времеви интервал"
+
+msgid "No rooms have been created yet"
+msgstr "Още не са създадени стаи"
+
+msgid "Courses linked to %s"
+msgstr "Курсове, свързани с %s"
+
+msgid "No branches have been created yet"
+msgstr "Още не са създадени филиали"
+
+msgid "Occupation"
+msgstr "Заетост"
+
+msgid "Cannot delete branch with rooms attached"
+msgstr "Не може да се изтрие филиал със свързани стаи"
+
+msgid "Cannot delete room with courses attached"
+msgstr "Не може да се изтрие стая с прикрепени курсове"
+
+msgid "Conflicts"
+msgstr "Конфликти"
+
+msgid "Geolocation"
+msgstr "Геолокация"
+
+msgid "Latitude, Longitude (e.g. 48.8566, 2.3522)"
+msgstr "Ширина, Дължина (нпр. 48.8566, 2.3522)"
+
+msgid "IPv4 or IPv6"
+msgstr "IPv4 или IPv6"
+
+msgid "IP mask"
+msgstr "IP маска"
+
+msgid "e.g. /24"
+msgstr "нпр. /24"
+
+msgid "Parent branch"
+msgstr "Родителски филиал"
+
+msgid "Unique identifier"
+msgstr "Уникален идентификатор"
+
+msgid "Latitude"
+msgstr "Географска ширина"
+
+msgid "e.g. 48.8566"
+msgstr "нпр. 48.8566"
+
+msgid "Longitude"
+msgstr "Географска дължина"
+
+msgid "e.g. 2.3522"
+msgstr "нпр. 2.3522"
+
+msgid "Download speed (KB/s)"
+msgstr "Скорост на сваляне (КБ/с)"
+
+msgid "Upload speed (KB/s)"
+msgstr "Скорост на качване (КБ/с)"
+
+msgid "Delay (ms)"
+msgstr "Закъснение (мс)"
+
+msgid "admin@example.com"
+msgstr "admin@example.com"
+
+msgid "Administrator name"
+msgstr "Име на администратора"
+
+msgid "Administrator phone number"
+msgstr "Телефонен номер на администратора"
+
+msgid "ID of last synch transaction"
+msgstr "ID на последната транзакция за синхронизация"
+
+msgid "Time of last synchronization"
+msgstr "Време на последната синхронизация"
+
+msgid "Last synchronization type"
+msgstr "Тип на последната синхронизация"
+
+msgid "SSL public key"
+msgstr "SSL публичен ключ"
+
+msgid "Branch type"
+msgstr "Тип на филиала"
+
+msgid "Room"
+msgstr "Стая"
+
+msgid "Simple IDS"
+msgstr "Прости IDS"
+
+msgid "IDS is currently disabled. Set IDS_ENABLED=true in your .env to activate scanning."
+msgstr "IDS е изключен. Задайте IDS_ENABLED=true в .env, за да активирате сканирането."
+
+msgid "All event types"
+msgstr "Всички типове събития"
+
+msgid "Events by day (last 7 days)"
+msgstr "Събития по дни (последните 7 дни)"
+
+msgid "Events by type (last 30 days)"
+msgstr "Събития по тип (последните 30 дни)"
+
+msgid "Top attacking IPs (last 30 days)"
+msgstr "Топ атакуващи IP адреси (последните 30 дни)"
+
+msgid "Flagged IDS events"
+msgstr "Маркирани събития на IDS"
+
+msgid "No suspicious events detected."
+msgstr "Не са открити подозрителни събития."
+
+msgid "Detection type"
+msgstr "Тип на откриването"
+
+msgid "Parameter"
+msgstr "Параметър"
+
+msgid "URI"
+msgstr "URI"
+

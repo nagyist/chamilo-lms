@@ -344,7 +344,7 @@ msgid "Sincerely"
 msgstr "உண்மையாகவே"
 
 msgid "Formula sample: sqrt( [x] / [y] ) * ( e ^ ( ln(pi) ) )"
-msgstr "பூரணச் சூத்திரம்: sqrt( [x] / [y] ) * ( e ^ ( ln(pi) ) )"
+msgstr "சூத்திர நட样: sqrt( [x] / [y] ) * ( e ^ ( ln(pi) ) )"
 
 msgid "Variable ranges"
 msgstr "மாறியின் வரம்புகள்"
@@ -32580,4 +32580,163 @@ msgstr "இந்த கணக்கை நீங்கள் பதிவு �
 
 msgid "Current authentication method"
 msgstr "தற்போதைய அங்கீகார முறை"
+
+msgid "Branches"
+msgstr "கிளைகள்"
+
+msgid "Rooms"
+msgstr "அறைகள்"
+
+msgid "Room availability finder"
+msgstr "அறை கிடைக்கும் தேடி"
+
+msgid "New branch"
+msgstr "புதிய கிளை"
+
+msgid "New room"
+msgstr "புதிய அறை"
+
+msgid "Branch"
+msgstr "கிளை"
+
+msgid "Default room"
+msgstr "இயல்புநிலை அறை"
+
+msgid "Room occupation: %s"
+msgstr "அறை ஆக்கிரமிப்பு: %s"
+
+msgid "Find available rooms"
+msgstr "கிடைக்கும் அறைகளைக் கண்டறியவும்"
+
+msgid "Available rooms"
+msgstr "கிடைக்கும் அறைகள்"
+
+msgid "Occupied rooms"
+msgstr "ஆக்கிரமிக்கப்பட்ட அறைகள்"
+
+msgid "No available rooms found for this time range"
+msgstr "இந்த நேர வரம்பிற்கு கிடைக்கும் அறைகள் எதுவும் கிடைக்கவில்லை"
+
+msgid "No rooms have been created yet"
+msgstr "இதுவரை அறைகள் உருவாக்கப்படவில்லை"
+
+msgid "Courses linked to %s"
+msgstr "%s உடன் இணைக்கப்பட்ட பாடங்கள்"
+
+msgid "No branches have been created yet"
+msgstr "இதுவரை கிளைகள் உருவாக்கப்படவில்லை"
+
+msgid "Occupation"
+msgstr "ஆக்கிரமிப்பு"
+
+msgid "Cannot delete branch with rooms attached"
+msgstr "அறைகள் இணைக்கப்பட்ட கிளையை நீக்க முடியாது"
+
+msgid "Cannot delete room with courses attached"
+msgstr "பாடங்கள் இணைக்கப்பட்ட அறையை நீக்க முடியாது"
+
+msgid "Conflicts"
+msgstr "மோதல்கள்"
+
+msgid "Geolocation"
+msgstr "இட அமைவு"
+
+msgid "Latitude, Longitude (e.g. 48.8566, 2.3522)"
+msgstr "அகலத்தியம், நெளிமையம் (எ.கா. 48.8566, 2.3522)"
+
+msgid "IPv4 or IPv6"
+msgstr "IPv4 அல்லது IPv6"
+
+msgid "IP mask"
+msgstr "IP முகமூடி"
+
+msgid "e.g. /24"
+msgstr "எ.கா. /24"
+
+msgid "Parent branch"
+msgstr "பெற்றோர் கிளை"
+
+msgid "Unique identifier"
+msgstr "தனித்துவ அடையாளம்"
+
+msgid "Latitude"
+msgstr "அகலத்தியம்"
+
+msgid "e.g. 48.8566"
+msgstr "எ.கா. 48.8566"
+
+msgid "Longitude"
+msgstr "நெளிமையம்"
+
+msgid "e.g. 2.3522"
+msgstr "எ.கா. 2.3522"
+
+msgid "Download speed (KB/s)"
+msgstr "பதிவிறக்க வேகம் (KB/s)"
+
+msgid "Upload speed (KB/s)"
+msgstr "ஏற்றுமதி வேகம் (KB/s)"
+
+msgid "Delay (ms)"
+msgstr "தாமதம் (ms)"
+
+msgid "admin@example.com"
+msgstr "admin@example.com"
+
+msgid "Administrator name"
+msgstr "நிர்வாகி பெயர்"
+
+msgid "Administrator phone number"
+msgstr "நிர்வாகி தொலைபேசி எண்"
+
+msgid "ID of last synch transaction"
+msgstr "கடைசி ஒத்திசைவு பரிவர்த்தனையின் ID"
+
+msgid "Time of last synchronization"
+msgstr "கடைசி ஒத்திசைவின் நேரம்"
+
+msgid "Last synchronization type"
+msgstr "கடைசி ஒத்திசைவு வகை"
+
+msgid "SSL public key"
+msgstr "SSL பொது விசை"
+
+msgid "Branch type"
+msgstr "கிளை வகை"
+
+msgid "Room"
+msgstr "அறை"
+
+msgid "Simple IDS"
+msgstr "எளிய IDS"
+
+msgid "IDS is currently disabled. Set IDS_ENABLED=true in your .env to activate scanning."
+msgstr "IDS தற்போது முடக்கப்பட்டுள்ளது. ஸ்கேனிங் செயல்படுத்த .env இல் IDS_ENABLED=true என அமைக்கவும்."
+
+msgid "All event types"
+msgstr "எல்லா நிகழ்வு வகைகளும்"
+
+msgid "Events by day (last 7 days)"
+msgstr "நிகழ்வுகள் நாள் வாரியாக (கடைசி 7 நாட்கள்)"
+
+msgid "Events by type (last 30 days)"
+msgstr "நிகழ்வுகள் வகை வாரியாக (கடைசி 30 நாட்கள்)"
+
+msgid "Top attacking IPs (last 30 days)"
+msgstr "சிறந்த தாக்கும் IPகள் (கடைசி 30 நாட்கள்)"
+
+msgid "Flagged IDS events"
+msgstr "குற்றப்படி குறிக்கப்பட்ட IDS நிகழ்வுகள்"
+
+msgid "No suspicious events detected."
+msgstr "யாச்சும் சந்தேக நிகழ்வுகள் கண்டறியப்படவில்லை."
+
+msgid "Detection type"
+msgstr "கண்டறிதல் வகை"
+
+msgid "Parameter"
+msgstr "பரமேட்டர்"
+
+msgid "URI"
+msgstr "URI"
 

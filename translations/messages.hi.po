@@ -32577,3 +32577,162 @@ msgstr "यदि आपने यह खाता पंजीकृत नह�
 msgid "Current authentication method"
 msgstr "वर्तमान प्रमाणीकरण विधि"
 
+msgid "Branches"
+msgstr "शाखाएँ"
+
+msgid "Rooms"
+msgstr "कक्षाएँ"
+
+msgid "Room availability finder"
+msgstr "कक्ष उपलब्धता खोजक"
+
+msgid "New branch"
+msgstr "नई शाखा"
+
+msgid "New room"
+msgstr "नया कक्ष"
+
+msgid "Branch"
+msgstr "शाखा"
+
+msgid "Default room"
+msgstr "डिफ़ॉल्ट कक्ष"
+
+msgid "Room occupation: %s"
+msgstr "कक्ष अधिभोग: %s"
+
+msgid "Find available rooms"
+msgstr "उपलब्ध कक्ष खोजें"
+
+msgid "Available rooms"
+msgstr "उपलब्ध कक्ष"
+
+msgid "Occupied rooms"
+msgstr "व्यस्त कक्ष"
+
+msgid "No available rooms found for this time range"
+msgstr "इस समय सीमा के लिए कोई उपलब्ध कक्ष नहीं मिला"
+
+msgid "No rooms have been created yet"
+msgstr "अभी तक कोई कक्ष बनाया नहीं गया है"
+
+msgid "Courses linked to %s"
+msgstr "%s से जुड़े पाठ्यक्रम"
+
+msgid "No branches have been created yet"
+msgstr "अभी तक कोई शाखा बनाई नहीं गई है"
+
+msgid "Occupation"
+msgstr "अधिभोग"
+
+msgid "Cannot delete branch with rooms attached"
+msgstr "जुड़े कक्षों वाली शाखा को हटाया नहीं जा सकता"
+
+msgid "Cannot delete room with courses attached"
+msgstr "जुड़े पाठ्यक्रमों वाले कक्ष को हटाया नहीं जा सकता"
+
+msgid "Conflicts"
+msgstr "संघर्ष"
+
+msgid "Geolocation"
+msgstr "भौगोलिक स्थान"
+
+msgid "Latitude, Longitude (e.g. 48.8566, 2.3522)"
+msgstr "अक्षांश, देशांतर (उदाहरण: 48.8566, 2.3522)"
+
+msgid "IPv4 or IPv6"
+msgstr "IPv4 या IPv6"
+
+msgid "IP mask"
+msgstr "IP मास्क"
+
+msgid "e.g. /24"
+msgstr "उदाहरण: /24"
+
+msgid "Parent branch"
+msgstr "मुख्य शाखा"
+
+msgid "Unique identifier"
+msgstr "अद्वितीय पहचानकर्ता"
+
+msgid "Latitude"
+msgstr "अक्षांश"
+
+msgid "e.g. 48.8566"
+msgstr "उदाहरण: 48.8566"
+
+msgid "Longitude"
+msgstr "देशांतर"
+
+msgid "e.g. 2.3522"
+msgstr "उदा. 2.3522"
+
+msgid "Download speed (KB/s)"
+msgstr "डाउनलोड गति (KB/s)"
+
+msgid "Upload speed (KB/s)"
+msgstr "अपलोड गति (KB/s)"
+
+msgid "Delay (ms)"
+msgstr "विलंब (ms)"
+
+msgid "admin@example.com"
+msgstr "admin@example.com"
+
+msgid "Administrator name"
+msgstr "प्रशासक का नाम"
+
+msgid "Administrator phone number"
+msgstr "प्रशासक का फोन नंबर"
+
+msgid "ID of last synch transaction"
+msgstr "अंतिम सिंक्रनाइज़ेशन लेनदेन का आईडी"
+
+msgid "Time of last synchronization"
+msgstr "अंतिम सिंक्रनाइज़ेशन का समय"
+
+msgid "Last synchronization type"
+msgstr "अंतिम सिंक्रनाइज़ेशन प्रकार"
+
+msgid "SSL public key"
+msgstr "SSL सार्वजनिक कुंजी"
+
+msgid "Branch type"
+msgstr "शाखा प्रकार"
+
+msgid "Room"
+msgstr "कक्ष"
+
+msgid "Simple IDS"
+msgstr "साधारण IDS"
+
+msgid "IDS is currently disabled. Set IDS_ENABLED=true in your .env to activate scanning."
+msgstr "IDS वर्तमान में अक्षम है। अपनी .env में IDS_ENABLED=true सेट करें स्कैनिंग सक्रिय करने के लिए।"
+
+msgid "All event types"
+msgstr "सभी घटना प्रकार"
+
+msgid "Events by day (last 7 days)"
+msgstr "दिन के अनुसार घटनाएँ (पिछले 7 दिन)"
+
+msgid "Events by type (last 30 days)"
+msgstr "प्रकार के अनुसार घटनाएँ (पिछले 30 दिन)"
+
+msgid "Top attacking IPs (last 30 days)"
+msgstr "शीर्ष आक्रमणकारी आईपी (पिछले 30 दिन)"
+
+msgid "Flagged IDS events"
+msgstr "चिह्नित IDS घटनाएँ"
+
+msgid "No suspicious events detected."
+msgstr "कोई संदिग्ध घटना का पता नहीं चला।"
+
+msgid "Detection type"
+msgstr "पता लगाने का प्रकार"
+
+msgid "Parameter"
+msgstr "पैरामीटर"
+
+msgid "URI"
+msgstr "URI"
+

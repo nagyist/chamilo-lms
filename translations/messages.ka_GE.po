@@ -2017,7 +2017,7 @@ msgid ":yes:copyright,, no:no copyright"
 msgstr ":yes:საავტორო უფლება,, no:საავტორო უფლება არა"
 
 msgid ":text/plain;iso-8859-1:text/plain;iso-8859-1,, text/plain;utf-8:text/plain;utf-8,, text/html;iso-8859-1:text/html;iso-8859-1,, text/html;utf-8:text/html;utf-8,, inode/directory:Folder,, application/msword:MsWord,, application/octet-stream:Octet stream,, application/pdf:PDF,, application/postscript:PostScript,, application/rtf:RTF,, application/vnd.ms-excel:MsExcel,, application/vnd.ms-powerpoint:MsPowerpoint,, application/xml;iso-8859-1:XML;iso-8859-1,, application/xml;utf-8:XML;utf-8,, application/zip:ZIP"
-msgstr ":text/plain;iso-8859-1:text/plain;iso-8859-1,, text/plain;utf-8:text/plain;utf-8,, text/html;iso-8859-1:text/html;iso-8859-1,, text/html;utf-8:text/html;utf-8,, inode/directory:Folder,, application/msword:MsWord,, application/octet-stream:Octet stream,, application/pdf:PDF,, application/postscript:PostScript,, application/rtf:RTF,, application/vnd.ms-excel:MsExcel,, application/vnd.ms-powerpoint:MsPowerpoint,, application/xml;iso-8859-1:XML;iso-8859-1,, application/xml;utf-8:XML;utf-8,, application/zip:ZIP"
+msgstr ":text/plain;iso-8859-1:text/plain;iso-8859-1,, text/plain;utf-8:text/plain;utf-8,, text/html;iso-8859-1:text/html;iso-8859-1,, text/html;utf-8:text/html;utf-8,, inode/directory:ფოლდერი,, application/msword:MsWord,, application/octet-stream:ოქტეტის მიმდინარეობა,, application/pdf:PDF,, application/postscript:PostScript,, application/rtf:RTF,, application/vnd.ms-excel:MsExcel,, application/vnd.ms-powerpoint:MsPowerpoint,, application/xml;iso-8859-1:XML;iso-8859-1,, application/xml;utf-8:XML;utf-8,, application/zip:ZIP"
 
 msgid ":exercise:exercise,,      simulation:simulation,,      questionnaire:questionnaire,,      diagram:diagram,,      figure:figure,,      graph:graf,,      index:index,,      slide:slide,,      table:table,,      narrative text:narrative text,,      exam:exam,,      experiment:experiment,,      problem statement:problem statement,,      self assessment:self assessment,,      lecture:lecture"
 msgstr ":exercise:ვარჯიში,,      simulation:სიმულაცია,,      questionnaire:ანკეტა,,      diagram:დიაგრამა,,      figure:ფიგურა,,      graph:გრაფიკი,,      index:ინდექსი,,      slide:სლაიდი,,      table:ცხრილი,,      narrative text:ნარატიული ტექსტი,,      exam:გამოცდა,,      experiment:ექსპერიმენტი,,      problem statement:პრობლემის ჩამონათვალი,,      self assessment:თვითშეფასება,,      lecture:ლექცია"
@@ -32576,4 +32576,163 @@ msgstr "თუ არ დაარეგისტრირები ამ ა�
 
 msgid "Current authentication method"
 msgstr "მიმდინარე აუთენტიფიკაციის მეთოდი"
+
+msgid "Branches"
+msgstr "ფილიალები"
+
+msgid "Rooms"
+msgstr "აუდიტორიები"
+
+msgid "Room availability finder"
+msgstr "აუდიტორიების ხელმისაწვდომობის მოძიება"
+
+msgid "New branch"
+msgstr "ახალი ფილიალი"
+
+msgid "New room"
+msgstr "ახალი აუდიტორია"
+
+msgid "Branch"
+msgstr "ფილიალი"
+
+msgid "Default room"
+msgstr "ნაგულისხმევი აუდიტორია"
+
+msgid "Room occupation: %s"
+msgstr "აუდიტორიის ოკუპაცია: %s"
+
+msgid "Find available rooms"
+msgstr "ხელმისაწვდომი აუდიტორიების მოძიება"
+
+msgid "Available rooms"
+msgstr "ხელმისაწვდომი აუდიტორიები"
+
+msgid "Occupied rooms"
+msgstr "დაკავებული აუდიტორიები"
+
+msgid "No available rooms found for this time range"
+msgstr "ამ დროის შუალედში ხელმისაწვდომი აუდიტორიები ვერ მოიძებნა"
+
+msgid "No rooms have been created yet"
+msgstr "აუდიტორიები ჯერ არ შექმნილა"
+
+msgid "Courses linked to %s"
+msgstr "%s-თან დაკავშირებული კურსები"
+
+msgid "No branches have been created yet"
+msgstr "ფილიალები ჯერ არ შექმნილა"
+
+msgid "Occupation"
+msgstr "ოკუპაცია"
+
+msgid "Cannot delete branch with rooms attached"
+msgstr "აუდიტორიებით მიბმული ფილიალის წაშლა შეუძლებელია"
+
+msgid "Cannot delete room with courses attached"
+msgstr "კურსებით მიბმული აუდიტორიის წაშლა შეუძლებელია"
+
+msgid "Conflicts"
+msgstr "კონფლიქტები"
+
+msgid "Geolocation"
+msgstr "გეოლოკაცია"
+
+msgid "Latitude, Longitude (e.g. 48.8566, 2.3522)"
+msgstr "გრძედი, განედი (მაგ. 48.8566, 2.3522)"
+
+msgid "IPv4 or IPv6"
+msgstr "IPv4 ან IPv6"
+
+msgid "IP mask"
+msgstr "IP ნიღაბი"
+
+msgid "e.g. /24"
+msgstr "მაგ. /24"
+
+msgid "Parent branch"
+msgstr "მშობელი ფილიალი"
+
+msgid "Unique identifier"
+msgstr "უნიკალური იდენტიფიკატორი"
+
+msgid "Latitude"
+msgstr "განედი"
+
+msgid "e.g. 48.8566"
+msgstr "მაგ. 48.8566"
+
+msgid "Longitude"
+msgstr "გრძედი"
+
+msgid "e.g. 2.3522"
+msgstr "მაგ. 2.3522"
+
+msgid "Download speed (KB/s)"
+msgstr "ჩამოტვირთვის სიჩქარე (KB/ს)"
+
+msgid "Upload speed (KB/s)"
+msgstr "ატვირთვის სიჩქარე (KB/ს)"
+
+msgid "Delay (ms)"
+msgstr "დაგვიანება (მს)"
+
+msgid "admin@example.com"
+msgstr "admin@example.com"
+
+msgid "Administrator name"
+msgstr "ადმინისტრატორის სახელი"
+
+msgid "Administrator phone number"
+msgstr "ადმინისტრატორის ტელეფონის ნომერი"
+
+msgid "ID of last synch transaction"
+msgstr "ბოლო სინქრონიზაციის ტრანზაქციის ID"
+
+msgid "Time of last synchronization"
+msgstr "ბოლო სინქრონიზაციის დრო"
+
+msgid "Last synchronization type"
+msgstr "ბოლო სინქრონიზაციის ტიპი"
+
+msgid "SSL public key"
+msgstr "SSL საჯარო გასაღები"
+
+msgid "Branch type"
+msgstr "ფილიალის ტიპი"
+
+msgid "Room"
+msgstr "საკონფერენციო ოთახი"
+
+msgid "Simple IDS"
+msgstr "მარტივი IDS"
+
+msgid "IDS is currently disabled. Set IDS_ENABLED=true in your .env to activate scanning."
+msgstr "IDS ამჟამად გამორთულია. ჩართეთ სკანირება .env ფაილში IDS_ENABLED=true-ის მ 설정ით."
+
+msgid "All event types"
+msgstr "ყველა მოვლენის ტიპი"
+
+msgid "Events by day (last 7 days)"
+msgstr "მოვლენები დღის მიხედვით (ბოლო 7 დღე)"
+
+msgid "Events by type (last 30 days)"
+msgstr "მოვლენები ტიპის მიხედვით (ბოლო 30 დღე)"
+
+msgid "Top attacking IPs (last 30 days)"
+msgstr "საუკეთესო შემტევი IP მისამართები (ბოლო 30 დღე)"
+
+msgid "Flagged IDS events"
+msgstr "დამოწმებული IDS მოვლენები"
+
+msgid "No suspicious events detected."
+msgstr "სასუსური მოვლენები არ გამოვლენილა."
+
+msgid "Detection type"
+msgstr "გამოვლენის ტიპი"
+
+msgid "Parameter"
+msgstr "პარამეტრი"
+
+msgid "URI"
+msgstr "URI"
 

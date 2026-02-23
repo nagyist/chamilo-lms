@@ -32581,3 +32581,162 @@ msgstr "Jika anda tidak mendaftar akaun ini, anda boleh abaikan e-mel ini. Tiada
 msgid "Current authentication method"
 msgstr "Kaedah pengesahan semasa"
 
+msgid "Branches"
+msgstr ""
+
+msgid "Rooms"
+msgstr ""
+
+msgid "Room availability finder"
+msgstr ""
+
+msgid "New branch"
+msgstr ""
+
+msgid "New room"
+msgstr ""
+
+msgid "Branch"
+msgstr ""
+
+msgid "Default room"
+msgstr ""
+
+msgid "Room occupation: %s"
+msgstr ""
+
+msgid "Find available rooms"
+msgstr ""
+
+msgid "Available rooms"
+msgstr ""
+
+msgid "Occupied rooms"
+msgstr ""
+
+msgid "No available rooms found for this time range"
+msgstr ""
+
+msgid "No rooms have been created yet"
+msgstr ""
+
+msgid "Courses linked to %s"
+msgstr ""
+
+msgid "No branches have been created yet"
+msgstr ""
+
+msgid "Occupation"
+msgstr ""
+
+msgid "Cannot delete branch with rooms attached"
+msgstr ""
+
+msgid "Cannot delete room with courses attached"
+msgstr ""
+
+msgid "Conflicts"
+msgstr ""
+
+msgid "Geolocation"
+msgstr ""
+
+msgid "Latitude, Longitude (e.g. 48.8566, 2.3522)"
+msgstr ""
+
+msgid "IPv4 or IPv6"
+msgstr ""
+
+msgid "IP mask"
+msgstr ""
+
+msgid "e.g. /24"
+msgstr ""
+
+msgid "Parent branch"
+msgstr ""
+
+msgid "Unique identifier"
+msgstr "Pengenal pasti unik"
+
+msgid "Latitude"
+msgstr "Latitud"
+
+msgid "e.g. 48.8566"
+msgstr "contohnya 48.8566"
+
+msgid "Longitude"
+msgstr "Longitud"
+
+msgid "e.g. 2.3522"
+msgstr "contohnya 2.3522"
+
+msgid "Download speed (KB/s)"
+msgstr "Kelajuan muat turun (KB/s)"
+
+msgid "Upload speed (KB/s)"
+msgstr "Kelajuan muat naik (KB/s)"
+
+msgid "Delay (ms)"
+msgstr "Lengah (ms)"
+
+msgid "admin@example.com"
+msgstr "admin@example.com"
+
+msgid "Administrator name"
+msgstr "Nama pentadbir"
+
+msgid "Administrator phone number"
+msgstr "Nombor telefon pentadbir"
+
+msgid "ID of last synch transaction"
+msgstr "ID transaksi penyegerakan terakhir"
+
+msgid "Time of last synchronization"
+msgstr "Masa penyegerakan terakhir"
+
+msgid "Last synchronization type"
+msgstr "Jenis penyegerakan terakhir"
+
+msgid "SSL public key"
+msgstr "Kunci awam SSL"
+
+msgid "Branch type"
+msgstr "Jenis cawangan"
+
+msgid "Room"
+msgstr "Bilik"
+
+msgid "Simple IDS"
+msgstr "IDS Ringkas"
+
+msgid "IDS is currently disabled. Set IDS_ENABLED=true in your .env to activate scanning."
+msgstr "IDS sedang dilumpuhkan. Tetapkan IDS_ENABLED=true dalam .env anda untuk mengaktifkan imbasan."
+
+msgid "All event types"
+msgstr "Semua jenis peristiwa"
+
+msgid "Events by day (last 7 days)"
+msgstr "Peristiwa mengikut hari (7 hari terakhir)"
+
+msgid "Events by type (last 30 days)"
+msgstr "Peristiwa mengikut jenis (30 hari terakhir)"
+
+msgid "Top attacking IPs (last 30 days)"
+msgstr "IP serangan teratas (30 hari terakhir)"
+
+msgid "Flagged IDS events"
+msgstr "Peristiwa IDS yang ditandakan"
+
+msgid "No suspicious events detected."
+msgstr "Tiada peristiwa mencurigakan dikesan."
+
+msgid "Detection type"
+msgstr "Jenis kesan"
+
+msgid "Parameter"
+msgstr "Parameter"
+
+msgid "URI"
+msgstr "URI"
+

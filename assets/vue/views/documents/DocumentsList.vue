@@ -341,13 +341,13 @@
         required="true"
       />
       <label
-        v-t="'Name'"
+        v-text="t('Name')"
         for="title"
       />
     </div>
     <small
       v-if="submitted && !item.title"
-      v-t="'Title is required'"
+      v-text="t('Title is required')"
       class="p-error"
     />
   </BaseDialogConfirmCancel>
@@ -524,13 +524,13 @@
           required
         />
         <label
-          v-t="'Name'"
+          v-text="t('Name')"
           for="templateTitle"
         />
       </div>
       <small
         v-if="submitted && !templateFormData.title"
-        v-t="'Title is required'"
+        v-text="t('Title is required')"
         class="p-error"
       />
       <BaseFileUpload

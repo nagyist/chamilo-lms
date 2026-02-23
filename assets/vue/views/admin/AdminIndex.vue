@@ -202,7 +202,7 @@
                 name="donotlistcampus"
               />
               <label
-                v-t="'Hide campus from public platforms list'"
+                v-text="t('Hide campus from public platforms list')"
                 for="checkbox"
               />
             </div>
@@ -259,7 +259,7 @@
         />
         <div
           v-else
-          v-t="'Disabled'"
+          v-text="t('Disabled')"
           class="block-admin-news__status"
         />
       </div>

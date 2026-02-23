@@ -94,7 +94,7 @@
       />
       <span
         v-else
-        v-t="'No sender'"
+        v-text="t('No sender')"
       />
     </div>
 

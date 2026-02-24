@@ -2001,7 +2001,6 @@ switch ($action) {
             $sidx = in_array($sidx, $columns) ? $sidx : 'title';
         }
         $orderBy = "$sidx $sord, s.title";
-        $limit = 20;
         $total_pages = 0;
         if ($count > 0) {
             if (!empty($limit)) {

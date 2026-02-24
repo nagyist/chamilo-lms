@@ -229,6 +229,7 @@ class SessionRepository extends ServiceEntityRepository
     public function getUpcomingSessionsOfUserInUrl(User $user, AccessUrl $url): QueryBuilder
     {
         $qb = $this->getSessionsByUser($user, $url)->distinct();
+        $qb->resetDQLPart('orderBy');
         $now = new DateTime();
 
         $nonDuration = $qb->expr()->orX(

@@ -5,6 +5,7 @@
 use Chamilo\CoreBundle\Entity\Session;
 use Chamilo\CoreBundle\Enums\ActionIcon;
 use Chamilo\CoreBundle\Framework\Container;
+use Chamilo\CoreBundle\Helpers\UserMergeHelper;
 
 /**
  * This tool show global Statistics on general platform events.
@@ -16,67 +17,92 @@ api_protect_admin_script();
 
 $interbreadcrumb[] = ['url' => '../index.php', 'name' => get_lang('Administration')];
 
-$report = $_REQUEST['report'] ?? '';
+$report = isset($_REQUEST['report']) ? (string) $_REQUEST['report'] : '';
+$action = isset($_REQUEST['action']) ? (string) $_REQUEST['action'] : '';
 
 // Duplicate users actions (disable/enable + unify)
-if ('duplicated_users' === $report && !empty($_REQUEST['dup_action'])) {
-    $dupAction = (string) $_REQUEST['dup_action'];
+if ($report === 'duplicated_users' && in_array($action, [
+        'disable_duplicate_user',
+        'enable_duplicate_user',
+        'unify_duplicate_user',
+    ], true)) {
+    // CSRF check (GET links)
+    if (!Security::check_token('get')) {
+        Display::addFlash(Display::return_message(get_lang('Security breach avoid restart'), 'error'));
+    } else {
+        try {
+            switch ($action) {
+                case 'disable_duplicate_user':
+                    $userId = isset($_GET['user_id']) ? (int) $_GET['user_id'] : 0;
 
-    if (!Security::check_token('request')) {
-        Display::addFlash(Display::return_message(get_lang('Security issue detected'), 'error'));
-        header('Location: '.api_get_self().'?report=duplicated_users');
-        exit;
+                    if ($userId > 0) {
+                        Statistics::updateUserActiveStatus($userId, 0);
+                        Display::addFlash(Display::return_message(get_lang('User deactivated'), 'confirmation', false));
+                    } else {
+                        Display::addFlash(Display::return_message(get_lang('InvalidId'), 'error', false));
+                    }
+                    break;
+
+                case 'enable_duplicate_user':
+                    $userId = isset($_GET['user_id']) ? (int) $_GET['user_id'] : 0;
+
+                    if ($userId > 0) {
+                        Statistics::updateUserActiveStatus($userId, 1);
+                        Display::addFlash(Display::return_message(get_lang('User enabled'), 'confirmation', false));
+                    } else {
+                        Display::addFlash(Display::return_message(get_lang('InvalidId'), 'error', false));
+                    }
+                    break;
+
+                case 'unify_duplicate_user':
+                    $keepUserId = isset($_GET['keep_user_id']) ? (int) $_GET['keep_user_id'] : 0;
+                    $mergeUserId = isset($_GET['merge_user_id']) ? (int) $_GET['merge_user_id'] : 0;
+
+                    if ($keepUserId <= 0 || $mergeUserId <= 0 || $keepUserId === $mergeUserId) {
+                        Display::addFlash(Display::return_message(get_lang('InvalidId'), 'error', false));
+                        break;
+                    }
+
+                    /** @var UserMergeHelper $userMergeHelper */
+                    $userMergeHelper = Container::$container->get(UserMergeHelper::class);
+                    $ok = $userMergeHelper->mergeUsers($keepUserId, $mergeUserId);
+
+                    if ($ok) {
+                        Display::addFlash(Display::return_message(get_lang('Users unified'), 'confirmation', false));
+                    } else {
+                        Display::addFlash(Display::return_message(get_lang('An error occurred'), 'error', false));
+                    }
+                    break;
+            }
+        } catch (\Throwable $e) {
+            Display::addFlash(Display::return_message($e->getMessage(), 'error', false));
+        }
     }
+
+    // Prevent resubmission and keep filters
+    $redirectParams = [
+        'report' => 'duplicated_users',
+        'dup_mode' => isset($_GET['dup_mode']) ? (string) $_GET['dup_mode'] : 'name',
+    ];
+
+    if (isset($_GET['extra_field_id'])) {
+        $redirectParams['extra_field_id'] = (int) $_GET['extra_field_id'];
+    }
+
+    // Keep additional profile field columns (if any)
+    if (isset($_GET['additional_profile_field'])) {
+        $apf = $_GET['additional_profile_field'];
+        if (!is_array($apf)) {
+            $apf = [$apf];
+        }
+
+        // Keep the same parameter name so http_build_query generates additional_profile_field[0]=...
+        $redirectParams['additional_profile_field'] = array_values(array_filter(array_map('strval', $apf)));
+    }
+
     Security::clear_token();
 
-    $userId = isset($_REQUEST['user_id']) ? (int) $_REQUEST['user_id'] : 0;
-
-    if ($userId > 0 && $userId === (int) api_get_user_id()) {
-        Display::addFlash(Display::return_message('You cannot disable your own account from this screen.', 'warning'));
-        header('Location: '.api_get_self().'?'.http_build_query($_GET));
-        exit;
-    }
-
-    try {
-        if ('toggle_active' === $dupAction && $userId > 0) {
-            $newActive = isset($_REQUEST['active']) ? (int) $_REQUEST['active'] : 0;
-            Statistics::updateUserActiveStatus($userId, $newActive);
-
-            $msg = ($newActive === 1)
-                ? "User #{$userId} enabled. The account can log in again."
-                : "User #{$userId} disabled. This prevents login but does not delete the account.";
-
-            Display::addFlash(Display::return_message($msg, 'confirmation'));
-        }
-
-        if ('unify' === $dupAction) {
-            $keepId = isset($_REQUEST['keep_id']) ? (int) $_REQUEST['keep_id'] : 0;
-            $mergeId = isset($_REQUEST['merge_id']) ? (int) $_REQUEST['merge_id'] : 0;
-
-            if ($keepId > 0 && $mergeId > 0 && $keepId !== $mergeId) {
-                $ok = Statistics::unifyUsers($keepId, $mergeId);
-
-                if ($ok) {
-                    Display::addFlash(
-                        Display::return_message(
-                            "Unify completed: merged user #{$mergeId} into keep user #{$keepId}. The merged account was set to soft-deleted (active=-1) and removed from this report. You can permanently delete it later from the Users list.",
-                            'confirmation'
-                        )
-                    );
-                } else {
-                    Display::addFlash(Display::return_message('Unify failed or is not available in this platform build.', 'error'));
-                }
-            } else {
-                Display::addFlash(Display::return_message('Invalid unify request parameters.', 'error'));
-            }
-        }
-    } catch (\Throwable $e) {
-        Display::addFlash(Display::return_message('Action failed: '.$e->getMessage(), 'error'));
-    }
-
-    $params = $_GET;
-    unset($params['dup_action'], $params['user_id'], $params['active'], $params['keep_id'], $params['merge_id'], $params['sec_token']);
-    header('Location: '.api_get_self().'?'.http_build_query($params));
+    header('Location: '.api_get_self().'?'.http_build_query($redirectParams));
     exit;
 }
 
@@ -558,16 +584,27 @@ switch ($report) {
           .ch-dups-box{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:12px;padding:12px;margin:10px 0 14px}
           .ch-dups-box .formw{margin:0}
           .ch-dups-note{margin:0 0 10px}
-          .ch-dups-actions a{white-space:nowrap}
-          .ch-dups-actions .btn{padding:4px 8px;border-radius:8px;font-size:12px}
-          .ch-dups-actions .btn + .btn{margin-left:6px}
-          .ch-dups-actions .btn-disabled{opacity:.45;pointer-events:none}
+          .ch-dups-actions{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center}
+          .ch-dups-actions .btn{border-radius:4px;font-weight:700}
+          .ch-dups-actions .btn-xs{padding:2px 8px;font-size:12px;line-height:1.2}
+          .ch-dups-actions .btn.disabled{opacity:.45;pointer-events:none}
           .ch-dups-help{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:12px;padding:12px;margin:10px 0 14px}
           .ch-dups-help__title{font-weight:700;margin:0 0 8px;color:#2b3645}
           .ch-dups-help__list{margin:0;padding-left:18px;color:#3b4757;font-size:13px}
           .ch-dups-help__list li{margin:6px 0}
           .ch-dups-help code{background:#f3f6fb;border:1px solid #e6edf5;border-radius:6px;padding:1px 6px}
           .ch-dups-keep-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:800;background:#e0f2fe;color:#075985;border:1px solid #bae6fd;}
+          .ch-dups-groups{display:flex;flex-direction:column;gap:14px;margin-top:8px}
+          .ch-dups-group{border:1px solid #b7dff1;background:#f7fcff;border-radius:4px;overflow:hidden}
+          .ch-dups-group__head{background:#dff2fb;border-bottom:1px solid #b7dff1;padding:8px 10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+          .ch-dups-group__key{font-weight:700;color:#2b3645}
+          .ch-dups-group__badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;background:#4aa3c7;color:#fff}
+          .ch-dups-group__body{padding:10px}
+          .ch-dups-group__table-wrap{overflow-x:auto}
+          .ch-dups-group__table{width:100%;border-collapse:collapse;background:#fff}
+          .ch-dups-group__table th,
+          .ch-dups-group__table td{border:1px solid #e5edf3;padding:8px 10px;vertical-align:top}
+          .ch-dups-group__table th{background:#f6f8fb;font-weight:700;white-space:nowrap}
         </style>
         ';
 
@@ -580,7 +617,7 @@ switch ($report) {
         }
         $content .= '</div>';
 
-        // Additional profile extra fields selector (same feature as C1)
+        // Additional profile extra fields info for table columns (used by backend table builder)
         $additionalExtraFieldsInfo = TrackingCourseLog::getAdditionalProfileExtraFields();
 
         $apf = $_GET['additional_profile_field'] ?? [];
@@ -588,14 +625,11 @@ switch ($report) {
             $apf = [$apf];
         }
 
-        $baseForForms = [
-            'report' => 'duplicated_users',
-            'dup_mode' => $dupMode,
-        ];
-
         // Extra field selector (only in extra mode)
         $extraFieldId = isset($_REQUEST['extra_field_id']) ? (int) $_REQUEST['extra_field_id'] : 0;
         $extraFieldFormHtml = '';
+        $selectedExtraFieldLabel = '';
+        $selectedExtraFieldVariable = '';
 
         if ('extra' === $dupMode) {
             $extraFieldObj = new ExtraField('user');
@@ -608,6 +642,11 @@ switch ($report) {
                 }
                 $label = $f['display_text'] ?? ($f['variable'] ?? ('Field #'.$f['id']));
                 $options[(int) $f['id']] = (string) $label;
+
+                if ((int) $f['id'] === $extraFieldId) {
+                    $selectedExtraFieldLabel = (string) $label;
+                    $selectedExtraFieldVariable = (string) ($f['variable'] ?? '');
+                }
             }
 
             $formExtra = new FormValidator('dup_extra_field', 'get', api_get_self());
@@ -653,16 +692,19 @@ switch ($report) {
         ';
         $content .= $helpHtml;
 
-        // “Add user profile field” selector (extra columns)
-        $frmFields = TrackingCourseLog::displayAdditionalProfileFields([], api_get_self().'?'.http_build_query($baseForForms));
-        $content .= '<div class="ch-dups-box">'.$frmFields.$extraFieldFormHtml.'</div>';
+        // It creates the confusing textarea + extra button block that does not exist in C1.
+        if ('extra' === $dupMode) {
+            $content .= '<div class="ch-dups-box">'.$extraFieldFormHtml.'</div>';
+        }
 
-        // Build table
+        // Build table (backend data source + actions)
+        $token = Security::get_token();
+
         $table = Statistics::returnDuplicatedUsersTable(
             $dupMode,
             $additionalExtraFieldsInfo,
             $extraFieldId,
-            (string) $token
+            $token
         );
 
         // Export actions
@@ -677,7 +719,183 @@ switch ($report) {
             exit;
         }
 
-        $content .= $table->return_table();
+        $tableArray = $table->toArray(true, true);
+        $extractText = static function ($value): string {
+            $value = html_entity_decode(strip_tags((string) $value), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $value = preg_replace('/\s+/u', ' ', trim($value));
+
+            return (string) $value;
+        };
+
+        $renderGroupedTable = static function (array $tableArray, callable $getGroupValue) use ($extractText): string {
+            if (empty($tableArray) || !is_array($tableArray)) {
+                return '';
+            }
+
+            $rows = array_values($tableArray);
+            $headerRow = array_shift($rows);
+
+            if (!is_array($headerRow)) {
+                return '';
+            }
+
+            $headers = array_values($headerRow);
+            if (empty($headers)) {
+                return '';
+            }
+
+            $groups = [];
+            foreach ($rows as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+
+                $cells = array_values($row);
+                $groupValue = (string) $getGroupValue($cells);
+                $groupValue = $extractText($groupValue);
+
+                if ('' === $groupValue) {
+                    $groupValue = get_lang('Not available');
+                }
+
+                if (!isset($groups[$groupValue])) {
+                    $groups[$groupValue] = [];
+                }
+
+                $groups[$groupValue][] = $cells;
+            }
+
+            if (empty($groups)) {
+                return '';
+            }
+
+            $html = '<div class="ch-dups-groups">';
+
+            foreach ($groups as $groupValue => $groupRows) {
+                $count = count($groupRows);
+
+                $html .= '<div class="ch-dups-group">';
+                $html .= '  <div class="ch-dups-group__head">';
+                $html .= '    <span class="ch-dups-group__key">'
+                    .htmlspecialchars((string) $groupValue, ENT_QUOTES, 'UTF-8')
+                    .'</span>';
+                $html .= '    <span class="ch-dups-group__badge">'
+                    .(int) $count.' '.htmlspecialchars((string) get_lang('Users'), ENT_QUOTES, 'UTF-8')
+                    .'</span>';
+                $html .= '  </div>';
+
+                $html .= '  <div class="ch-dups-group__body">';
+                $html .= '    <div class="ch-dups-group__table-wrap">';
+                $html .= '      <table class="ch-dups-group__table">';
+                $html .= '        <thead><tr>';
+
+                foreach ($headers as $headerCell) {
+                    $label = trim(strip_tags((string) $headerCell));
+                    $html .= '<th>'.htmlspecialchars($label, ENT_QUOTES, 'UTF-8').'</th>';
+                }
+
+                $html .= '        </tr></thead><tbody>';
+
+                foreach ($groupRows as $cells) {
+                    $html .= '<tr>';
+                    foreach ($headers as $index => $_headerCell) {
+                        $cell = $cells[$index] ?? '';
+                        // Keep existing HTML for action buttons and badges.
+                        $html .= '<td>'.(string) $cell.'</td>';
+                    }
+                    $html .= '</tr>';
+                }
+
+                $html .= '        </tbody></table>';
+                $html .= '    </div>';
+                $html .= '  </div>';
+                $html .= '</div>';
+            }
+
+            $html .= '</div>';
+
+            return $html;
+        };
+
+        $groupedHtml = '';
+
+        // name: group by Firstname + Lastname (indexes are stable in your table)
+        if ('name' === $dupMode) {
+            $groupedHtml = $renderGroupedTable($tableArray, static function (array $cells) use ($extractText): string {
+                $first = $extractText($cells[1] ?? '');
+                $last  = $extractText($cells[2] ?? '');
+
+                return trim($first.' '.$last);
+            });
+        }
+
+        // email: group by Email (index 3)
+        if ('email' === $dupMode) {
+            $groupedHtml = $renderGroupedTable($tableArray, static function (array $cells) use ($extractText): string {
+                return $extractText($cells[3] ?? '');
+            });
+        }
+
+        // extra: keep your current logic to detect the selected extra field column
+        if ('extra' === $dupMode && $extraFieldId > 0) {
+            $normalizeHeader = static function (string $value): string {
+                $value = html_entity_decode(strip_tags($value), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                $value = mb_strtolower(trim($value), 'UTF-8');
+                $value = preg_replace('/\s+/u', ' ', $value);
+
+                return (string) $value;
+            };
+
+            $rowsTmp = array_values($tableArray);
+            $headerTmp = array_shift($rowsTmp);
+            $headersTmp = is_array($headerTmp) ? array_values($headerTmp) : [];
+
+            $normalizedHeaders = [];
+            foreach ($headersTmp as $i => $h) {
+                $normalizedHeaders[$i] = $normalizeHeader((string) $h);
+            }
+
+            $targetIndex = null;
+            $selectedLabelNorm = $normalizeHeader((string) $selectedExtraFieldLabel);
+            $selectedVarNorm = $normalizeHeader((string) $selectedExtraFieldVariable);
+
+            foreach ($normalizedHeaders as $i => $hn) {
+                if ('' !== $selectedLabelNorm && (
+                        $hn === $selectedLabelNorm ||
+                        str_contains($hn, $selectedLabelNorm) ||
+                        str_contains($selectedLabelNorm, $hn)
+                    )) {
+                    $targetIndex = $i;
+                    break;
+                }
+                if ('' !== $selectedVarNorm && str_contains($hn, $selectedVarNorm)) {
+                    $targetIndex = $i;
+                    break;
+                }
+            }
+
+            if (null === $targetIndex) {
+                foreach ($normalizedHeaders as $i => $hn) {
+                    if (str_contains($hn, 'extra field')) {
+                        $targetIndex = $i;
+                        break;
+                    }
+                }
+            }
+
+            if (null !== $targetIndex) {
+                $groupedHtml = $renderGroupedTable($tableArray, static function (array $cells) use ($targetIndex): string {
+                    return (string) ($cells[$targetIndex] ?? '');
+                });
+            }
+        }
+
+        // Render grouped or fallback
+        if (!empty($groupedHtml)) {
+            $content .= $groupedHtml;
+        } else {
+            $content .= $table->return_table();
+        }
         break;
     case 'subscription_by_day':
         $form = new FormValidator('subscription_by_day', 'get', api_get_self());
@@ -1461,8 +1679,13 @@ switch ($report) {
                 ],
             ];
 
-            $first = ($table->page_nr - 1) * $pagination;
-            $limit = $table->page_nr * $pagination;
+            $perPage = (int) $table->per_page;
+            if ($perPage <= 0) {
+                $perPage = $pagination;
+            }
+
+            $first = max(0, ((int) $table->page_nr - 1) * $perPage);
+            $limit = $perPage;
 
             $data = [];
             $headers = [
@@ -1487,7 +1710,12 @@ switch ($report) {
             }
 
             if (isset($_REQUEST['table_users_active_per_page'])) {
-                $limit = (int) $_REQUEST['table_users_active_per_page'];
+                $requestedPerPage = (int) $_REQUEST['table_users_active_per_page'];
+                if ($requestedPerPage > 0) {
+                    $perPage = $requestedPerPage;
+                    $limit = $perPage;
+                    $first = max(0, ((int) $table->page_nr - 1) * $perPage);
+                }
             }
 
             $users = UserManager::getUserListExtraConditions(

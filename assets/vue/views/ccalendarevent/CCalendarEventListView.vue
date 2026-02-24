@@ -68,8 +68,53 @@
         </div>
       </div>
 
+      <!-- Inline skeleton loading inside results (more friendly) -->
       <div
-        v-if="groupedDays.length === 0 && !isLoading"
+        v-if="showSkeleton"
+        class="p-4"
+      >
+        <!-- Skeleton placeholders while loading results -->
+        <div
+          v-for="d in skeletonDaysCount"
+          :key="`sk-day-${d}`"
+          class="border-b last:border-b-0"
+        >
+          <div class="px-4 py-3 bg-gray-20 font-semibold flex items-center gap-3">
+            <div class="h-4 w-40 bg-gray-30 rounded animate-pulse" />
+          </div>
+
+          <div class="p-4 flex flex-col gap-3">
+            <div
+              v-for="i in skeletonItemsPerDay"
+              :key="`sk-item-${d}-${i}`"
+              class="rounded border overflow-hidden"
+            >
+              <div class="flex">
+                <div class="w-2 bg-gray-30 animate-pulse" />
+                <div class="flex-1 p-4">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="h-4 w-64 bg-gray-30 rounded animate-pulse" />
+                    <div class="h-3 w-24 bg-gray-30 rounded animate-pulse" />
+                  </div>
+
+                  <div class="mt-3 h-3 w-5/6 bg-gray-30 rounded animate-pulse" />
+                  <div class="mt-2 h-3 w-2/3 bg-gray-30 rounded animate-pulse" />
+
+                  <div class="mt-3 flex flex-wrap items-center gap-2">
+                    <div class="h-6 w-20 bg-gray-30 rounded animate-pulse" />
+                    <div class="h-6 w-28 bg-gray-30 rounded animate-pulse" />
+                    <div class="h-6 w-24 bg-gray-30 rounded animate-pulse" />
+                    <div class="h-6 w-16 bg-gray-30 rounded animate-pulse" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-if="groupedDays.length === 0 && !isLoading && !showSkeleton"
         class="p-4 text-sm text-gray-50"
       >
         {{ t("No events found") }}
@@ -154,6 +199,7 @@
         </div>
       </div>
     </div>
+    <!-- /Results -->
   </div>
 </template>
 
@@ -180,14 +226,31 @@ const cidReqStore = useCidReqStore()
 const { course, session, group } = storeToRefs(cidReqStore)
 
 const { getCurrentTimezone } = useFormatDate()
-const { appLocale } = useLocale()
+const { appLocaleTag } = useLocale()
+
 const { getCalendarEvents } = useCalendarEvent()
 
 const timezone = getCurrentTimezone()
 
+// Prevent locale-related errors from breaking rendering.
+function safeToLocaleString(dt, fmt) {
+  if (!dt) return ""
+  try {
+    return dt.setLocale(appLocaleTag.value).toLocaleString(fmt)
+  } catch (e) {
+    // Fallback: never break rendering
+    return dt.setLocale("en").toLocaleString(fmt)
+  }
+}
+
 function dtWithLocale(dt) {
-  const loc = (appLocale.value || "en").replace("_", "-")
-  return dt.setLocale(loc)
+  // Keep this helper for places where a DateTime is needed with locale applied.
+  if (!dt) return dt
+  try {
+    return dt.setLocale(appLocaleTag.value)
+  } catch (e) {
+    return dt.setLocale("en")
+  }
 }
 
 function parseQueryDate(value) {
@@ -238,13 +301,13 @@ const filters = computed(() => [
 ])
 
 function goToday() {
-  // Keep current view mode but jump to today
+  // Keep current view mode but jump to today.
   anchor.value = DateTime.now().setZone(timezone).startOf("day")
   syncDateToQuery(anchor.value)
 }
 
 function shiftRange(direction) {
-  // direction: -1 or +1
+  // direction is -1 or +1
   // Month view: move 1 month, Week view: move 1 week, Day view: move 1 day
   if (viewMode.value === "month") {
     anchor.value = anchor.value.plus({ months: direction }).startOf("day")
@@ -291,14 +354,24 @@ const apiRangeStart = computed(() => rangeStart.value.startOf("day"))
 const apiRangeEnd = computed(() => rangeEnd.value.plus({ days: 1 }).startOf("day"))
 
 const rangeLabel = computed(() => {
-  // Show a compact label depending on view
+  const start = rangeStart.value
+  const end = rangeEnd.value
+
+  // Month view: show month + year based on anchor (not rangeStart which can be previous month week)
   if (viewMode.value === "month") {
-    return dtWithLocale(anchor.value).toLocaleString({ month: "long", year: "numeric" })
+    // Comment: Luxon supports Intl options object.
+    return safeToLocaleString(anchor.value, { month: "long", year: "numeric" })
   }
 
-  const s = dtWithLocale(rangeStart.value).toLocaleString(DateTime.DATE_MED)
-  const e = dtWithLocale(rangeEnd.value).toLocaleString(DateTime.DATE_MED)
-  return `${s} → ${e}`
+  // Day view: single day label
+  if (viewMode.value === "day") {
+    return safeToLocaleString(start, DateTime.DATE_FULL)
+  }
+
+  // Week view: start — end
+  const a = safeToLocaleString(start, DateTime.DATE_MED)
+  const b = safeToLocaleString(end, DateTime.DATE_MED)
+  return `${a} — ${b}`
 })
 
 function goToSessionsPlan() {
@@ -310,7 +383,7 @@ function goToMyStudentsSchedule() {
 }
 
 function goToCalendar() {
-  // Keep the same date and view when switching back to calendar
+  // Keep the same date and view when switching back to calendar.
   const nextQuery = { ...route.query, date: anchor.value.toISODate(), view: viewType.value }
   router.push({ name: "CCalendarEventList", query: nextQuery }).catch(() => {})
 }
@@ -326,6 +399,11 @@ function goToAddEvent() {
 
 const isLoading = ref(false)
 const rawEvents = ref([])
+
+// Skeleton settings for a friendly inline loading state.
+const skeletonDaysCount = 3
+const skeletonItemsPerDay = 2
+const showSkeleton = computed(() => isLoading.value && groupedDays.value.length === 0)
 
 function computeCommonParams() {
   const commonParams = {}
@@ -485,14 +563,9 @@ function mapToBaseItem(e) {
     null
 
   let end =
-    toLuxon(e?.end) ||
-    toLuxon(e?.endStr) ||
-    toLuxon(e?.endDate) ||
-    toLuxon(ep?.endDate) ||
-    toLuxon(ep?.end) ||
-    null
+    toLuxon(e?.end) || toLuxon(e?.endStr) || toLuxon(e?.endDate) || toLuxon(ep?.endDate) || toLuxon(ep?.end) || null
 
-  // Defensive: fix inverted ranges caused by parsing/timezone issues
+  // fix inverted ranges caused by parsing/timezone issues
   if (start && end && end < start) {
     end = start.plus({ days: 1 })
   }
@@ -549,7 +622,9 @@ function mapToBaseItem(e) {
     _end: end,
     _allDay: allDay,
     _scopeRaw: scopeRaw ? String(scopeRaw).toLowerCase() : null,
-    _isAssignment: String(typeValue || "").toLowerCase().includes("assign"),
+    _isAssignment: String(typeValue || "")
+      .toLowerCase()
+      .includes("assign"),
   }
 }
 
@@ -639,7 +714,7 @@ const groupedDays = computed(() => {
 
   for (const ev of sorted) {
     const key = ev._groupDay.toISODate()
-    const label = dtWithLocale(ev._groupDay).toLocaleString(DateTime.DATE_FULL)
+    const label = safeToLocaleString(ev._groupDay, DateTime.DATE_FULL)
 
     if (!groups.has(key)) {
       groups.set(key, { key, label, items: [] })

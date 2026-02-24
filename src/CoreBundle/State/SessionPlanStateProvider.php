@@ -9,7 +9,6 @@ namespace Chamilo\CoreBundle\State;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use Chamilo\CoreBundle\ApiResource\SessionPlanItem;
-use Chamilo\CoreBundle\Entity\AccessUrl;
 use Chamilo\CoreBundle\Entity\Session;
 use Chamilo\CoreBundle\Entity\User;
 use Chamilo\CoreBundle\Helpers\AccessUrlHelper;
@@ -29,6 +28,10 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  */
 final class SessionPlanStateProvider implements ProviderInterface
 {
+    /**
+     * This is a safety limit to avoid rendering huge grids.
+     * It must be applied to the year-filtered result, not to all followed sessions.
+     */
     private const MAX_SESSIONS = 50;
 
     public function __construct(
@@ -55,26 +58,22 @@ final class SessionPlanStateProvider implements ProviderInterface
 
         $accessUrl = $this->accessUrlHelper->getCurrent();
 
-        // This matches your existing role-aware logic (DRH/coach/admin/student)
+        // This returns all sessions followed by the user in the current access URL.
         $sessions = $this->sessionRepository
             ->getUserFollowedSessionsInAccessUrl($user, $accessUrl)
             ->getQuery()
             ->getResult()
         ;
 
-        if (\count($sessions) > self::MAX_SESSIONS) {
-            throw new AccessDeniedHttpException('Too much sessions in planification');
-        }
-
-        // Filter by visibility rules (consistent with SessionRepository logic)
+        // Keep visibility filtering before building items.
         $sessions = array_values(array_filter(
             $sessions,
             fn (Session $s) => $this->isVisibleForUser($s, $user)
         ));
 
-        $items = $this->buildPlanItems($sessions, $user, $accessUrl, $year);
+        $items = $this->buildPlanItems($sessions, $user, $year);
 
-        // Sort by week start like C1 usort()
+        // Sort by week start like C1 usort().
         usort($items, static fn (SessionPlanItem $a, SessionPlanItem $b): int => $a->start <=> $b->start);
 
         return $items;
@@ -99,12 +98,13 @@ final class SessionPlanStateProvider implements ProviderInterface
      *
      * @return SessionPlanItem[]
      */
-    private function buildPlanItems(array $sessions, User $user, AccessUrl $accessUrl, int $year): array
+    private function buildPlanItems(array $sessions, User $user, int $year): array
     {
         $items = [];
-        // It reads from "palettes/pchart/default.color" inside the theme FS,
-        // and falls back to a built-in palette if missing.
-        $colors = $this->themeHelper->getColorPalette(false, true, \count($sessions));
+
+        // Colors palette size is bounded to the max rendered sessions.
+        $paletteSize = max(1, min(\count($sessions), self::MAX_SESSIONS));
+        $colors = $this->themeHelper->getColorPalette(false, true, $paletteSize);
 
         $tz = $this->getTimezone();
         $colorIndex = 0;
@@ -119,6 +119,10 @@ final class SessionPlanStateProvider implements ProviderInterface
 
             if (!$this->isValidForYear($start, $end, $year)) {
                 continue;
+            }
+
+            if (\count($items) >= self::MAX_SESSIONS) {
+                throw new AccessDeniedHttpException('Too much sessions in planification');
             }
 
             $plan = $this->computeWeekPlan($start, $end, $year);
@@ -140,7 +144,7 @@ final class SessionPlanStateProvider implements ProviderInterface
             $item->noStart = $plan['no_start'];
             $item->noEnd = $plan['no_end'];
 
-            $item->color = $colors[$colorIndex] ?? 'rgba(70,130,180,0.9)';
+            $item->color = $colors[$colorIndex % \count($colors)] ?? 'rgba(70,130,180,0.9)';
             $colorIndex++;
 
             $items[] = $item;
@@ -191,7 +195,7 @@ final class SessionPlanStateProvider implements ProviderInterface
             $durationDays = (int) ($session->getDuration() ?? 0);
 
             $subscription = $user->getSubscriptionToSession($session);
-            if ($subscription && method_exists($subscription, 'getDuration')) {
+            if ($subscription) {
                 $durationDays += (int) $subscription->getDuration();
             }
 
@@ -207,12 +211,8 @@ final class SessionPlanStateProvider implements ProviderInterface
         $end = null;
 
         if ($subscription) {
-            if (method_exists($subscription, 'getAccessStartDate')) {
-                $start = $subscription->getAccessStartDate();
-            }
-            if (method_exists($subscription, 'getAccessEndDate')) {
-                $end = $subscription->getAccessEndDate();
-            }
+            $start = $subscription->getAccessStartDate();
+            $end = $subscription->getAccessEndDate();
         }
 
         $start = $start ?: $session->getAccessStartDate() ?: $session->getDisplayStartDate();

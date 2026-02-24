@@ -33,9 +33,7 @@
         <span class="px-2 py-1 rounded border bg-white">
           {{ t("Weeks are displayed from 1 to 52") }}
         </span>
-        <span class="px-2 py-1 rounded border bg-white">
-          {{ t("Sessions") }}: {{ sessions.length }}
-        </span>
+        <span class="px-2 py-1 rounded border bg-white"> {{ t("Sessions") }}: {{ sessions.length }} </span>
       </div>
     </div>
 
@@ -133,19 +131,37 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
-function parseQueryYear(value) {
-  const y = Number(value)
-  const current = DateTime.now().year
-  if (!Number.isFinite(y) || y < 1970 || y > 2100) return current
-  return y
+function tOrFallback(key, fallback) {
+  // If a translation is missing, vue-i18n often returns the key itself.
+  const out = t(key)
+  return out === key ? fallback : out
 }
 
-const year = ref(parseQueryYear(route.query.year))
+function parseQueryYear(yearValue, dateValue) {
+  const current = DateTime.now().year
+
+  const y = Number(yearValue)
+  if (Number.isFinite(y) && y >= 1970 && y <= 2100) {
+    return y
+  }
+
+  // When the route uses "date=YYYY-MM-DD", derive the year from it.
+  if (dateValue) {
+    const dt = DateTime.fromISO(String(dateValue))
+    if (dt.isValid) {
+      return dt.year
+    }
+  }
+
+  return current
+}
+
+const year = ref(parseQueryYear(route.query.year, route.query.date))
 
 watch(
-  () => route.query.year,
-  (y) => {
-    year.value = parseQueryYear(y)
+  () => [route.query.year, route.query.date],
+  ([y, d]) => {
+    year.value = parseQueryYear(y, d)
   },
 )
 
@@ -193,13 +209,13 @@ async function fetchPlan() {
 
     if (!resp.ok) {
       const text = await resp.text().catch(() => "")
-      // eslint-disable-next-line no-console
+
       console.error("[SessionsPlan] Request failed", resp.status, text)
 
       if (resp.status === 403) {
-        errorMessage.value = t("TooMuchSessionsInPlanification")
+        errorMessage.value = tOrFallback("TooMuchSessionsInPlanification", "Too many sessions in planification")
       } else {
-        errorMessage.value = t("Failed to load sessions plan")
+        errorMessage.value = tOrFallback("Failed to load sessions plan", "Failed to load sessions plan")
       }
 
       sessions.value = []
@@ -224,9 +240,8 @@ async function fetchPlan() {
       endInNextYear: Boolean(x.endInNextYear),
     }))
   } catch (e) {
-    // eslint-disable-next-line no-console
     console.error("[SessionsPlan] Unexpected error", e)
-    errorMessage.value = t("Failed to load sessions plan")
+    errorMessage.value = tOrFallback("Failed to load sessions plan", "Failed to load sessions plan")
     sessions.value = []
   } finally {
     isLoading.value = false

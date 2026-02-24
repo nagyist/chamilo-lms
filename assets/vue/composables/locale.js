@@ -84,6 +84,31 @@ export function useLocale() {
     window.location.href = newUrl.fullPath
   }
 
+  function toSafeBcp47Locale(input) {
+    // Always return a valid BCP-47 tag for Intl/Luxon (never throw)
+    const raw = String(input || "").trim()
+    if (!raw) return "en"
+
+    // Normalize separators: DB often uses "_" while BCP-47 uses "-"
+    let tag = raw.replace(/_/g, "-")
+
+    // Handle invalid tags like "fr-61" (numeric subtag but not UN M49)
+    const parts = tag.split("-").filter(Boolean)
+    if (parts.length >= 2 && /^\d+$/.test(parts[1]) && parts[1].length !== 3) {
+      parts.splice(1, 1)
+      tag = parts.join("-")
+    }
+
+    try {
+      const canonical = Intl.getCanonicalLocales(tag)
+      return canonical && canonical.length ? canonical[0] : parts[0] || "en"
+    } catch (e) {
+      return parts[0] || "en"
+    }
+  }
+
+  const appLocaleTag = computed(() => toSafeBcp47Locale(appLocale.value))
+
   function getOriginalLanguageName(isoCode) {
     const lang = languageList.find((l) => l.isocode === isoCode)
     return lang?.originalName ?? isoCode.toUpperCase()
@@ -112,7 +137,7 @@ export function useLocale() {
   function getLanguageName(iso, displayLocale = null) {
     if (!iso) return "-"
     const tag = String(iso).replace("_", "-")
-    const ui = displayLocale || appLocale.value || document.documentElement.dataset.lang || "en-US"
+    const ui = toSafeBcp47Locale(displayLocale || appLocale.value || document.documentElement.dataset.lang || "en")
     try {
       const dn = new Intl.DisplayNames([ui], { type: "language" })
       return dn.of(tag) || iso.toUpperCase()
@@ -152,6 +177,7 @@ export function useLocale() {
 
   return {
     appLocale,
+    appLocaleTag,
     appParentLocale,
     languageList,
     currentLanguageFromList,
@@ -166,11 +192,9 @@ export function useLocale() {
  * @param {string} localeName
  */
 export function useParentLocale(localeName) {
-  const parts = localeName.split("_")
-
+  const parts = String(localeName || "").split(/[-_]/)
   if (parts.length > 0) {
     return parts[0]
   }
-
   return localeName
 }

@@ -167,25 +167,15 @@ class CopyUnhashedAssetsPlugin {
       }
 
       // Copy legacy_document.js without hash.
-      const legacyDocumentFile = fs.readdirSync(buildPath).find((f) =>
-        f.match(/^legacy_document\.[a-f0-9]+\.js$/)
-      )
+      const legacyDocumentFile = fs.readdirSync(buildPath).find((f) => f.match(/^legacy_document\.[a-f0-9]+\.js$/))
       if (legacyDocumentFile) {
-        fs.copyFileSync(
-          path.join(buildPath, legacyDocumentFile),
-          path.join(buildPath, "legacy_document.js")
-        )
+        fs.copyFileSync(path.join(buildPath, legacyDocumentFile), path.join(buildPath, "legacy_document.js"))
       }
 
       // Copy legacy_exercise.js without hash.
-      const legacyExerciseFile = fs.readdirSync(buildPath).find((f) =>
-        f.match(/^legacy_exercise\.[a-f0-9]+\.js$/)
-      )
+      const legacyExerciseFile = fs.readdirSync(buildPath).find((f) => f.match(/^legacy_exercise\.[a-f0-9]+\.js$/))
       if (legacyExerciseFile) {
-        fs.copyFileSync(
-          path.join(buildPath, legacyExerciseFile),
-          path.join(buildPath, "legacy_exercise.js")
-        )
+        fs.copyFileSync(path.join(buildPath, legacyExerciseFile), path.join(buildPath, "legacy_exercise.js"))
       }
 
       // Do not copy runtime.js without hash.
@@ -194,81 +184,48 @@ class CopyUnhashedAssetsPlugin {
 
       // Copy document.css without hash.
       if (fs.existsSync(cssPath)) {
-        const documentCssFile = fs.readdirSync(cssPath).find((f) =>
-          f.match(/^document\.[a-f0-9]+\.css$/)
-        )
+        const documentCssFile = fs.readdirSync(cssPath).find((f) => f.match(/^document\.[a-f0-9]+\.css$/))
         if (documentCssFile) {
-          fs.copyFileSync(
-            path.join(cssPath, documentCssFile),
-            path.join(cssPath, "document.css")
-          )
+          fs.copyFileSync(path.join(cssPath, documentCssFile), path.join(cssPath, "document.css"))
         }
 
-        const editorContentCssFile = fs.readdirSync(cssPath).find((f) =>
-          f.match(/^editor_content\.[a-f0-9]+\.css$/)
-        )
+        const editorContentCssFile = fs.readdirSync(cssPath).find((f) => f.match(/^editor_content\.[a-f0-9]+\.css$/))
         if (editorContentCssFile) {
-          fs.copyFileSync(
-            path.join(cssPath, editorContentCssFile),
-            path.join(cssPath, "editor_content.css")
-          )
+          fs.copyFileSync(path.join(cssPath, editorContentCssFile), path.join(cssPath, "editor_content.css"))
         }
       }
 
       // Copy legacy_framereadyloader.js without hash.
-      const frameReadyFile = fs.readdirSync(buildPath).find((f) =>
-        f.match(/^legacy_framereadyloader\.[a-f0-9]+\.js$/)
-      )
+      const frameReadyFile = fs.readdirSync(buildPath).find((f) => f.match(/^legacy_framereadyloader\.[a-f0-9]+\.js$/))
       if (frameReadyFile) {
-        fs.copyFileSync(
-          path.join(buildPath, frameReadyFile),
-          path.join(buildPath, "legacy_framereadyloader.js")
-        )
+        fs.copyFileSync(path.join(buildPath, frameReadyFile), path.join(buildPath, "legacy_framereadyloader.js"))
       }
 
       // Copy legacy_framereadyloader.css without hash.
-      const frameReadyCssFile = fs.readdirSync(buildPath).find((f) =>
-        f.match(/^legacy_framereadyloader\.[a-f0-9]+\.css$/)
-      )
+      const frameReadyCssFile = fs
+        .readdirSync(buildPath)
+        .find((f) => f.match(/^legacy_framereadyloader\.[a-f0-9]+\.css$/))
       if (frameReadyCssFile) {
-        fs.copyFileSync(
-          path.join(buildPath, frameReadyCssFile),
-          path.join(buildPath, "legacy_framereadyloader.css")
-        )
+        fs.copyFileSync(path.join(buildPath, frameReadyCssFile), path.join(buildPath, "legacy_framereadyloader.css"))
       }
 
       // Keep unhashed qTip assets for legacy direct references.
       if (fs.existsSync(qtipDistPath)) {
-        const qtipFile = fs.readdirSync(qtipDistPath).find((f) =>
-          f.match(/^jquery\.qtip\.js$/)
-        )
+        const qtipFile = fs.readdirSync(qtipDistPath).find((f) => f.match(/^jquery\.qtip\.js$/))
         if (qtipFile) {
-          fs.copyFileSync(
-            path.join(qtipDistPath, qtipFile),
-            path.join(qtipDistPath, "jquery.qtip.js")
-          )
+          fs.copyFileSync(path.join(qtipDistPath, qtipFile), path.join(qtipDistPath, "jquery.qtip.js"))
         }
 
-        const qtipCssFile = fs.readdirSync(qtipDistPath).find((f) =>
-          f.match(/^jquery\.qtip\.css$/)
-        )
+        const qtipCssFile = fs.readdirSync(qtipDistPath).find((f) => f.match(/^jquery\.qtip\.css$/))
         if (qtipCssFile) {
-          fs.copyFileSync(
-            path.join(qtipDistPath, qtipCssFile),
-            path.join(qtipDistPath, "jquery.qtip.css")
-          )
+          fs.copyFileSync(path.join(qtipDistPath, qtipCssFile), path.join(qtipDistPath, "jquery.qtip.css"))
         }
       }
 
       // Copy glossary_auto.js without hash.
-      const glossaryFile = fs.readdirSync(buildPath).find((f) =>
-        f.match(/^glossary_auto\.[a-f0-9]+\.js$/)
-      )
+      const glossaryFile = fs.readdirSync(buildPath).find((f) => f.match(/^glossary_auto\.[a-f0-9]+\.js$/))
       if (glossaryFile) {
-        fs.copyFileSync(
-          path.join(buildPath, glossaryFile),
-          path.join(buildPath, "glossary_auto.js")
-        )
+        fs.copyFileSync(path.join(buildPath, glossaryFile), path.join(buildPath, "glossary_auto.js"))
       }
     })
   }

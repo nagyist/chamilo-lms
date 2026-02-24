@@ -49,7 +49,7 @@
       </div>
       <div
         v-if="expandedSessions.has(session.id)"
-        class="px-6 pb-6 overflow-hidden"
+        class="px-6 pb-6 overflow-hidden mt-4"
       >
         <SessionCardSimple :session="session" />
       </div>

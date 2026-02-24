@@ -83,7 +83,7 @@ $accessUrlHelper = Container::$container->get(AccessUrlHelper::class);
 $pluginRepo      = Container::$container->get(AccessUrlRelPluginRepository::class);
 
 /* ---------------- validate plugin enabled --------------- */
-$PLUGIN_NAME = 'google_maps';
+$PLUGIN_NAME = 'GoogleMaps';
 if (!$pluginHelper->isPluginEnabled($PLUGIN_NAME)) {
     if (api_is_platform_admin()) {
         Display::display_header(get_lang('Social'));

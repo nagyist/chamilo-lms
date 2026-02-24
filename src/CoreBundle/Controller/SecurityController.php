@@ -65,8 +65,12 @@ class SecurityController extends AbstractController
         TokenStorageInterface $tokenStorage,
         TranslatorInterface $translator,
     ): Response {
+        // This endpoint is expected to be reached only after successful authentication.
+        // If not authenticated, return a controlled JSON error instead of exposing exception details.
         if (!$this->isGranted('IS_AUTHENTICATED_FULLY')) {
-            throw $this->createAccessDeniedException($translator->trans('Invalid login request: check that the Content-Type header is <em>application/json</em>.'));
+            return $this->json([
+                'error' => $translator->trans('Invalid login request.'),
+            ], Response::HTTP_UNAUTHORIZED);
         }
 
         $dataRequest = json_decode($request->getContent(), true);
@@ -78,6 +82,18 @@ class SecurityController extends AbstractController
 
         $user = $this->userHelper->getCurrent();
 
+        // Safety guard: avoid fatal errors if the security token is missing unexpectedly.
+        if (!$user instanceof User) {
+            $tokenStorage->setToken(null);
+            if ($request->hasSession()) {
+                $request->getSession()->invalidate();
+            }
+
+            return $this->json([
+                'error' => $translator->trans('Authentication failed.'),
+            ], Response::HTTP_UNAUTHORIZED);
+        }
+
         if (User::ACTIVE !== $user->getActive()) {
             if (User::INACTIVE === $user->getActive()) {
                 $message = $translator->trans('Your account has not been activated.');
@@ -88,7 +104,9 @@ class SecurityController extends AbstractController
             $tokenStorage->setToken(null);
             $request->getSession()->invalidate();
 
-            return $this->createAccessDeniedException($message);
+            return $this->json([
+                'error' => $message,
+            ], Response::HTTP_FORBIDDEN);
         }
 
         if ($user->getMfaEnabled()) {
@@ -98,14 +116,14 @@ class SecurityController extends AbstractController
                 $tokenStorage->setToken(null);
                 $request->getSession()->invalidate();
 
-                return $this->json(['requires2FA' => true], 200);
+                return $this->json(['requires2FA' => true], Response::HTTP_OK);
             }
 
-            if (!$this->isTOTPValid($user, $totpCode)) {
+            if (!$this->isTOTPValid($user, (string) $totpCode)) {
                 $tokenStorage->setToken(null);
                 $request->getSession()->invalidate();
 
-                return $this->json(['error' => 'Invalid 2FA code.'], 401);
+                return $this->json(['error' => 'Invalid 2FA code.'], Response::HTTP_UNAUTHORIZED);
             }
         }
 
@@ -115,7 +133,9 @@ class SecurityController extends AbstractController
             $tokenStorage->setToken(null);
             $request->getSession()->invalidate();
 
-            return $this->createAccessDeniedException($message);
+            return $this->json([
+                'error' => $message,
+            ], Response::HTTP_FORBIDDEN);
         }
 
         $extraFieldValuesRepository = $this->entityManager->getRepository(ExtraFieldValues::class);
@@ -150,6 +170,7 @@ class SecurityController extends AbstractController
                     'redirect' => '/main/auth/tc.php?return='.urlencode($afterLogin),
                 ]);
             }
+
             $request->getSession()->remove('term_and_condition');
         }
 
@@ -171,7 +192,7 @@ class SecurityController extends AbstractController
             $diffDays = (new DateTimeImmutable())->diff($lastUpdate)->days;
 
             if ($diffDays > $days) {
-                // Clean token & session
+                // Clean token and session before forcing password rotation.
                 $tokenStorage->setToken(null);
                 $request->getSession()->invalidate();
 

@@ -76,7 +76,7 @@ class Statistics
                     FROM $courseTable AS c
                     WHERE 1 = 1";
             if (isset($categoryCode)) {
-                $sql .= " WHERE c.category_code = '".Database::escape_string($categoryCode)."'";
+                $sql .= " AND c.category_code = '".Database::escape_string($categoryCode)."'";
             }
         }
 
@@ -264,7 +264,7 @@ class Statistics
                     ";
         } else {
             $sql = "SELECT DISTINCT(t.c_id) FROM $table t
-                   access_date BETWEEN '$startDate' AND '$endDate' ";
+             WHERE access_date BETWEEN '$startDate' AND '$endDate'";
         }
 
         $result = Database::query($sql);
@@ -1000,7 +1000,7 @@ class Statistics
         $cols = [];
         try {
             $conn = Database::getManager()->getConnection();
-            $sm = method_exists($conn, 'createSchemaManager') ? $conn->createSchemaManager() : $conn->getSchemaManager();
+            $sm = $conn->createSchemaManager();
             $cols = $sm->listTableColumns($userTable);
         } catch (\Throwable $e) {
             $cols = [];
@@ -1387,7 +1387,7 @@ class Statistics
             $content .= ob_get_contents();
             ob_end_clean();
         } else {
-            $content = get_lang('No search results');
+            $content .= get_lang('No search results');
         }
 
         return $content;
@@ -1575,23 +1575,22 @@ class Statistics
         if (strlen($endDate) > 10) {
             $endDate = substr($endDate, 0, 10);
         }
-        if (!preg_match('/\d\d\d\d-\d\d-\d\d/', $startDate)) {
+
+        if (!preg_match('/\d{4}-\d{2}-\d{2}/', $startDate)) {
             return false;
         }
-        if (!preg_match('/\d\d\d\d-\d\d-\d\d/', $startDate)) {
+        if (!preg_match('/\d{4}-\d{2}-\d{2}/', $endDate)) {
             return false;
         }
+
         $startTimestamp = strtotime($startDate);
         $endTimestamp = strtotime($endDate);
+
         $list = [];
         for ($time = $startTimestamp; $time < $endTimestamp; $time += 86400) {
             $datetime = api_get_utc_datetime($time);
-            if ($removeYear) {
-                $datetime = substr($datetime, 5, 5);
-            } else {
-                $dateTime = substr($datetime, 0, 10);
-            }
-            $list[$datetime] = 0;
+            $key = $removeYear ? substr($datetime, 5, 5) : substr($datetime, 0, 10);
+            $list[$key] = 0;
         }
 
         return $list;
@@ -2615,88 +2614,641 @@ class Statistics
      * @param string $csrfToken Security::get_token() from index.php
      */
     public static function returnDuplicatedUsersTable(
-        string $mode,
-        array $additionalExtraFieldsInfo,
+        string $dupMode = 'name',
+        array $additionalExtraFieldsInfo = [],
         int $extraFieldId = 0,
-        string $csrfToken = ''
-    ): SortableTableFromArray {
-        if ('email' === $mode) {
-            $rows = self::getDuplicatedUsersByEmail($additionalExtraFieldsInfo, $csrfToken);
-        } elseif ('extra' === $mode) {
-            $rows = self::getDuplicatedUsersByExtraField($extraFieldId, $additionalExtraFieldsInfo, $csrfToken);
-        } else {
-            $rows = self::getDuplicatedUsersByName($additionalExtraFieldsInfo, $csrfToken);
+        string $token = ''
+    ) {
+        $dupMode = in_array($dupMode, ['name', 'email', 'extra'], true) ? $dupMode : 'name';
+
+        $userTable = Database::get_main_table(TABLE_MAIN_USER);
+        $extraFieldTable = Database::get_main_table(TABLE_EXTRA_FIELD);
+        $extraFieldValuesTable = Database::get_main_table(TABLE_EXTRA_FIELD_VALUES);
+        $courseRelUserTable = Database::get_main_table(TABLE_MAIN_COURSE_USER);
+        $sessionRelUserTable = Database::get_main_table(TABLE_MAIN_SESSION_USER);
+
+        $selectedExtraFieldInfo = null;
+        $selectedExtraFieldLabel = '';
+
+        if ('extra' === $dupMode && $extraFieldId > 0) {
+            $sql = "SELECT id, variable, display_text
+                FROM $extraFieldTable
+                WHERE id = ".(int) $extraFieldId."
+                LIMIT 1";
+
+            try {
+                $res = Database::getManager()->getConnection()->executeQuery($sql);
+            } catch (\Throwable $e) {
+                error_log('[DuplicatedUsers SQL ERROR] '.$e->getMessage());
+                error_log('[DuplicatedUsers SQL] '.$sql);
+                throw $e;
+            }
+
+            $selectedExtraFieldInfo = Database::fetch_assoc($res) ?: null;
+
+            if ($selectedExtraFieldInfo) {
+                $selectedExtraFieldLabel = (string) ($selectedExtraFieldInfo['display_text'] ?: $selectedExtraFieldInfo['variable']);
+            }
         }
 
-        $table = new SortableTableFromArray($rows);
+        // Determine which extra fields will be shown as columns
+        $extraFieldIdsToLoad = [];
+        $extraFieldLabels = [];
 
-        $params = $_GET;
-        $params['report'] = 'duplicated_users';
-        $params['dup_mode'] = $mode;
-        if ($extraFieldId > 0) {
-            $params['extra_field_id'] = $extraFieldId;
+        if ('extra' === $dupMode && $extraFieldId > 0) {
+            $extraFieldIdsToLoad[$extraFieldId] = $extraFieldId;
+            $extraFieldLabels[$extraFieldId] = $selectedExtraFieldLabel ?: ('Extra field #'.$extraFieldId);
         }
-
-        $table->set_additional_parameters($params);
-
-        $col = 0;
-
-        $table->set_header($col++, get_lang('Id'));
-
-        if ('email' === $mode) {
-            $table->set_header($col++, get_lang('Email'));
-        }
-
-        if (api_is_western_name_order()) {
-            $table->set_header($col++, get_lang('First name'));
-            $table->set_header($col++, get_lang('Last name'));
-        } else {
-            $table->set_header($col++, get_lang('Last name'));
-            $table->set_header($col++, get_lang('First name'));
-        }
-
-        if ('name' === $mode || 'extra' === $mode) {
-            $table->set_header($col++, get_lang('Email'));
-        }
-
-        $table->set_header($col++, get_lang('Registration date'));
-        $table->set_header($col++, get_lang('First login in platform'));
-        $table->set_header($col++, get_lang('Latest login in platform'));
-        $table->set_header($col++, get_lang('Role'));
-        $table->set_header($col++, get_lang('Courses').' <small class="block">'.get_lang('Subscription count').'</small>');
-        $table->set_header($col++, get_lang('Sessions').' <small class="block">'.get_lang('Subscription count').'</small>');
 
         foreach ($additionalExtraFieldsInfo as $fieldInfo) {
-            $table->set_header($col++, (string) ($fieldInfo['display_text'] ?? ($fieldInfo['variable'] ?? 'Extra field')));
+            $fieldId = (int) ($fieldInfo['id'] ?? 0);
+            if ($fieldId <= 0) {
+                continue;
+            }
+
+            $extraFieldIdsToLoad[$fieldId] = $fieldId;
+
+            $label = (string) ($fieldInfo['display_text'] ?? '');
+            if ('' === trim($label)) {
+                $label = (string) ($fieldInfo['variable'] ?? ('Extra field #'.$fieldId));
+            }
+
+            $extraFieldLabels[$fieldId] = $label;
         }
 
-        $table->set_header($col++, get_lang('Active'));
-        $table->set_header($col++, get_lang('Actions'));
+        // Helper to build an empty table with the correct headers
+        $buildEmptyTable = function () use ($extraFieldIdsToLoad, $extraFieldLabels) {
+            $table = new SortableTableFromArray([], 0, 20);
 
-        $table->actionButtons = [
-            'export_excel' => [
-                'label' => get_lang('Export to XLS'),
-                'icon' => Display::getMdiIcon(ActionIcon::EXPORT_SPREADSHEET, 'ch-tool-icon', null, ICON_SIZE_MEDIUM, false),
-            ],
-            'export_csv' => [
-                'label' => get_lang('Export as CSV'),
-                'icon' => Display::getMdiIcon(ActionIcon::EXPORT_CSV, 'ch-tool-icon', null, ICON_SIZE_MEDIUM, false),
-            ],
-        ];
+            $col = 0;
+            $table->set_header($col++, get_lang('Id'), false);
+            $table->set_header($col++, get_lang('Firstname'), false);
+            $table->set_header($col++, get_lang('Lastname'), false);
+            $table->set_header($col++, get_lang('Email'), false);
+            $table->set_header($col++, get_lang('Registration date'), false);
+            $table->set_header($col++, get_lang('First login in platform'), false);
+            $table->set_header($col++, get_lang('Last login in platform'), false);
+            $table->set_header($col++, get_lang('Role'), false);
+            $table->set_header($col++, get_lang('Courses'), false);
+            $table->set_header($col++, get_lang('Sessions'), false);
+
+            foreach ($extraFieldIdsToLoad as $fid) {
+                $table->set_header($col++, $extraFieldLabels[$fid] ?? ('Extra field #'.$fid), false);
+            }
+
+            $table->set_header($col++, get_lang('Active'), false);
+            $table->set_header($col++, get_lang('Actions'), false);
+
+            $table->set_form_actions([
+                'export_csv' => get_lang('Export as CSV'),
+                'export_excel' => get_lang('Export as XLS'),
+            ]);
+
+            return $table;
+        };
+
+        // Build duplicate source query (only active != -1, exclude empty duplicate keys)
+        $duplicateUsers = [];
+        $sql = '';
+
+        switch ($dupMode) {
+            case 'name':
+                $sql = "
+                SELECT
+                    u.id,
+                    u.username,
+                    u.firstname,
+                    u.lastname,
+                    u.email,
+                    u.status,
+                    u.active,
+                    u.created_at AS registration_date,
+                    NULL AS first_login,
+                    u.last_login,
+                    LOWER(TRIM(COALESCE(u.firstname, ''))) AS dup_firstname_norm,
+                    LOWER(TRIM(COALESCE(u.lastname, ''))) AS dup_lastname_norm,
+                    CONCAT(TRIM(COALESCE(u.firstname, '')), ' ', TRIM(COALESCE(u.lastname, ''))) AS duplicate_label
+                FROM $userTable u
+                INNER JOIN (
+                    SELECT
+                        LOWER(TRIM(COALESCE(firstname, ''))) AS d_firstname,
+                        LOWER(TRIM(COALESCE(lastname, ''))) AS d_lastname,
+                        COUNT(*) AS qty
+                    FROM $userTable
+                    WHERE active <> -1
+                      AND (
+                            TRIM(COALESCE(firstname, '')) <> ''
+                         OR TRIM(COALESCE(lastname, '')) <> ''
+                      )
+                    GROUP BY
+                        LOWER(TRIM(COALESCE(firstname, ''))),
+                        LOWER(TRIM(COALESCE(lastname, '')))
+                    HAVING COUNT(*) > 1
+                ) d
+                    ON d.d_firstname = LOWER(TRIM(COALESCE(u.firstname, '')))
+                   AND d.d_lastname = LOWER(TRIM(COALESCE(u.lastname, '')))
+                WHERE u.active <> -1
+                ORDER BY
+                    duplicate_label ASC,
+                    u.created_at ASC,
+                    u.id ASC
+            ";
+                break;
+
+            case 'email':
+                $sql = "
+                SELECT
+                    u.id,
+                    u.username,
+                    u.firstname,
+                    u.lastname,
+                    u.email,
+                    u.status,
+                    u.active,
+                    u.created_at AS registration_date,
+                    NULL AS first_login,
+                    u.last_login,
+                    LOWER(TRIM(COALESCE(u.email, ''))) AS dup_email_norm,
+                    TRIM(COALESCE(u.email, '')) AS duplicate_label
+                FROM $userTable u
+                INNER JOIN (
+                    SELECT
+                        LOWER(TRIM(COALESCE(email, ''))) AS d_email,
+                        COUNT(*) AS qty
+                    FROM $userTable
+                    WHERE active <> -1
+                      AND TRIM(COALESCE(email, '')) <> ''
+                    GROUP BY LOWER(TRIM(COALESCE(email, '')))
+                    HAVING COUNT(*) > 1
+                ) d
+                    ON d.d_email = LOWER(TRIM(COALESCE(u.email, '')))
+                WHERE u.active <> -1
+                ORDER BY
+                    duplicate_label ASC,
+                    u.created_at ASC,
+                    u.id ASC
+            ";
+                break;
+
+            case 'extra':
+                if ($extraFieldId <= 0 || empty($selectedExtraFieldInfo)) {
+                    $sql = '';
+                    break;
+                }
+                $sql = "
+                SELECT
+                    u.id,
+                    u.username,
+                    u.firstname,
+                    u.lastname,
+                    u.email,
+                    u.status,
+                    u.active,
+                    u.created_at AS registration_date,
+                    NULL AS first_login,
+                    u.last_login,
+                    LOWER(TRIM(COALESCE(efv.field_value, ''))) AS dup_extra_norm,
+                    TRIM(COALESCE(efv.field_value, '')) AS duplicate_label
+                FROM $userTable u
+                INNER JOIN $extraFieldValuesTable efv
+                    ON efv.item_id = u.id
+                   AND efv.field_id = ".(int) $extraFieldId."
+                INNER JOIN (
+                    SELECT
+                        LOWER(TRIM(COALESCE(efv2.field_value, ''))) AS d_value,
+                        COUNT(*) AS qty
+                    FROM $extraFieldValuesTable efv2
+                    INNER JOIN $userTable u2
+                        ON u2.id = efv2.item_id
+                    WHERE efv2.field_id = ".(int) $extraFieldId."
+                      AND u2.active <> -1
+                      AND TRIM(COALESCE(efv2.field_value, '')) <> ''
+                    GROUP BY LOWER(TRIM(COALESCE(efv2.field_value, '')))
+                    HAVING COUNT(*) > 1
+                ) d
+                    ON d.d_value = LOWER(TRIM(COALESCE(efv.field_value, '')))
+                WHERE u.active <> -1
+                ORDER BY
+                    duplicate_label ASC,
+                    u.created_at ASC,
+                    u.id ASC
+            ";
+                break;
+        }
+
+        if ('' !== trim($sql)) {
+            try {
+                $res = Database::getManager()->getConnection()->executeQuery($sql);
+            } catch (\Throwable $e) {
+                error_log('[DuplicatedUsers SQL ERROR] '.$e->getMessage());
+                error_log('[DuplicatedUsers SQL] '.$sql);
+                throw $e;
+            }
+
+            while ($row = Database::fetch_assoc($res)) {
+                $duplicateUsers[] = $row;
+            }
+        }
+
+        if (empty($duplicateUsers)) {
+            return $buildEmptyTable();
+        }
+
+        // Collect user IDs
+        $userIds = array_map(static fn(array $r): int => (int) $r['id'], $duplicateUsers);
+        $userIds = array_values(array_unique($userIds));
+
+        if (empty($userIds)) {
+            return $buildEmptyTable();
+        }
+
+        $userIdsIn = implode(',', array_map('intval', $userIds));
+
+        // Load course counts (batch)
+        $courseCounts = [];
+        $sqlCourses = "
+            SELECT user_id, COUNT(*) AS qty
+            FROM $courseRelUserTable
+            WHERE user_id IN ($userIdsIn)
+            GROUP BY user_id
+        ";
+        $resCourses = Database::query($sqlCourses);
+        while ($row = Database::fetch_assoc($resCourses)) {
+            $courseCounts[(int) $row['user_id']] = (int) $row['qty'];
+        }
+
+        // Load session counts (batch)
+        $sessionCounts = [];
+        $sqlSessions = "
+            SELECT user_id, COUNT(*) AS qty
+            FROM $sessionRelUserTable
+            WHERE user_id IN ($userIdsIn)
+            GROUP BY user_id
+        ";
+        $resSessions = Database::query($sqlSessions);
+        while ($row = Database::fetch_assoc($resSessions)) {
+            $sessionCounts[(int) $row['user_id']] = (int) $row['qty'];
+        }
+
+        // Batch load extra field values for all selected fields
+        $extraValuesByUser = []; // [userId][fieldId] => value
+        if (!empty($extraFieldIdsToLoad)) {
+            $fieldIdsIn = implode(',', array_map('intval', array_values($extraFieldIdsToLoad)));
+            $sqlExtraValues = "
+                SELECT item_id, field_id, field_value AS value
+                FROM $extraFieldValuesTable
+                WHERE item_id IN ($userIdsIn)
+                  AND field_id IN ($fieldIdsIn)
+            ";
+            $resExtraValues = Database::query($sqlExtraValues);
+            while ($row = Database::fetch_assoc($resExtraValues)) {
+                $uid = (int) $row['item_id'];
+                $fid = (int) $row['field_id'];
+                $extraValuesByUser[$uid][$fid] = (string) ($row['value'] ?? '');
+            }
+        }
+
+        // Group rows and select KEEP user (oldest registration date, then lowest ID)
+        $groups = []; // [groupKey] => rows[]
+        foreach ($duplicateUsers as $row) {
+            $groupKey = self::buildDuplicateUsersGroupKey($row, $dupMode);
+            $groups[$groupKey][] = $row;
+        }
+
+        $keepUserIdByGroup = [];
+        foreach ($groups as $groupKey => $rows) {
+            usort($rows, static function (array $a, array $b): int {
+                $da = (string) ($a['registration_date'] ?? '');
+                $db = (string) ($b['registration_date'] ?? '');
+
+                if ($da === $db) {
+                    return ((int) $a['id']) <=> ((int) $b['id']);
+                }
+
+                if ('' === $da) {
+                    return 1;
+                }
+                if ('' === $db) {
+                    return -1;
+                }
+
+                return strcmp($da, $db);
+            });
+
+            $groups[$groupKey] = $rows;
+            $keepUserIdByGroup[$groupKey] = (int) $rows[0]['id'];
+        }
+
+        // Preserve grouped ordering in final flat dataset
+        $rowsForTable = [];
+        foreach ($groups as $groupKey => $rows) {
+            foreach ($rows as $row) {
+                $userId = (int) $row['id'];
+                $keepUserId = (int) $keepUserIdByGroup[$groupKey];
+                $isKeep = $userId === $keepUserId;
+
+                $courseCount = $courseCounts[$userId] ?? 0;
+                $sessionCount = $sessionCounts[$userId] ?? 0;
+
+                $activeValue = (int) ($row['active'] ?? 0);
+                $activeLabel = self::getDuplicateUserActiveLabel($activeValue);
+                $roleLabel = self::getDuplicateUserRoleLabel((int) ($row['status'] ?? 0));
+
+                $tableRow = [];
+
+                // First column must remain plain text because SortableTableFromArray
+                // uses it as the checkbox value when form actions are enabled.
+                $tableRow[] = (string) $userId;
+                $tableRow[] = Security::remove_XSS((string) ($row['firstname'] ?? ''));
+                $tableRow[] = Security::remove_XSS((string) ($row['lastname'] ?? ''));
+                $tableRow[] = Security::remove_XSS((string) ($row['email'] ?? ''));
+                $tableRow[] = self::formatDuplicateUserDate((string) ($row['registration_date'] ?? ''));
+                $tableRow[] = self::formatDuplicateUserDate((string) ($row['first_login'] ?? ''));
+                $tableRow[] = self::formatDuplicateUserDate((string) ($row['last_login'] ?? ''));
+                $tableRow[] = Security::remove_XSS((string) $roleLabel);
+                $tableRow[] = (string) $courseCount;
+                $tableRow[] = (string) $sessionCount;
+
+                // Extra field columns (selected + additional)
+                foreach ($extraFieldIdsToLoad as $fid) {
+                    $val = $extraValuesByUser[$userId][$fid] ?? '';
+                    $tableRow[] = Security::remove_XSS($val);
+                }
+
+                $tableRow[] = Security::remove_XSS($activeLabel);
+
+                // Actions column
+                $actionsHtml = '';
+
+                if ($isKeep) {
+                    $actionsHtml .= '<span class="ch-dups-keep-badge">'.Security::remove_XSS(get_lang('Keep')).'</span> ';
+                }
+
+                // Small details button (icon only) to avoid showing "Details / Détails" text
+                $detailsUrl = api_get_path(WEB_CODE_PATH).'admin/user_information.php?user_id='.$userId;
+                $detailsTitle = Security::remove_XSS((string) get_lang('Details'));
+                $actionsHtml .= '<a href="'.htmlspecialchars($detailsUrl, ENT_QUOTES, 'UTF-8').'"
+                class="btn btn-default btn-xs"
+                title="'.$detailsTitle.'"
+                aria-label="'.$detailsTitle.'">🔍</a> ';
+
+                $actionsHtml .= self::buildDuplicateUserActionsHtml(
+                    $userId,
+                    $keepUserId,
+                    $isKeep,
+                    $activeValue,
+                    $dupMode,
+                    $extraFieldId,
+                    $token
+                );
+
+                $tableRow[] = $actionsHtml;
+
+                $rowsForTable[] = $tableRow;
+            }
+        }
+
+        // Build table
+        $table = new SortableTableFromArray($rowsForTable, 0, 20);
+
+        $col = 0;
+        $table->set_header($col++, get_lang('Id'), false);
+        $table->set_header($col++, get_lang('Firstname'), false);
+        $table->set_header($col++, get_lang('Lastname'), false);
+        $table->set_header($col++, get_lang('Email'), false);
+        $table->set_header($col++, get_lang('Registration date'), false);
+        $table->set_header($col++, get_lang('First login in platform'), false);
+        $table->set_header($col++, get_lang('Last login in platform'), false);
+        $table->set_header($col++, get_lang('Role'), false);
+        $table->set_header($col++, get_lang('Courses'), false);
+        $table->set_header($col++, get_lang('Sessions'), false);
+
+        foreach ($extraFieldIdsToLoad as $fid) {
+            $table->set_header($col++, $extraFieldLabels[$fid] ?? ('Extra field #'.$fid), false);
+        }
+
+        $table->set_header($col++, get_lang('Active'), false);
+        $table->set_header($col++, get_lang('Actions'), false);
+
+        // Export actions
+        $table->set_form_actions([
+            'export_csv' => get_lang('Export as CSV'),
+            'export_excel' => get_lang('Export as XLS'),
+        ]);
 
         return $table;
     }
 
     /**
-     * Update user active status.
+     * Local replacement for api_get_status_lang() (not available in this context).
      */
-    public static function updateUserActiveStatus(int $userId, int $active): void
+    private static function getDuplicateUserRoleLabel(int $status): string
     {
+        // Common Chamilo status mapping. Keep it simple and safe.
+        $labels = [
+            1 => get_lang('Teacher'),
+            3 => get_lang('SessionAdmin'),
+            4 => get_lang('Drh'),
+            5 => get_lang('Student'),
+            6 => get_lang('Anonymous'),
+            7 => get_lang('Invited'),
+        ];
+
+        return $labels[$status] ?? (string) $status;
+    }
+
+    /**
+     * Build a stable group key for duplicate grouping.
+     */
+    private static function buildDuplicateUsersGroupKey(array $row, string $dupMode): string
+    {
+        return match ($dupMode) {
+            'email' => 'email:'.mb_strtolower(trim((string) ($row['dup_email_norm'] ?? $row['email'] ?? '')), 'UTF-8'),
+            'extra' => 'extra:'.mb_strtolower(trim((string) ($row['dup_extra_norm'] ?? $row['selected_extra_value'] ?? '')), 'UTF-8'),
+            default => 'name:'
+                .mb_strtolower(trim((string) ($row['dup_firstname_norm'] ?? $row['firstname'] ?? '')), 'UTF-8')
+                .'|'
+                .mb_strtolower(trim((string) ($row['dup_lastname_norm'] ?? $row['lastname'] ?? '')), 'UTF-8'),
+        };
+    }
+
+    /**
+     * Return the active label used in the table.
+     */
+    private static function getDuplicateUserActiveLabel(int $active): string
+    {
+        return match ($active) {
+            1 => get_lang('Active'),
+            0 => get_lang('Inactive'),
+            -1 => 'Soft deleted',
+            default => (string) $active,
+        };
+    }
+
+    /**
+     * Format date values for display.
+     */
+    private static function formatDuplicateUserDate(string $date): string
+    {
+        $date = trim($date);
+        if ('' === $date || '0000-00-00 00:00:00' === $date) {
+            return '';
+        }
+
+        // Keep it simple and reliable. If you prefer localized format, replace with your local formatter.
+        return Security::remove_XSS($date);
+    }
+
+    /**
+     * Build action buttons HTML for each duplicate user row.
+     *
+     * IMPORTANT:
+     * - Adjust action names only if your controller currently expects different names.
+     * - This method preserves the current filters in the URL.
+     */
+    private static function buildDuplicateUserActionsHtml(
+        int $userId,
+        int $keepUserId,
+        bool $isKeep,
+        int $activeValue,
+        string $dupMode,
+        int $extraFieldId,
+        string $token
+    ): string {
+        $dupMode = in_array($dupMode, ['name', 'email', 'extra'], true) ? $dupMode : 'name';
+
+        $baseParams = [
+            'report' => 'duplicated_users',
+            'dup_mode' => $dupMode,
+            'sec_token' => $token,
+        ];
+
+        if ('extra' === $dupMode && $extraFieldId > 0) {
+            $baseParams['extra_field_id'] = $extraFieldId;
+        }
+
+        // Preserve optional extra columns
+        if (isset($_GET['additional_profile_field'])) {
+            $apf = $_GET['additional_profile_field'];
+            if (!is_array($apf)) {
+                $apf = [$apf];
+            }
+            $baseParams['additional_profile_field'] = array_values(array_filter(array_map('strval', $apf)));
+        }
+
+        $buildUrl = static function (array $params) use ($baseParams): string {
+            $self = (string) api_get_self();
+            $self = strtok($self, '?') ?: $self;
+
+            return $self.'?'.http_build_query(array_merge($baseParams, $params));
+        };
+
+        $html = '<div class="ch-dups-actions">';
+
+        // Activate / Deactivate
+        if ($activeValue === 1) {
+            $url = $buildUrl([
+                'action' => 'disable_duplicate_user',
+                'user_id' => $userId,
+            ]);
+
+            $html .= '<a class="btn btn-danger btn-xs"'
+                .' href="'.htmlspecialchars($url, ENT_QUOTES, 'UTF-8').'"'
+                .' onclick="return confirm(\'Deactivate this user?\');">'
+                .htmlspecialchars((string) get_lang('Deactivate'), ENT_QUOTES, 'UTF-8')
+                .'</a>';
+        } else {
+            $url = $buildUrl([
+                'action' => 'enable_duplicate_user',
+                'user_id' => $userId,
+            ]);
+
+            $html .= '<a class="btn btn-success btn-xs"'
+                .' href="'.htmlspecialchars($url, ENT_QUOTES, 'UTF-8').'"'
+                .' onclick="return confirm(\'Enable this user?\');">'
+                .htmlspecialchars((string) get_lang('Enable'), ENT_QUOTES, 'UTF-8')
+                .'</a>';
+        }
+
+        // Unify
+        if ($isKeep) {
+            $html .= '<a class="btn btn-default btn-xs disabled" href="#" aria-disabled="true" tabindex="-1">'
+                .htmlspecialchars((string) get_lang('Unify'), ENT_QUOTES, 'UTF-8')
+                .'</a>';
+        } else {
+            $url = $buildUrl([
+                'action' => 'unify_duplicate_user',
+                'keep_user_id' => $keepUserId,
+                'merge_user_id' => $userId,
+            ]);
+
+            $html .= '<a class="btn btn-default btn-xs"'
+                .' href="'.htmlspecialchars($url, ENT_QUOTES, 'UTF-8').'"'
+                .' onclick="return confirm(\'Unify this user into the KEEP account?\');">'
+                .htmlspecialchars((string) get_lang('Unify'), ENT_QUOTES, 'UTF-8')
+                .'</a>';
+        }
+
+        $html .= '</div>';
+
+        return $html;
+    }
+
+    /**
+     * Update the active status of a user (enable/disable).
+     *
+     * Allowed values:
+     * - 1: enabled
+     * - 0: disabled
+     *
+     * This method intentionally does not allow setting soft-deleted status (-1).
+     *
+     * @throws \InvalidArgumentException
+     * @throws \RuntimeException
+     */
+    public static function updateUserActiveStatus(int $userId, int $active): bool
+    {
+        if ($userId <= 0) {
+            throw new \InvalidArgumentException('Invalid user ID.');
+        }
+
+        if (!in_array($active, [0, 1], true)) {
+            throw new \InvalidArgumentException('Invalid active value.');
+        }
+
+        $userTable = Database::get_main_table(TABLE_MAIN_USER);
         $userId = (int) $userId;
         $active = (int) $active;
 
-        $userTable = Database::get_main_table(TABLE_MAIN_USER);
-        Database::query("UPDATE $userTable SET active = $active WHERE id = $userId");
+        $sql = "SELECT id, active
+        FROM $userTable
+        WHERE id = $userId
+        LIMIT 1";
+        $result = Database::query($sql);
+
+        if (false === $result || 0 === Database::num_rows($result)) {
+            throw new \RuntimeException("User #{$userId} not found.");
+        }
+
+        $row = Database::fetch_assoc($result);
+        $currentActive = (int) ($row['active'] ?? 0);
+
+        if ($currentActive === (int) USER_SOFT_DELETED) {
+            throw new \RuntimeException("User #{$userId} is soft-deleted and cannot be updated.");
+        }
+
+        if ($currentActive === $active) {
+            return true;
+        }
+
+        $updateSql = "UPDATE $userTable SET active = $active WHERE id = $userId LIMIT 1";
+        $updateResult = Database::query($updateSql);
+
+        if (false === $updateResult) {
+            throw new \RuntimeException("Failed to update active status for user #{$userId}.");
+        }
+
+        return true;
     }
 
     /**
@@ -2769,145 +3321,6 @@ class Statistics
 
             foreach ($users as $u) {
                 $out[] = self::formatDuplicateUserRow($u, 'name', $keepId, $additionalExtraFieldsInfo, $extraValueObj, $csrfToken);
-            }
-        }
-
-        return $out;
-    }
-
-    /**
-     * Duplicate users by email.
-     */
-    private static function getDuplicatedUsersByEmail(array $additionalExtraFieldsInfo, string $csrfToken): array
-    {
-        $userTable = Database::get_main_table(TABLE_MAIN_USER);
-        $urlRelTable = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_USER);
-
-        [$joinUrl, $whereUrl] = self::getAccessUrlJoinAndWhere('u', 'url', $urlRelTable);
-
-        $sql = "
-            SELECT u.email, COUNT(*) AS c
-            FROM $userTable u
-            $joinUrl
-            WHERE u.active <> ".USER_SOFT_DELETED."
-            $whereUrl
-            GROUP BY u.email
-            HAVING c > 1
-            ORDER BY u.email
-        ";
-
-        $res = Database::query($sql);
-        if (!$res || Database::num_rows($res) < 1) {
-            return [];
-        }
-
-        $out = [];
-        $extraValueObj = new ExtraFieldValue('user');
-
-        while ($dup = Database::fetch_assoc($res)) {
-            $email = Database::escape_string((string) $dup['email']);
-
-            if ('' === trim($email)) {
-                continue;
-            }
-
-            $sub = "
-                SELECT u.id, u.firstname, u.lastname, u.email, u.created_at, u.status, u.active
-                FROM $userTable u
-                $joinUrl
-                WHERE u.active <> ".USER_SOFT_DELETED."
-                $whereUrl
-                AND u.email = '$email'
-                ORDER BY u.created_at ASC, u.id ASC
-            ";
-            $r2 = Database::query($sub);
-            if (!$r2 || Database::num_rows($r2) < 2) {
-                continue;
-            }
-
-            $users = Database::store_result($r2, 'ASSOC');
-            $keepId = (int) ($users[0]['id'] ?? 0);
-
-            foreach ($users as $u) {
-                $out[] = self::formatDuplicateUserRow($u, 'email', $keepId, $additionalExtraFieldsInfo, $extraValueObj, $csrfToken);
-            }
-        }
-
-        return $out;
-    }
-
-    /**
-     * Duplicate users by extra field value.
-     */
-    private static function getDuplicatedUsersByExtraField(int $fieldId, array $additionalExtraFieldsInfo, string $csrfToken): array
-    {
-        $fieldId = (int) $fieldId;
-        if ($fieldId <= 0) {
-            return [];
-        }
-
-        $userTable = Database::get_main_table(TABLE_MAIN_USER);
-        $urlRelTable = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_USER);
-
-        $extraValueObj = new ExtraFieldValue('user');
-
-        $valuesTable = $extraValueObj->table;
-        $fieldTable  = $extraValueObj->table_handler_field;
-        $itemType    = (int) $extraValueObj->getExtraField()->getItemType();
-
-        [$joinUrl, $whereUrl] = self::getAccessUrlJoinAndWhere('u', 'url', $urlRelTable);
-
-        $sql = "
-            SELECT v.field_value AS v, COUNT(*) AS c
-            FROM $valuesTable v
-            INNER JOIN $fieldTable f ON f.id = v.field_id AND f.item_type = $itemType
-            INNER JOIN $userTable u ON u.id = v.item_id
-            $joinUrl
-            WHERE u.active <> ".USER_SOFT_DELETED."
-            $whereUrl
-            AND v.field_id = $fieldId
-            AND v.field_value IS NOT NULL
-            AND v.field_value <> ''
-            GROUP BY v.field_value
-            HAVING c > 1
-            ORDER BY v.field_value
-        ";
-
-        $res = Database::query($sql);
-        if (!$res || Database::num_rows($res) < 1) {
-            return [];
-        }
-
-        $out = [];
-
-        while ($dup = Database::fetch_assoc($res)) {
-            $val = Database::escape_string((string) $dup['v']);
-            if ('' === trim($val)) {
-                continue;
-            }
-
-            $sub = "
-            SELECT u.id, u.firstname, u.lastname, u.email, u.created_at, u.status, u.active
-            FROM $userTable u
-            INNER JOIN $valuesTable v ON v.item_id = u.id AND v.field_id = $fieldId
-            INNER JOIN $fieldTable f ON f.id = v.field_id AND f.item_type = $itemType
-            $joinUrl
-            WHERE u.active <> ".USER_SOFT_DELETED."
-            $whereUrl
-            AND v.field_value = '$val'
-            ORDER BY u.created_at ASC, u.id ASC
-        ";
-
-            $r2 = Database::query($sub);
-            if (!$r2 || Database::num_rows($r2) < 2) {
-                continue;
-            }
-
-            $users = Database::store_result($r2, 'ASSOC');
-            $keepId = (int) ($users[0]['id'] ?? 0);
-
-            foreach ($users as $u) {
-                $out[] = self::formatDuplicateUserRow($u, 'extra', $keepId, $additionalExtraFieldsInfo, $extraValueObj, $csrfToken);
             }
         }
 
@@ -3113,4 +3526,23 @@ class Statistics
 
         return ['', ''];
     }
+
+
+    /**
+     * Read a row value by trying multiple aliases.
+     *
+     * @param array<string, mixed> $row
+     * @param string[] $aliases
+     */
+    function duplicateReportRowValue(array $row, array $aliases, mixed $default = ''): mixed
+    {
+        foreach ($aliases as $alias) {
+            if (array_key_exists($alias, $row)) {
+                return $row[$alias];
+            }
+        }
+
+        return $default;
+    }
+
 }

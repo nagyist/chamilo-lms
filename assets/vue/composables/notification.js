@@ -1,7 +1,7 @@
 import { useToast } from "primevue/usetoast"
 
 // Toast timings
-const ERROR_TOAST_LIFE_MS = 8000
+const ERROR_TOAST_LIFE_MS = 30000
 const DEFAULT_TOAST_LIFE_MS = 3500
 const DUPLICATE_WINDOW_MS = 1200
 

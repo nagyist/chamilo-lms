@@ -32756,3 +32756,6 @@ msgstr "Parametro"
 msgid "URI"
 msgstr "URI"
 
+msgid "%s (current)"
+msgstr "%s (attuale)"
+

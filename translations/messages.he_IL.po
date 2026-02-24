@@ -32753,3 +32753,6 @@ msgstr "פרמטר"
 msgid "URI"
 msgstr "URI"
 
+msgid "%s (current)"
+msgstr "%s (נוכחי)"
+

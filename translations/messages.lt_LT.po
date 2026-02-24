@@ -32741,3 +32741,6 @@ msgstr "Parametras"
 msgid "URI"
 msgstr "URI"
 
+msgid "%s (current)"
+msgstr "%s (dabartinis)"
+

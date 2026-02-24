@@ -32742,3 +32742,6 @@ msgstr "参数"
 msgid "URI"
 msgstr "URI"
 
+msgid "%s (current)"
+msgstr "%s (当前)"
+

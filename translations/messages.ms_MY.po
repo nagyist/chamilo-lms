@@ -2020,7 +2020,7 @@ msgid ":yes:copyright,, no:no copyright"
 msgstr ":yes:berhak cipta,, no:tiada hak cipta"
 
 msgid ":text/plain;iso-8859-1:text/plain;iso-8859-1,, text/plain;utf-8:text/plain;utf-8,, text/html;iso-8859-1:text/html;iso-8859-1,, text/html;utf-8:text/html;utf-8,, inode/directory:Folder,, application/msword:MsWord,, application/octet-stream:Octet stream,, application/pdf:PDF,, application/postscript:PostScript,, application/rtf:RTF,, application/vnd.ms-excel:MsExcel,, application/vnd.ms-powerpoint:MsPowerpoint,, application/xml;iso-8859-1:XML;iso-8859-1,, application/xml;utf-8:XML;utf-8,, application/zip:ZIP"
-msgstr ":text/plain;iso-8859-1:text/plain;iso-8859-1,, text/plain;utf-8:text/plain;utf-8,, text/html;iso-8859-1:text/html;iso-8859-1,, text/html;utf-8:text/html;utf-8,, inode/directory:Folder,, application/msword:MsWord,, application/octet-stream:Octet stream,, application/pdf:PDF,, application/postscript:PostScript,, application/rtf:RTF,, application/vnd.ms-excel:MsExcel,, application/vnd.ms-powerpoint:MsPowerpoint,, application/xml;iso-8859-1:XML;iso-8859-1,, application/xml;utf-8:XML;utf-8,, application/zip:ZIP"
+msgstr ":text/plain;iso-8859-1:text/plain;iso-8859-1,, text/plain;utf-8:text/plain;utf-8,, text/html;iso-8859-1:text/html;iso-8859-1,, text/html;utf-8:text/html;utf-8,, inode/directory:Pasta,, application/msword:MsWord,, application/octet-stream:Aliran oktet,, application/pdf:PDF,, application/postscript:PostScript,, application/rtf:RTF,, application/vnd.ms-excel:MsExcel,, application/vnd.ms-powerpoint:MsPowerpoint,, application/xml;iso-8859-1:XML;iso-8859-1,, application/xml;utf-8:XML;utf-8,, application/zip:ZIP"
 
 msgid ":exercise:exercise,,      simulation:simulation,,      questionnaire:questionnaire,,      diagram:diagram,,      figure:figure,,      graph:graf,,      index:index,,      slide:slide,,      table:table,,      narrative text:narrative text,,      exam:exam,,      experiment:experiment,,      problem statement:problem statement,,      self assessment:self assessment,,      lecture:lecture"
 msgstr ":exercise:latihan,,      simulation:simulasi,,      questionnaire:soal selidik,,      diagram:diagram,,      figure:gambar,,      graph:graf,,      index:indeks,,      slide:slaid,,      table:jadual,,      narrative text:teks naratif,,      exam:ujian,,      experiment:eksperimen,,      problem statement:penyata masalah,,      self assessment:penilaian diri,,      lecture:kuliah"
@@ -32582,79 +32582,79 @@ msgid "Current authentication method"
 msgstr "Kaedah pengesahan semasa"
 
 msgid "Branches"
-msgstr ""
+msgstr "Cawangan"
 
 msgid "Rooms"
-msgstr ""
+msgstr "Bilik"
 
 msgid "Room availability finder"
-msgstr ""
+msgstr "Pencari ketersediaan bilik"
 
 msgid "New branch"
-msgstr ""
+msgstr "Cawangan baru"
 
 msgid "New room"
-msgstr ""
+msgstr "Bilik baru"
 
 msgid "Branch"
-msgstr ""
+msgstr "Cawangan"
 
 msgid "Default room"
-msgstr ""
+msgstr "Bilik lalai"
 
 msgid "Room occupation: %s"
-msgstr ""
+msgstr "Penggunaan bilik: %s"
 
 msgid "Find available rooms"
-msgstr ""
+msgstr "Cari bilik yang tersedia"
 
 msgid "Available rooms"
-msgstr ""
+msgstr "Bilik yang tersedia"
 
 msgid "Occupied rooms"
-msgstr ""
+msgstr "Bilik yang sedang digunakan"
 
 msgid "No available rooms found for this time range"
-msgstr ""
+msgstr "Tiada bilik yang tersedia ditemui untuk julat masa ini"
 
 msgid "No rooms have been created yet"
-msgstr ""
+msgstr "Tiada bilik yang telah dibuat lagi"
 
 msgid "Courses linked to %s"
-msgstr ""
+msgstr "Kursus yang dikaitkan dengan %s"
 
 msgid "No branches have been created yet"
-msgstr ""
+msgstr "Tiada cawangan yang telah dibuat lagi"
 
 msgid "Occupation"
-msgstr ""
+msgstr "Penggunaan"
 
 msgid "Cannot delete branch with rooms attached"
-msgstr ""
+msgstr "Tidak boleh memadam cawangan dengan bilik yang dilampirkan"
 
 msgid "Cannot delete room with courses attached"
-msgstr ""
+msgstr "Tidak boleh memadam bilik dengan kursus yang dilampirkan"
 
 msgid "Conflicts"
-msgstr ""
+msgstr "Konflik"
 
 msgid "Geolocation"
-msgstr ""
+msgstr "Geolokasi"
 
 msgid "Latitude, Longitude (e.g. 48.8566, 2.3522)"
-msgstr ""
+msgstr "Latitud, Longitud (contohnya 48.8566, 2.3522)"
 
 msgid "IPv4 or IPv6"
-msgstr ""
+msgstr "IPv4 atau IPv6"
 
 msgid "IP mask"
-msgstr ""
+msgstr "Topeng IP"
 
 msgid "e.g. /24"
-msgstr ""
+msgstr "contohnya /24"
 
 msgid "Parent branch"
-msgstr ""
+msgstr "Cawangan induk"
 
 msgid "Unique identifier"
 msgstr "Pengenal pasti unik"
@@ -32739,4 +32739,7 @@ msgstr "Parameter"
 
 msgid "URI"
 msgstr "URI"
+
+msgid "%s (current)"
+msgstr "%s (semasa)"
 

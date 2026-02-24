@@ -345,7 +345,7 @@ msgid "Sincerely"
 msgstr "Allin kuyaywan"
 
 msgid "Formula sample: sqrt( [x] / [y] ) * ( e ^ ( ln(pi) ) )"
-msgstr "Ñawpaq ruray: sqrt( [x] / [y] ) * ( e ^ ( ln(pi) ) )"
+msgstr "Ñawpaq formula: sqrt( [x] / [y] ) * ( e ^ ( ln(pi) ) )"
 
 msgid "Variable ranges"
 msgstr "Sutikuna umu"
@@ -32665,80 +32665,83 @@ msgid "Latitude"
 msgstr "Latitud"
 
 msgid "e.g. 48.8566"
-msgstr ""
+msgstr "jallp'a 48.8566"
 
 msgid "Longitude"
-msgstr ""
+msgstr "Hatun chaka (Longitud)"
 
 msgid "e.g. 2.3522"
-msgstr ""
+msgstr "jallp'a 2.3522"
 
 msgid "Download speed (KB/s)"
-msgstr ""
+msgstr "Yachachisqa hayku (KB/s)"
 
 msgid "Upload speed (KB/s)"
-msgstr ""
+msgstr "Kamachisqa hayku (KB/s)"
 
 msgid "Delay (ms)"
-msgstr ""
+msgstr "P'utuy (ms)"
 
 msgid "admin@example.com"
-msgstr ""
+msgstr "admin@example.com"
 
 msgid "Administrator name"
-msgstr ""
+msgstr "Kamachiq sutin"
 
 msgid "Administrator phone number"
-msgstr ""
+msgstr "Kamachiq telefonin"
 
 msgid "ID of last synch transaction"
-msgstr ""
+msgstr "Ñawpaq sinqronizakuy ID"
 
 msgid "Time of last synchronization"
-msgstr ""
+msgstr "Ñawpaq sinqronizakuy pacha"
 
 msgid "Last synchronization type"
-msgstr ""
+msgstr "Ñawpaq sinqronizakuy khalli"
 
 msgid "SSL public key"
-msgstr ""
+msgstr "SSL ñaqha llika"
 
 msgid "Branch type"
-msgstr ""
+msgstr "Llamk'a khalli"
 
 msgid "Room"
-msgstr ""
+msgstr "Kancha"
 
 msgid "Simple IDS"
-msgstr ""
+msgstr "Sarta IDS"
 
 msgid "IDS is currently disabled. Set IDS_ENABLED=true in your .env to activate scanning."
-msgstr ""
+msgstr "IDS kunan kashpan mana llamkayuq. IDS_ENABLED=true ruraq .env-mi scan nisqapaq."
 
 msgid "All event types"
-msgstr ""
+msgstr "Tukuy willakuy khalli"
 
 msgid "Events by day (last 7 days)"
-msgstr ""
+msgstr "Willakuykuna p'unchaypi (ñawpaq 7 p'unchaykuna)"
 
 msgid "Events by type (last 30 days)"
-msgstr ""
+msgstr "Willakuykuna khallipi (ñawpaq 30 p'unchaykuna)"
 
 msgid "Top attacking IPs (last 30 days)"
-msgstr ""
+msgstr "Hatun hapiq IPkuna (ñawpaq 30 p'unchaykuna)"
 
 msgid "Flagged IDS events"
-msgstr ""
+msgstr "Q'illqasqa IDS willakuykuna"
 
 msgid "No suspicious events detected."
-msgstr ""
+msgstr "Mana willakuy atiyniyoq."
 
 msgid "Detection type"
-msgstr ""
+msgstr "Willakuy khalli"
 
 msgid "Parameter"
-msgstr ""
+msgstr "Paramitru"
 
 msgid "URI"
-msgstr ""
+msgstr "URI"
+
+msgid "%s (current)"
+msgstr "%s (kunan)"
 

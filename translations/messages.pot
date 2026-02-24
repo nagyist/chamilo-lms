@@ -32651,3 +32651,6 @@ msgstr ""
 
 msgid "URI"
 msgstr ""
+
+msgid "%s (current)"
+msgstr ""

@@ -32754,3 +32754,6 @@ msgstr "المعامل"
 msgid "URI"
 msgstr "URI"
 
+msgid "%s (current)"
+msgstr "%s (الحالي)"
+

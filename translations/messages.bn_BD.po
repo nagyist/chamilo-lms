@@ -32736,3 +32736,6 @@ msgstr "প্যারামিটার"
 msgid "URI"
 msgstr "ইউআরআই"
 
+msgid "%s (current)"
+msgstr "%s (বর্তমান)"
+

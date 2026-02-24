@@ -33880,3 +33880,6 @@ msgstr "Parámetro"
 msgid "URI"
 msgstr "URI"
 
+msgid "%s (current)"
+msgstr "%s (actual)"
+

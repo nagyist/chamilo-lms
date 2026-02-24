@@ -32741,3 +32741,6 @@ msgstr "Parametrs"
 msgid "URI"
 msgstr "URI"
 
+msgid "%s (current)"
+msgstr "%s (pašreizējais)"
+

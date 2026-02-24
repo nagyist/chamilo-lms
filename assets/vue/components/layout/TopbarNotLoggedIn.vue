@@ -29,6 +29,35 @@ const isUndefinedUrl = computed(() => {
   return r.includes("undefined-url") || route.path.includes("/error/undefined-url")
 })
 
+function normalizeLocaleCode(value) {
+  return String(value || "")
+    .trim()
+    .replace("-", "_")
+    .toLowerCase()
+}
+
+const currentLanguageLabel = computed(() => {
+  // Read legacy locale from URL query (e.g. registration.php?_locale=eu_ES)
+  const rawLocale = Array.isArray(route.query?._locale) ? route.query._locale[0] : route.query?._locale
+  const urlLocale = normalizeLocaleCode(rawLocale)
+
+  if (urlLocale) {
+    const shortLocale = urlLocale.split("_")[0]
+
+    const match = languageList.find((lang) => {
+      const code = normalizeLocaleCode(lang?.isocode)
+      const shortCode = code.split("_")[0]
+      return code === urlLocale || shortCode === urlLocale || code === shortLocale || shortCode === shortLocale
+    })
+
+    if (match?.originalName) {
+      return match.originalName
+    }
+  }
+
+  return currentLanguageFromList?.originalName || t("Language")
+})
+
 const currentLocale = computed(() => currentLanguageFromList?.isocode || "en")
 const languageItems = computed(() =>
   languageList.map((lang) => ({
@@ -58,7 +87,7 @@ const menuItems = computed(() => {
     if (languageList.length > 1) {
       items.push({
         key: "language_selector",
-        label: currentLanguageFromList?.originalName || t("Language"),
+        label: currentLanguageLabel.value,
         items: languageItems.value,
       })
     }
@@ -86,7 +115,7 @@ const menuItems = computed(() => {
   if (languageList.length > 1) {
     items.push({
       key: "language_selector",
-      label: currentLanguageFromList?.originalName || t("Language"),
+      label: currentLanguageLabel.value,
       items: languageItems.value,
     })
   }

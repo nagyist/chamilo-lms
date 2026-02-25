@@ -1512,7 +1512,7 @@
     "Download speed (KB/s)": "Shpejt\u00ebsi shkarkimi (KB/s)",
     "Upload speed (KB/s)": "Shpejt\u00ebsi ngarkimi (KB/s)",
     "Delay (ms)": "Vones\u00eb (ms)",
-    "admin@example.com": "admin@example.com",
+    "admin@example.com": "admin{'@'}example.com",
     "Administrator name": "Emri i administratorit",
     "Administrator phone number": "Numri i telefonit t\u00eb administratorit",
     "ID of last synch transaction": "ID e transaksionit t\u00eb fundit t\u00eb sinkronizimit",

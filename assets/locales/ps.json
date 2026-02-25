@@ -1512,7 +1512,7 @@
     "Download speed (KB/s)": "\u0689\u0627\u0648\u0646\u0644\u0648\u0689 \u0633\u0631\u0639\u062a (KB/s)",
     "Upload speed (KB/s)": "\u0627\u067e\u0644\u0648\u0689 \u0633\u0631\u0639\u062a (KB/s)",
     "Delay (ms)": "\u0681\u0646\u0689 (ms)",
-    "admin@example.com": "admin@example.com",
+    "admin@example.com": "admin{'@'}example.com",
     "Administrator name": "\u062f \u0645\u062f\u06cc\u0631 \u0646\u0648\u0645",
     "Administrator phone number": "\u062f \u0645\u062f\u06cc\u0631 \u062f \u067c\u0644\u06cc\u0641\u0648\u0646 \u0634\u0645\u06d0\u0631\u0647",
     "ID of last synch transaction": "\u062f \u0648\u0631\u0648\u0633\u062a\u064a \u0647\u0645\u063a\u0696\u06cd \u062f \u0645\u0639\u0627\u0645\u0644\u06d0 ID",

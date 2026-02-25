@@ -1512,7 +1512,7 @@
     "Download speed (KB/s)": "\u0130ndirme h\u0131z\u0131 (KB/s)",
     "Upload speed (KB/s)": "Y\u00fckleme h\u0131z\u0131 (KB/s)",
     "Delay (ms)": "Gecikme (ms)",
-    "admin@example.com": "admin@example.com",
+    "admin@example.com": "admin{'@'}example.com",
     "Administrator name": "Y\u00f6netici ad\u0131",
     "Administrator phone number": "Y\u00f6netici telefon numaras\u0131",
     "ID of last synch transaction": "Son senkronizasyon i\u015fleminin ID'si",

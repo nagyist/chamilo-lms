@@ -1512,7 +1512,7 @@
     "Download speed (KB/s)": "Isantya sokukhuphela (KB/s)",
     "Upload speed (KB/s)": "Isantya sokulayisha (KB/s)",
     "Delay (ms)": "Ukuc engiselwa (ms)",
-    "admin@example.com": "admin@example.com",
+    "admin@example.com": "admin{'@'}example.com",
     "Administrator name": "Igama lomlawuli",
     "Administrator phone number": "Inombolo yefowuni yomlawuli",
     "ID of last synch transaction": "ID yentengiselwano yokugqibela yokuvavanya",

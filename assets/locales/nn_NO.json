@@ -1512,7 +1512,7 @@
     "Download speed (KB/s)": "Nedlasting hastighet (KB/s)",
     "Upload speed (KB/s)": "Opplasting hastighet (KB/s)",
     "Delay (ms)": "Forsinkelse (ms)",
-    "admin@example.com": "admin@example.com",
+    "admin@example.com": "admin{'@'}example.com",
     "Administrator name": "Administratornamn",
     "Administrator phone number": "Administrator telefonnummer",
     "ID of last synch transaction": "ID for siste synkroniseringstransaksjon",

@@ -1512,7 +1512,7 @@
     "Download speed (KB/s)": "Kasi ya kupakua (KB/s)",
     "Upload speed (KB/s)": "Kasi ya kupakia (KB/s)",
     "Delay (ms)": "Ucheleweshaji (ms)",
-    "admin@example.com": "admin@example.com",
+    "admin@example.com": "admin{'@'}example.com",
     "Administrator name": "Jina la msimamizi",
     "Administrator phone number": "Nambari ya simu ya msimamizi",
     "ID of last synch transaction": "Kitambulisho cha shughuli ya kusawazisha ya mwisho",

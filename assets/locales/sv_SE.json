@@ -1492,7 +1492,7 @@
     "Download speed (KB/s)": "Nedladdningshastighet (KB/s)",
     "Upload speed (KB/s)": "Uppladdningshastighet (KB/s)",
     "Delay (ms)": "F\u00f6rdr\u00f6jning (ms)",
-    "admin@example.com": "admin@example.com",
+    "admin@example.com": "admin{'@'}example.com",
     "Administrator name": "Administrat\u00f6rsnamn",
     "Administrator phone number": "Administrat\u00f6rens telefonnummer",
     "ID of last synch transaction": "ID f\u00f6r senaste synkroniseringstransaktion",

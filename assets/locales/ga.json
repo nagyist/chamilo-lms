@@ -1512,7 +1512,7 @@
     "Download speed (KB/s)": "Luas \u00edosl\u00f3d\u00e1la (KB/s)",
     "Upload speed (KB/s)": "Luas uasl\u00f3d\u00e1la (KB/s)",
     "Delay (ms)": "M\u00f3tar (ms)",
-    "admin@example.com": "admin@example.com",
+    "admin@example.com": "admin{'@'}example.com",
     "Administrator name": "Ainm an riarth\u00f3ra",
     "Administrator phone number": "Uimhir theileaf\u00f3in an riarth\u00f3ra",
     "ID of last synch transaction": "ID an idirbhearta sioncr\u00f3naithe deireanaigh",

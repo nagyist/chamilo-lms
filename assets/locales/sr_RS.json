@@ -1512,7 +1512,7 @@
     "Download speed (KB/s)": "Brzina preuzimanja (KB/s)",
     "Upload speed (KB/s)": "Brzina otpremanja (KB/s)",
     "Delay (ms)": "Ka\u0161njenje (ms)",
-    "admin@example.com": "admin@example.com",
+    "admin@example.com": "admin{'@'}example.com",
     "Administrator name": "Ime administratora",
     "Administrator phone number": "Broj telefona administratora",
     "ID of last synch transaction": "ID poslednje transakcije sinhronizacije",

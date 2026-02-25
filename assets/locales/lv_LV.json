@@ -1512,7 +1512,7 @@
     "Download speed (KB/s)": "Lejupiel\u0101des \u0101trums (KB/s)",
     "Upload speed (KB/s)": "Aug\u0161upiel\u0101des \u0101trums (KB/s)",
     "Delay (ms)": "Aizkave (ms)",
-    "admin@example.com": "admin@example.com",
+    "admin@example.com": "admin{'@'}example.com",
     "Administrator name": "Administratora v\u0101rds",
     "Administrator phone number": "Administratora t\u0101lru\u0146a numurs",
     "ID of last synch transaction": "P\u0113d\u0113j\u0101s sinhroniz\u0101cijas dar\u012bjuma ID",

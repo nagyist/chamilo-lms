@@ -1512,7 +1512,7 @@
     "Download speed (KB/s)": "Yachachisqa hayku (KB/s)",
     "Upload speed (KB/s)": "Kamachisqa hayku (KB/s)",
     "Delay (ms)": "P'utuy (ms)",
-    "admin@example.com": "admin@example.com",
+    "admin@example.com": "admin{'@'}example.com",
     "Administrator name": "Kamachiq sutin",
     "Administrator phone number": "Kamachiq telefonin",
     "ID of last synch transaction": "\u00d1awpaq sinqronizakuy ID",

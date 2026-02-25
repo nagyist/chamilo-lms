@@ -1512,7 +1512,7 @@
     "Download speed (KB/s)": "Rychlost stahov\u00e1n\u00ed (kB/s)",
     "Upload speed (KB/s)": "Rychlost nahr\u00e1v\u00e1n\u00ed (kB/s)",
     "Delay (ms)": "Zpo\u017ed\u011bn\u00ed (ms)",
-    "admin@example.com": "admin@example.com",
+    "admin@example.com": "admin{'@'}example.com",
     "Administrator name": "Jm\u00e9no administr\u00e1tora",
     "Administrator phone number": "Telefonn\u00ed \u010d\u00edslo administr\u00e1tora",
     "ID of last synch transaction": "ID posledn\u00ed synchroniza\u010dn\u00ed transakce",

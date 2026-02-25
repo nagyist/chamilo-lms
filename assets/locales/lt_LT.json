@@ -1512,7 +1512,7 @@
     "Download speed (KB/s)": "Atsisiuntimo greitis (KB/s)",
     "Upload speed (KB/s)": "\u012ek\u0117limo greitis (KB/s)",
     "Delay (ms)": "U\u017edelsimas (ms)",
-    "admin@example.com": "admin@example.com",
+    "admin@example.com": "admin{'@'}example.com",
     "Administrator name": "Administratoriaus vardas",
     "Administrator phone number": "Administratoriaus telefono numeris",
     "ID of last synch transaction": "Paskutin\u0117s sinchronizacijos operacijos ID",

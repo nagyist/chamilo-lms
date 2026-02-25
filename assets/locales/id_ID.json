@@ -1512,7 +1512,7 @@
     "Download speed (KB/s)": "Kecepatan unduh (KB/s)",
     "Upload speed (KB/s)": "Kecepatan unggah (KB/s)",
     "Delay (ms)": "Penundaan (ms)",
-    "admin@example.com": "admin@example.com",
+    "admin@example.com": "admin{'@'}example.com",
     "Administrator name": "Nama administrator",
     "Administrator phone number": "Nomor telepon administrator",
     "ID of last synch transaction": "ID transaksi sinkronisasi terakhir",

@@ -1512,7 +1512,7 @@
     "Download speed (KB/s)": "Deskarga abiadura (KB/s)",
     "Upload speed (KB/s)": "Igorpen abiadura (KB/s)",
     "Delay (ms)": "Atzerapena (ms)",
-    "admin@example.com": "admin@example.com",
+    "admin@example.com": "admin{'@'}example.com",
     "Administrator name": "Administratzailearen izena",
     "Administrator phone number": "Administratzailearen telefono zenbakia",
     "ID of last synch transaction": "Azken sinkronizazio transaktaren ID",

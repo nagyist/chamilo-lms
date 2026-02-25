@@ -1495,7 +1495,7 @@
     "Download speed (KB/s)": "Iyara igb\u1ecdw\u1ecd (KB/s)",
     "Upload speed (KB/s)": "Iyara ikoj\u1ecdp\u1ecd (KB/s)",
     "Delay (ms)": "Idaduro (ms)",
-    "admin@example.com": "admin@example.com",
+    "admin@example.com": "admin{'@'}example.com",
     "Administrator name": "Oruk\u1ecd Alakoso",
     "Administrator phone number": "N\u1ecdmba foonu Alakoso",
     "ID of last synch transaction": "ID ti idunadura amu\u1e63i\u1e63e ti o k\u1eb9hin",

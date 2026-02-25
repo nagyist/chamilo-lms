@@ -1500,7 +1500,7 @@
     "Download speed (KB/s)": "Ni\u00f0urlagshastighet (KB/s)",
     "Upload speed (KB/s)": "Uppg\u00e1vuhastighet (KB/s)",
     "Delay (ms)": "F\u00f6rvj\u00f8\u00f0ing (ms)",
-    "admin@example.com": "admin@example.com",
+    "admin@example.com": "admin{'@'}example.com",
     "Administrator name": "Stj\u00f3rnama\u00f0ur navn",
     "Administrator phone number": "Stj\u00f3rnama\u00f0ur telefonnumra",
     "ID of last synch transaction": "ID hj\u00e1 seinasta synkroniseringsvi\u00f0ger\u00f0",

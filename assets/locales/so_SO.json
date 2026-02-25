@@ -1512,7 +1512,7 @@
     "Download speed (KB/s)": "Xawaaraha soo dejinta (KB/s)",
     "Upload speed (KB/s)": "Xawaaraha soo gudbinta (KB/s)",
     "Delay (ms)": "Daahsoon (ms)",
-    "admin@example.com": "admin@example.com",
+    "admin@example.com": "admin{'@'}example.com",
     "Administrator name": "Magaca maamulaha",
     "Administrator phone number": "Lambarka taleefanka maamulaha",
     "ID of last synch transaction": "ID-ga wax kala iibsiga isku-dhafka ugu dambeeyay",

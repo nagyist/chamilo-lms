@@ -1512,7 +1512,7 @@
     "Download speed (KB/s)": "Vitesse de t\u00e9l\u00e9chargement (Ko/s)",
     "Upload speed (KB/s)": "Vitesse de t\u00e9l\u00e9versement (Ko/s)",
     "Delay (ms)": "D\u00e9lai (ms)",
-    "admin@example.com": "admin@example.com",
+    "admin@example.com": "admin{'@'}example.com",
     "Administrator name": "Nom de l'administrateur",
     "Administrator phone number": "Num\u00e9ro de t\u00e9l\u00e9phone de l'administrateur",
     "ID of last synch transaction": "ID de la derni\u00e8re transaction de synchronisation",

@@ -1512,7 +1512,7 @@
     "Download speed (KB/s)": "Vitesse di descargje (KB/s)",
     "Upload speed (KB/s)": "Vitesse di cargje (KB/s)",
     "Delay (ms)": "Ritard (ms)",
-    "admin@example.com": "admin@example.com",
+    "admin@example.com": "admin{'@'}example.com",
     "Administrator name": "Nume aministrad\u00f4r",
     "Administrator phone number": "Numar di telefon dal aministrad\u00f4r",
     "ID of last synch transaction": "ID de l'ultime transazion di sincronisazion",

@@ -1501,7 +1501,7 @@
     "Download speed (KB/s)": "Download snelheid (KB/s)",
     "Upload speed (KB/s)": "Upload snelheid (KB/s)",
     "Delay (ms)": "Vertraging (ms)",
-    "admin@example.com": "admin@example.com",
+    "admin@example.com": "admin{'@'}example.com",
     "Administrator name": "Naam administrator",
     "Administrator phone number": "Telefoonnummer administrator",
     "ID of last synch transaction": "ID van laatste synchronisatietransactie",

@@ -31425,8 +31425,8 @@ msgstr "ডাটাবেসের নামে শুধুমাত্র অ
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "ব্যবহারকারীদের এই প্ল্যাটফর্ম ব্যবহারের জন্য কী সাধারণ শর্তাবলী দেওয়া হয়েছে?"
 
-msgid "ex. {examplePassword}"
-msgstr "যেমন। {examplePassword}"
+msgid "ex. %s"
+msgstr "যেমন। %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Chamilo-তে স্বাগতম!"

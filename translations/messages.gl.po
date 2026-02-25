@@ -31444,8 +31444,8 @@ msgstr "Só se permiten letras, díxitos e guión baixo (_) no nome da base de d
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Que termos e condicións xerais se dan aos usuarios para usar esta plataforma?"
 
-msgid "ex. {examplePassword}"
-msgstr "p. ex. {examplePassword}"
+msgid "ex. %s"
+msgstr "p. ex. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Benvido a Chamilo!"

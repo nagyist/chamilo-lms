@@ -31444,8 +31444,8 @@ msgstr "V názve databázy sú povolené iba písmená, číslice a podčiarkovn
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Aké všeobecné podmienky používania tejto platformy sú poskytnuté používateľom?"
 
-msgid "ex. {examplePassword}"
-msgstr "napr. {examplePassword}"
+msgid "ex. %s"
+msgstr "napr. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Vitajte v Chamilo!"

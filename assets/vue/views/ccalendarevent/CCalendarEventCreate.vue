@@ -140,7 +140,7 @@ const notification = useNotification()
 watch(
   () => store.state.ccalendarevent.created,
   (created) => {
-    notification.showSuccessNotification(t("{resource} created", { resource: created.resourceNode.title }))
+    notification.showSuccessNotification(t("{0} created", [created.resourceNode.title]))
   },
 )
 </script>

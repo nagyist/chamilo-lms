@@ -31430,8 +31430,8 @@ msgstr "Duomenų bazės pavadinime leidžiamos tik raidės, skaitmenys ir pabrau
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Kokios bendrosios naudojimo sąlygos pateikiamos vartotojams šiai platformai naudoti?"
 
-msgid "ex. {examplePassword}"
-msgstr "pvz. {examplePassword}"
+msgid "ex. %s"
+msgstr "pvz. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Sveiki atvykę į Chamilo!"

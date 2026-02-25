@@ -31445,8 +31445,8 @@ msgstr "Nel nome del database sono consentite solo lettere, cifre e underscore (
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Quali condizioni generali vengono fornite agli utenti per utilizzare questa piattaforma?"
 
-msgid "ex. {examplePassword}"
-msgstr "es. {examplePassword}"
+msgid "ex. %s"
+msgstr "es. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Benvenuti in Chamilo!"

@@ -31429,8 +31429,8 @@ msgstr "Hanya huruf, digit dan underscore (_) dibenarkan dalam nama pangkalan da
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Apakah syarat dan peraturan umum yang diberikan kepada pengguna untuk menggunakan platform ini?"
 
-msgid "ex. {examplePassword}"
-msgstr "contoh. {examplePassword}"
+msgid "ex. %s"
+msgstr "contoh. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Selamat datang ke Chamilo!"

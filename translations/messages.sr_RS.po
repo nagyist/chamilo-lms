@@ -31432,8 +31432,8 @@ msgstr "U nazivu baze podataka su dozvoljena samo slova, cifre i donja crta (_).
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Koji opšti uslovi korišćenja se daju korisnicima za korišćenje ove platforme?"
 
-msgid "ex. {examplePassword}"
-msgstr "npr. {examplePassword}"
+msgid "ex. %s"
+msgstr "npr. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Dobrodošli u Chamilo!"

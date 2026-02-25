@@ -31442,8 +31442,8 @@ msgstr "רק אותיות, ספרות וקו תחתון (_) מותרות בשם 
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "אילו תנאים כלליים וכללי משתמש ניתנים למשתמשים לשימוש בפלטפורמה זו?"
 
-msgid "ex. {examplePassword}"
-msgstr "למשל. {examplePassword}"
+msgid "ex. %s"
+msgstr "למשל. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "ברוכים הבאים ל-Chamilo!"

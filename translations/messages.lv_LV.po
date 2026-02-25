@@ -31430,8 +31430,8 @@ msgstr "Datubāzes nosaukumā drīkst izmantot tikai burtus, ciparus un apakšsv
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Kādi vispārēji noteikumi un nosacījumi tiek doti lietotājiem, lai izmantotu šo platformu?"
 
-msgid "ex. {examplePassword}"
-msgstr "pi. {examplePassword}"
+msgid "ex. %s"
+msgstr "pi. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Laipni lūdzam Chamilo!"

@@ -31425,8 +31425,8 @@ msgstr "Tanging mga letra, digit at underscore (_) ang pinapayagan sa pangalan n
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Ano ang mga pangkalahatang tuntunin at kondisyon na ibinibigay sa mga gumagamit upang magamit ang platform na ito?"
 
-msgid "ex. {examplePassword}"
-msgstr "hal. {examplePassword}"
+msgid "ex. %s"
+msgstr "hal. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Maligayang pagdating sa Chamilo!"

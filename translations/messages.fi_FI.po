@@ -31431,8 +31431,8 @@ msgstr "Tietokannan nimessä sallitaan vain kirjaimet, numerot ja alaviiva (_). 
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Mitkä yleiset käyttöehdot annetaan käyttäjille tämän alustan käyttöön?"
 
-msgid "ex. {examplePassword}"
-msgstr "esim. {examplePassword}"
+msgid "ex. %s"
+msgstr "esim. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Tervetuloa Chamilo-hon!"

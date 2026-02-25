@@ -31431,8 +31431,8 @@ msgstr "Sutisapaq hallp'a, ñawpaq sunqun, utaq ch'usa (_ )mi kachkanman. Mana a
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "¿Imayna ruray willakuykuna yachakuqkuna platformata qhawayta atinman?"
 
-msgid "ex. {examplePassword}"
-msgstr "jt. {examplePassword}"
+msgid "ex. %s"
+msgstr "jt. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "¡Chamilo hunt'a kankichik!"

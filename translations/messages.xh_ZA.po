@@ -31425,8 +31425,8 @@ msgstr "Igama ledatha livumela oonobumba, amanani kunye neunderscore (_) kuphela
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Zeziphi iimeko jikelele ezinikwa abasebenzisi ukuze basebenzise eli qonga?"
 
-msgid "ex. {examplePassword}"
-msgstr "umf. {examplePassword}"
+msgid "ex. %s"
+msgstr "umf. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Wamkelekile eChamilo!"

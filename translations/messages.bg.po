@@ -31431,8 +31431,8 @@ msgstr "В името на базата данни са разрешени са�
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Какви общи условия и правила са дадени на потребителите за ползване на тази платформа?"
 
-msgid "ex. {examplePassword}"
-msgstr "напр. {examplePassword}"
+msgid "ex. %s"
+msgstr "напр. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Добре дошли в Chamilo!"

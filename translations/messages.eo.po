@@ -31431,8 +31431,8 @@ msgstr "Nur literoj, ciferoj kaj substreko (_) estas permesitaj en la nomo de da
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Kiuj ĝeneralaj kondiĉoj estas donitaj al uzantoj por uzi ĉi tiun platformon?"
 
-msgid "ex. {examplePassword}"
-msgstr "ekz. {examplePassword}"
+msgid "ex. %s"
+msgstr "ekz. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Bonvenon al Chamilo!"

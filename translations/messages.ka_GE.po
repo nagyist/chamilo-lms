@@ -31425,8 +31425,8 @@ msgstr "მოცულობის სახელში დაშვებუ�
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "რა ზოგადი პირობებია მოცემული მომხმარებლებს ამ პლატფორმის გამოყენებისთვის?"
 
-msgid "ex. {examplePassword}"
-msgstr "მაგ. {examplePassword}"
+msgid "ex. %s"
+msgstr "მაგ. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "კეთილი იყოს თქვენი მობრძანება Chamilo-ში!"

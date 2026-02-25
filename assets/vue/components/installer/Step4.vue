@@ -90,9 +90,7 @@
           for="dbPassForm"
         />
       </div>
-      <small
-        v-text="t('ex. {examplePassword}', { examplePassword: installerData.stepData.examplePassword })"
-      />
+      <small v-text="t('ex. {0}', [installerData.stepData.examplePassword])" />
     </div>
 
     <div class="field">

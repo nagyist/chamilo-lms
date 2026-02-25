@@ -31431,8 +31431,8 @@ msgstr "ชื่อฐานข้อมูลอนุญาตให้ใช
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "เงื่อนไขทั่วไปใดที่ให้ผู้ใช้เพื่อใช้งานแพลตฟอร์มนี้?"
 
-msgid "ex. {examplePassword}"
-msgstr "เช่น {examplePassword}"
+msgid "ex. %s"
+msgstr "เช่น %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "ยินดีต้อนรับสู่ Chamilo!"

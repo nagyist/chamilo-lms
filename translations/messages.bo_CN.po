@@ -31425,7 +31425,7 @@ msgstr ""
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr ""
 
-msgid "ex. {examplePassword}"
+msgid "ex. %s"
 msgstr ""
 
 msgid "Welcome to Chamilo!"

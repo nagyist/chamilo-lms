@@ -59,7 +59,7 @@ async function updateItem(formData) {
       ip: formData.ip || null,
       ipMask: formData.ipMask || null,
     })
-    toast.add({ severity: "success", detail: t("{resource} updated", { resource: formData["@id"] }), life: 3500 })
+    toast.add({ severity: "success", detail: t("{0} updated", [formData["@id"]]), life: 3500 })
     router.push({ name: "RoomList" })
   } catch (e) {
     toast.add({ severity: "error", detail: e.message, life: 3500 })

@@ -31431,8 +31431,8 @@ msgstr "Endast bokstäver, siffror och understreck (_) är tillåtna i databasna
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Vilka allmänna användarvillkor ges till användare för att använda denna plattform?"
 
-msgid "ex. {examplePassword}"
-msgstr "t.ex. {examplePassword}"
+msgid "ex. %s"
+msgstr "t.ex. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Välkommen till Chamilo!"

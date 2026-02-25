@@ -32997,8 +32997,8 @@ msgstr "Im Datenbanknamen sind nur Buchstaben, Ziffern und Unterstriche (_) erla
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Welche allgemeinen Geschäftsbedingungen werden den Nutzern für die Nutzung dieser Plattform mitgeteilt?"
 
-msgid "ex. {examplePassword}"
-msgstr "z. B. {examplePassword}"
+msgid "ex. %s"
+msgstr "z. B. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Willkommen bei Chamilo!"

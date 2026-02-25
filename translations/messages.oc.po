@@ -31425,8 +31425,8 @@ msgstr "Solament las letras, las ciffres e lo soslinh (_) son autorizats dins lo
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Quinas condicions generals son donadas als utilizaires per utilizar aquesta plataforma ?"
 
-msgid "ex. {examplePassword}"
-msgstr "ex. {examplePassword}"
+msgid "ex. %s"
+msgstr "ex. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Benvenguda a Chamilo !"

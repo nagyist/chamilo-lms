@@ -1,21 +1,21 @@
 <template>
   <div class="field">
-    <div class="p-float-label">
+    <FloatLabel variant="on">
       <InputText
-        v-bind="$attrs"
         :id="id"
         :aria-label="label"
-        :class="{ 'p-invalid': isInvalid, [inputClass]: true }"
         :disabled="disabled"
-        :required="required"
+        :invalid="isInvalid"
         :model-value="modelValue"
+        :required="required"
         type="text"
+        v-bind="$attrs"
         @update:model-value="updateValue"
       />
       <label :for="id">
         {{ label }}
       </label>
-    </div>
+    </FloatLabel>
     <small
       v-if="formSubmitted && isInvalid"
       class="p-error"
@@ -32,6 +32,7 @@
 </template>
 
 <script setup>
+import FloatLabel from "primevue/floatlabel"
 import InputText from "primevue/inputtext"
 
 defineOptions({ inheritAttrs: false })
@@ -71,10 +72,6 @@ defineProps({
   formSubmitted: {
     type: Boolean,
     default: false,
-  },
-  inputClass: {
-    type: String,
-    default: "",
   },
   disabled: {
     type: Boolean,

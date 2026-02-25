@@ -79,7 +79,20 @@ $adminActions = [
     'get_sessions',
 ];
 
-if (in_array($action, $courseActions, true)) {
+$origin = $_REQUEST['origin'] ?? '';
+
+/**
+ * Special case: "Diagnosis / load_search" calls get_sessions via AJAX.
+ * This must be accessible to DRH, Student Boss and Platform Admin, even if it is an "adminAction".
+ */
+$isDiagnosisLoadSearch = ('get_sessions' === $action && 'load_search' === $origin);
+if ($isDiagnosisLoadSearch) {
+    api_block_anonymous_users();
+
+    if (!(api_is_drh() || api_is_student_boss() || api_is_platform_admin())) {
+        api_not_allowed(true);
+    }
+} elseif (in_array($action, $courseActions, true)) {
     // Must be in a course context.
     api_protect_course_script();
 

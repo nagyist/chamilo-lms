@@ -925,6 +925,8 @@ $(function() {
 </script>';
 
 if (!empty($filterToSend)) {
+    $customDates = [];
+
     if (isset($params['search_using_1'])) {
         // Get start and end date from ExtraFieldSavedSearch
         $defaultExtraStartDate = $defaults['extra_access_start_date'] ?? '';
@@ -948,17 +950,9 @@ if (!empty($filterToSend)) {
         $userEndDatePlus = api_get_utc_datetime(substr($userEndDatePlus, 0, 11).'23:59:59');
 
         // Special OFAJ date logic
-        if ('' == $userEndDate) {
-            $sql = " AND (
-                (s.access_start_date >= '$userStartDateMinus') OR
-                ((s.access_start_date = '' OR s.access_start_date IS NULL) AND (s.access_end_date = '' OR s.access_end_date IS NULL))
-            )";
-        } else {
-            $sql = " AND (
-                (s.access_start_date >= '$userStartDateMinus' AND s.access_end_date < '$userEndDatePlus') OR
-                (s.access_start_date >= '$userStartDateMinus' AND (s.access_end_date = '' OR s.access_end_date IS NULL)) OR
-                ((s.access_start_date = '' OR s.access_start_date IS NULL) AND (s.access_end_date = '' OR s.access_end_date IS NULL))
-            )";
+        $customDates['start_date'] = $userStartDateMinus;
+        if ('' != $userEndDate) {
+            $customDates['end_date'] = $userEndDatePlus;
         }
     }
 
@@ -1091,7 +1085,7 @@ if (!empty($filterToSend)) {
 
     if (isset($params['search_using_1'])) {
         if ($userStartDate && !empty($userStartDate)) {
-            $filterToSend['custom_dates'] = $sql;
+            $filterToSend['custom_dates'] = $customDates;
         }
     }
 

@@ -282,6 +282,30 @@ if (($search || $forceSearch) && ('false' !== $search)) {
                 }
 
                 $whereCondition .= $extraQuestionCondition;
+
+                if (!empty($filters->custom_dates)) {
+                    $userStartDateMinus = isset($filters->custom_dates->start_date)
+                        ? Database::escape_string($filters->custom_dates->start_date)
+                        : null;
+                    $userEndDatePlus = isset($filters->custom_dates->end_date)
+                        ? Database::escape_string($filters->custom_dates->end_date)
+                        : null;
+
+                    if ($userStartDateMinus) {
+                        if (!$userEndDatePlus) {
+                            $whereCondition .= " AND (
+                                (s.access_start_date >= '$userStartDateMinus') OR
+                                ((s.access_start_date = '' OR s.access_start_date IS NULL) AND (s.access_end_date = '' OR s.access_end_date IS NULL))
+                            )";
+                        } else {
+                            $whereCondition .= " AND (
+                                (s.access_start_date >= '$userStartDateMinus' AND s.access_end_date < '$userEndDatePlus') OR
+                                (s.access_start_date >= '$userStartDateMinus' AND (s.access_end_date = '' OR s.access_end_date IS NULL)) OR
+                                ((s.access_start_date = '' OR s.access_start_date IS NULL) AND (s.access_end_date = '' OR s.access_end_date IS NULL))
+                            )";
+                        }
+                    }
+                }
             }
         } elseif (!empty($filters->rules)) {
             $whereCondition .= ' AND ( ';

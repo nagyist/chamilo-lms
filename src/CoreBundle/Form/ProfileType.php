@@ -18,7 +18,11 @@ use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\Email as EmailConstraint;
+use Symfony\Component\Validator\Constraints\NotBlank;
 use Throwable;
 
 use const JSON_THROW_ON_ERROR;
@@ -39,6 +43,11 @@ class ProfileType extends AbstractType
         $changeableOptions = $this->settingsManager->getSetting('profile.changeable_options', true) ?? [];
         $visibleOptions = $this->settingsManager->getSetting('profile.visible_options', true) ?? [];
 
+        // Registration required fields (used to enforce required profile fields when configured)
+        // Note: The setting key name depends on the platform settings configuration.
+        // We use a safe fallback to an empty list if not configured.
+        $requiredOptions = $this->settingsManager->getSetting('registration.required_fields', true) ?? [];
+
         // When enabled, the timezone field must be visible and editable in the profile form,
         // regardless of profile field visibility JSON/lists.
         $usersTimezonesEnabled = 'true' === (string) $this->settingsManager->getSetting('profile.use_users_timezone', true);
@@ -53,6 +62,7 @@ class ProfileType extends AbstractType
                 $rawFine = [];
             }
         }
+
         $fieldsVisibility = [];
         if (\is_array($rawFine)) {
             $fieldsVisibility = $rawFine['options'] ?? $rawFine;
@@ -78,6 +88,7 @@ class ProfileType extends AbstractType
 
         $visibleHigh = $expand(\is_array($visibleOptions) ? $visibleOptions : []);
         $editableHigh = $expand(\is_array($changeableOptions) ? $changeableOptions : []);
+        $requiredHigh = $expand(\is_array($requiredOptions) ? $requiredOptions : []);
 
         $languages = array_flip($this->languageRepository->getAllAvailableToArray(true, true));
         $ignoredKeys = [
@@ -186,6 +197,12 @@ class ProfileType extends AbstractType
             return \in_array($key, $editableHigh, true);
         };
 
+        // Requiredness (core):
+        // Uses the "registration.required_fields" setting if available.
+        $isCoreRequired = static function (string $key) use ($requiredHigh): bool {
+            return \in_array($key, $requiredHigh, true);
+        };
+
         // Build core fields (except timezone; decide after)
         foreach ($fieldsMap as $key => $fieldConfig) {
             if ('timezone' === $key) {
@@ -195,9 +212,14 @@ class ProfileType extends AbstractType
                 continue;
             }
 
+            $required = (bool) ($fieldConfig['required'] ?? false);
+            if (!$required && $isCoreRequired($key)) {
+                $required = true;
+            }
+
             $opts = [
                 'label' => $fieldConfig['label'],
-                'required' => $fieldConfig['required'] ?? false,
+                'required' => $required,
                 'mapped' => $fieldConfig['mapped'] ?? true,
             ];
 
@@ -218,8 +240,36 @@ class ProfileType extends AbstractType
                 $opts = array_merge($opts, $extra);
             }
 
+            // Prevent TypeError when clearing scalar fields (e.g. email) by ensuring empty value maps to a string.
+            if (\in_array($fieldConfig['type'], [TextType::class, EmailType::class], true)) {
+                $opts['empty_data'] = '';
+                $opts['trim'] = true;
+            }
+
+            // Email: enforce consistent validation and avoid null mapping.
+            if ('email' === $key) {
+                $constraints = [
+                    new EmailConstraint([
+                        'mode' => EmailConstraint::VALIDATION_MODE_HTML5,
+                        'message' => 'Please enter a valid email address.',
+                    ]),
+                ];
+
+                if ($opts['required']) {
+                    $constraints[] = new NotBlank([
+                        'message' => 'This value should not be blank.',
+                    ]);
+                }
+
+                $opts['constraints'] = $constraints;
+                $opts['invalid_message'] = 'Please enter a valid email address.';
+                $opts['empty_data'] = '';
+            }
+
             if (!$isCoreEditable($key)) {
                 $opts['disabled'] = true;
+                // Disabled fields are not submitted; keep required=false to avoid confusing UI markers.
+                $opts['required'] = false;
             }
 
             $builder->add($fieldConfig['field'], $fieldConfig['type'], $opts);
@@ -237,9 +287,24 @@ class ProfileType extends AbstractType
             $opts = array_merge($opts, $extra);
             if (!$isCoreEditable('timezone')) {
                 $opts['disabled'] = true;
+                $opts['required'] = false;
             }
             $builder->add($tzCfg['field'], $tzCfg['type'], $opts);
         }
+
+        // Normalize null submissions to empty string to prevent "Expected string, null given" mapping errors.
+        $builder->addEventListener(FormEvents::PRE_SUBMIT, static function (FormEvent $event): void {
+            $data = $event->getData();
+            if (!\is_array($data)) {
+                return;
+            }
+
+            if (\array_key_exists('email', $data) && null === $data['email']) {
+                $data['email'] = '';
+            }
+
+            $event->setData($data);
+        });
 
         // Build ExtraFieldType with allowlist + editable map derived from fine JSON (strict when present)
         $coreKeys = array_keys($fieldsMap);

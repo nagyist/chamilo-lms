@@ -138,29 +138,25 @@ if (!empty($items)) {
     }
 }
 
-if (isset($defaults['extra_access_start_date']) && isset($defaults['extra_access_start_date'][0])) {
+if (isset($defaults['extra_access_start_date'][0])) {
     $defaults['extra_access_start_date'] = $defaults['extra_access_start_date'][0];
 }
 
-if (isset($defaults['extra_access_end_date']) && isset($defaults['extra_access_end_date'][0])) {
+if (isset($defaults['extra_access_end_date'][0])) {
     $defaults['extra_access_end_date'] = $defaults['extra_access_end_date'][0];
 }
 
 $extraField = new ExtraField('session');
-$extraFieldValue = new ExtraFieldValue('session');
 $extraFieldValueUser = new ExtraFieldValue('user');
 
 $wantStage = $extraFieldValueUser->get_values_by_handler_and_field_variable(api_get_user_id(), 'filiere_want_stage');
-$defaultValueStatus = '';
+
 $hide = true;
 if ($wantStage) {
     $hide = ('yes' === $wantStage['field_value'] || '' === $wantStage['field_value']);
 }
 
-$defaultValueStatus = 'extraFiliere.hide()';
-if (false === $hide) {
-    $defaultValueStatus = '';
-}
+$defaultValueStatus = false === $hide ? '' : 'extraFiliere.hide()';
 
 $theme = 'theme_fr';
 
@@ -567,7 +563,6 @@ $domainList = array_merge(
     is_object($domaine2) && !empty($domaine2->getValue()) ? $domaine2->getValue() : []
 );
 
-$themeList = [];
 $extraField = new ExtraField('session');
 $resultOptions = $extraField->searchOptionsFromTags('extra_domaine', 'extra_'.$theme, $domainList);
 
@@ -584,7 +579,6 @@ if ($resultOptions) {
     }
 }
 
-$filterToSend = '';
 if ($formSearch->validate()) {
     $formSearchParams = $formSearch->getSubmitValues();
 }
@@ -592,7 +586,7 @@ if ($formSearch->validate()) {
 // Search filter
 $filters = [];
 foreach ($defaults as $key => $value) {
-    if ('extra_' !== substr($key, 0, 6) && '_extra_' !== substr($key, 0, 7)) {
+    if (!str_starts_with($key, 'extra_') && !str_starts_with($key, '_extra_')) {
         continue;
     }
     if (!empty($value)) {
@@ -603,23 +597,21 @@ foreach ($defaults as $key => $value) {
 $filterToSend = [];
 if (!empty($filters)) {
     $filterToSend = ['groupOp' => 'AND'];
-    if ($filters) {
-        $count = 1;
-        $countExtraField = 1;
-        foreach ($result['column_model'] as $column) {
-            if ($count > 5) {
-                if (isset($filters[$column['name']])) {
-                    $defaultValues['jqg'.$countExtraField] = $filters[$column['name']];
-                    $filterToSend['rules'][] = [
-                        'field' => $column['name'],
-                        'op' => 'cn',
-                        'data' => $filters[$column['name']],
-                    ];
-                }
-                $countExtraField++;
+    $count = 1;
+    $countExtraField = 1;
+    foreach ($result['column_model'] as $column) {
+        if ($count > 5) {
+            if (isset($filters[$column['name']])) {
+                $defaultValues['jqg'.$countExtraField] = $filters[$column['name']];
+                $filterToSend['rules'][] = [
+                    'field' => $column['name'],
+                    'op' => 'cn',
+                    'data' => $filters[$column['name']],
+                ];
             }
-            $count++;
+            $countExtraField++;
         }
+        $count++;
     }
 }
 
@@ -664,23 +656,21 @@ if ($form->validate()) {
         $filterToSend = [];
         if (!empty($filters)) {
             $filterToSend = ['groupOp' => 'AND'];
-            if ($filters) {
-                $count = 1;
-                $countExtraField = 1;
-                foreach ($result['column_model'] as $column) {
-                    if ($count > 5) {
-                        if (isset($filters[$column['name']])) {
-                            $defaultValues['jqg'.$countExtraField] = $filters[$column['name']];
-                            $filterToSend['rules'][] = [
-                                'field' => $column['name'],
-                                'op' => 'cn',
-                                'data' => $filters[$column['name']],
-                            ];
-                        }
-                        $countExtraField++;
+            $count = 1;
+            $countExtraField = 1;
+            foreach ($result['column_model'] as $column) {
+                if ($count > 5) {
+                    if (isset($filters[$column['name']])) {
+                        $defaultValues['jqg'.$countExtraField] = $filters[$column['name']];
+                        $filterToSend['rules'][] = [
+                            'field' => $column['name'],
+                            'op' => 'cn',
+                            'data' => $filters[$column['name']],
+                        ];
                     }
-                    $count++;
+                    $countExtraField++;
                 }
+                $count++;
             }
         }
 
@@ -731,13 +721,6 @@ if ($form->validate()) {
             'extra_ecrire',
         ];
 
-        foreach ($userData as $key => $value) {
-            $found = strpos($key, '__persist__');
-            if (false === $found) {
-                continue;
-            }
-        }
-
         if (isset($userData['extra_filiere_want_stage']) &&
             isset($userData['extra_filiere_want_stage']['extra_filiere_want_stage'])
         ) {
@@ -753,7 +736,7 @@ if ($form->validate()) {
 
         // save in ExtraFieldSavedSearch.
         foreach ($userData as $key => $value) {
-            if ('extra_' !== substr($key, 0, 6) && '_extra_' !== substr($key, 0, 7)) {
+            if (!str_starts_with($key, 'extra_') && !str_starts_with($key, '_extra_')) {
                 continue;
             }
 
@@ -815,19 +798,9 @@ if ($form->validate()) {
 
 $view = $form->returnForm();
 
-$jsTag = '';
-if (!empty($tagsData)) {
-    foreach ($tagsData as $extraField => $tags) {
-        foreach ($tags as $tag) {
-            $tag = api_htmlentities($tag);
-        }
-    }
-}
-
 $htmlHeadXtra[] = '<script>
 $(function() {
     '.$jqueryExtra.'
-    '.$jsTag.'
 });
 </script>';
 
@@ -954,11 +927,11 @@ $(function() {
 if (!empty($filterToSend)) {
     if (isset($params['search_using_1'])) {
         // Get start and end date from ExtraFieldSavedSearch
-        $defaultExtraStartDate = isset($defaults['extra_access_start_date']) ? $defaults['extra_access_start_date'] : '';
-        $defaultExtraEndDate = isset($defaults['extra_access_end_date']) ? $defaults['extra_access_end_date'] : '';
+        $defaultExtraStartDate = $defaults['extra_access_start_date'] ?? '';
+        $defaultExtraEndDate = $defaults['extra_access_end_date'] ?? '';
 
-        $userStartDate = isset($params['extra_access_start_date']) ? $params['extra_access_start_date'] : $defaultExtraStartDate;
-        $userEndDate = isset($params['extra_access_end_date']) ? $params['extra_access_end_date'] : $defaultExtraEndDate;
+        $userStartDate = $params['extra_access_start_date'] ?? $defaultExtraStartDate;
+        $userEndDate = $params['extra_access_end_date'] ?? $defaultExtraEndDate;
 
         // Minus 3 days
         $date = new DateTime($userStartDate);
@@ -990,7 +963,6 @@ if (!empty($filterToSend)) {
     }
 
     $deleteFiliere = false;
-    $extraFieldOptions = new ExtraFieldOption('session');
     $extraFieldSession = new ExtraField('session');
 
     // Special filters
@@ -1114,7 +1086,7 @@ if (!empty($filterToSend)) {
     }
 
     // Language
-    $lang = isset($params['extra_langue_cible']) ? $params['extra_langue_cible'] : $defaultLangCible;
+    $lang = $params['extra_langue_cible'] ?? $defaultLangCible;
     $lang = strtolower($lang);
 
     if (isset($params['search_using_1'])) {
@@ -1211,12 +1183,10 @@ $tpl->assign('form', $view);
 $tpl->assign('form_search', $formSearch->returnForm().$userForm->returnForm());
 
 $table = new HTML_Table(['class' => 'data_table']);
-$column = 0;
 $row = 0;
 
 $total = 0;
 $sumHours = 0;
-$numHours = 0;
 
 $field = 'heures_disponibilite_par_semaine';
 $data = null;

@@ -519,8 +519,10 @@ class ResourceNodeVoter extends Voter
             return false;
         }
 
-        // Match only: /r/quiz/attempt_feedback/{uuid}/view
-        if (!preg_match('#^/r/quiz/attempt_feedback/[0-9a-fA-F-]{36}/view$#', $pathInfo)) {
+        // Match only:
+        // /r/quiz/attempt_feedback/{uuid}/view
+        // /r/quiz/attempt_file/{uuid}/view
+        if (!preg_match('#^/r/quiz/(attempt_feedback|attempt_file)/[0-9a-fA-F-]{36}/view$#', $pathInfo)) {
             return false;
         }
 
@@ -536,7 +538,7 @@ class ResourceNodeVoter extends Voter
 
         // Keep the exception scoped to expected resource types.
         $type = strtolower((string) ($resourceNode->getResourceType()?->getTitle() ?? ''));
-        if (!\in_array($type, ['files', 'quiz', 'attempt_feedback'], true)) {
+        if (!\in_array($type, ['files', 'quiz', 'attempt_feedback', 'attempt_file'], true)) {
             return false;
         }
 

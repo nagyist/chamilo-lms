@@ -211,13 +211,7 @@
           />
           <BaseButton
             v-if="canEdit(slotProps.data)"
-            :icon="
-              RESOURCE_LINK_PUBLISHED === slotProps.data.resourceLinkListFromEntity[0].visibility
-                ? 'eye-on'
-                : RESOURCE_LINK_DRAFT === slotProps.data.resourceLinkListFromEntity[0].visibility
-                  ? 'eye-off'
-                  : ''
-            "
+            :icon="getVisibilityIcon(slotProps.data)"
             :title="t('Visibility')"
             size="small"
             type="secondary"
@@ -679,7 +673,61 @@ filters.value.loadNode = 1
 
 const selectedItems = ref([])
 
-const items = computed(() => store.getters["documents/getRecents"])
+/**
+ * -----------------------------------------
+ * Visibility helpers (safe access)
+ * -----------------------------------------
+ */
+function getPrimaryResourceLink(doc) {
+  const links = doc?.resourceLinkListFromEntity
+  if (!Array.isArray(links) || links.length === 0) {
+    return null
+  }
+  return links[0] || null
+}
+
+function getPrimaryVisibility(doc) {
+  const rl = getPrimaryResourceLink(doc)
+  if (!rl) return null
+  const v = Number(rl.visibility)
+  return Number.isFinite(v) ? v : null
+}
+
+function getVisibilityIcon(doc) {
+  const v = getPrimaryVisibility(doc)
+  if (v === RESOURCE_LINK_PUBLISHED) return "eye-on"
+  if (v === RESOURCE_LINK_DRAFT) return "eye-off"
+  return ""
+}
+
+const rawItems = computed(() => store.getters["documents/getRecents"] || [])
+
+/**
+ * Student view / learner visibility filter.
+ * Note: We keep all existing behaviors and only filter the UI list for learners/student-view.
+ */
+function isVisibleForLearner(doc) {
+  const links = doc?.resourceLinkListFromEntity
+  if (!Array.isArray(links) || links.length === 0) return true
+  return links.some((rl) => Number(rl?.visibility) === RESOURCE_LINK_PUBLISHED)
+}
+
+const items = computed(() => {
+  const list = rawItems.value
+
+  // In student view, behave like learner even if logged as teacher.
+  if (platformConfigStore.isStudentViewActive) {
+    return list.filter(isVisibleForLearner)
+  }
+
+  // For real learners, also keep only published.
+  if (!securityStore.isCurrentTeacher) {
+    return list.filter(isVisibleForLearner)
+  }
+
+  return list
+})
+
 const isLoading = computed(() => store.getters["documents/isLoading"])
 const totalItems = computed(() => store.getters["documents/getTotalItems"])
 const resourceNode = computed(() => store.getters["resourcenode/getResourceNode"])
@@ -726,7 +774,7 @@ watch(isLoading, (val) => {
   }
 })
 
-// if store loading toggles late (or not at all), stop local loading when data changes.
+// If store loading toggles late (or not at all), stop local loading when data changes.
 watch([items, totalItems], () => {
   if (!hasRequestedList.value) return
   if (!isLoading.value) {
@@ -742,7 +790,7 @@ function resolveDefaultRows(total = 0) {
 }
 
 const canEdit = (item) => {
-  const resourceLink = item?.resourceLinkListFromEntity?.[0]
+  const resourceLink = getPrimaryResourceLink(item)
   if (!resourceLink) {
     return false
   }
@@ -752,7 +800,7 @@ const canEdit = (item) => {
 }
 
 const isSessionDocument = (item) => {
-  const resourceLink = item?.resourceLinkListFromEntity?.[0]
+  const resourceLink = getPrimaryResourceLink(item)
   return resourceLink?.session && resourceLink.session["@id"] === `/api/sessions/${sid}`
 }
 

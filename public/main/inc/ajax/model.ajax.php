@@ -282,10 +282,6 @@ if (($search || $forceSearch) && ('false' !== $search)) {
                 }
 
                 $whereCondition .= $extraQuestionCondition;
-
-                if (isset($filters->custom_dates)) {
-                    $whereCondition .= $filters->custom_dates;
-                }
             }
         } elseif (!empty($filters->rules)) {
             $whereCondition .= ' AND ( ';

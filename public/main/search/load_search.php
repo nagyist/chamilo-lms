@@ -4,6 +4,7 @@
 
 use Chamilo\CoreBundle\Entity\ExtraFieldSavedSearch;
 use Chamilo\CoreBundle\Enums\ActionIcon;
+use Chamilo\CoreBundle\Framework\Container;
 use ChamiloSession as Session;
 
 $cidReset = true;
@@ -21,20 +22,23 @@ $allowToSee = api_is_drh() || api_is_student_boss() || api_is_platform_admin();
 if (false === $allowToSee) {
     api_not_allowed(true);
 }
+
+$httpRequest = Container::getRequest();
+
 $userId = api_get_user_id();
 $userInfo = api_get_user_info();
 
-$userToLoad = isset($_GET['user_id']) ? (int) $_GET['user_id'] : 0;
+$userToLoad = $httpRequest->query->getInt('user_id');
 
 $userToLoadInfo = [];
 if ($userToLoad) {
     $userToLoadInfo = api_get_user_info($userToLoad);
 }
-$action = $_GET['action'] ?? '';
+$action = $httpRequest->query->get('action');
 
 switch ($action) {
     case 'subscribe_user':
-        $sessionId = isset($_GET['session_id']) ? $_GET['session_id'] : '';
+        $sessionId = $httpRequest->query->getInt('session_id');
         SessionManager::subscribeUsersToSession(
             $sessionId,
             [$userToLoad],
@@ -45,7 +49,7 @@ switch ($action) {
         header("Location: ".api_get_self().'?user_id='.$userToLoad.'#session-table');
         break;
     case 'unsubscribe_user':
-        $sessionId = isset($_GET['session_id']) ? $_GET['session_id'] : '';
+        $sessionId = $httpRequest->query->getInt('session_id');
         SessionManager::unsubscribe_user_from_session($sessionId, $userToLoad);
         Display::addFlash(Display::return_message(get_lang('User is now unsubscribed')));
         header("Location: ".api_get_self().'?user_id='.$userToLoad.'#session-table');
@@ -299,10 +303,10 @@ $extra = $extraFieldUser->addElements(
 );
 $userForm->addEndPanel();
 
-if (isset($_POST) && !empty($_POST)) {
-    $searchChecked1 = isset($_POST['search_using_1']) ? 'checked' : '';
-    $searchChecked2 = isset($_POST['search_using_2']) ? 'checked' : '';
-    $searchChecked3 = isset($_POST['search_using_3']) ? 'checked' : '';
+if ($httpRequest->isMethod('POST')) {
+    $searchChecked1 = $httpRequest->request->has('search_using_1') ? 'checked' : '';
+    $searchChecked2 = $httpRequest->request->has('search_using_2') ? 'checked' : '';
+    $searchChecked3 = $httpRequest->request->has('search_using_3') ? 'checked' : '';
     Session::write('search_using_1', $searchChecked1);
     Session::write('search_using_2', $searchChecked2);
     Session::write('search_using_3', $searchChecked3);
@@ -680,8 +684,13 @@ if ($form->validate()) {
             }
         }
 
-        if (!empty($_REQUEST['filter_status'])) {
-            $filterToSend['filter_status'] = (int) $_REQUEST['filter_status'];
+        $filterStatus = $httpRequest->query->getInt(
+            'filter_status',
+            $httpRequest->request->getInt('filter_status')
+        );
+
+        if ($filterStatus) {
+            $filterToSend['filter_status'] = $filterStatus;
         }
     }
 

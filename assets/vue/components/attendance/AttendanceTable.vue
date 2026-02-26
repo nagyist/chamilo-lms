@@ -40,7 +40,7 @@
       sortable
     >
       <template #body="slotProps">
-        <div v-html="slotProps.data.description"></div>
+        <div v-html="sanitizeHtml(slotProps.data.description)"></div>
       </template>
     </Column>
 
@@ -91,6 +91,7 @@ import { useRoute } from "vue-router"
 import { computed } from "vue"
 import { useSecurityStore } from "../../store/securityStore"
 import BaseTable from "../basecomponents/BaseTable.vue"
+import DOMPurify from "dompurify"
 
 const route = useRoute()
 const securityStore = useSecurityStore()
@@ -111,6 +112,14 @@ const onEdit = (attendance) => emit("edit", attendance)
 const onView = (attendance) => emit("view", attendance)
 const onDelete = (attendance) => emit("delete", attendance)
 const onPageChange = (event) => emit("pageChange", event)
+
+// Sanitize rich HTML content before rendering it with v-html.
+const sanitizeHtml = (html, options = {}) => {
+  return DOMPurify.sanitize(html ?? "", {
+    ADD_ATTR: ["target", "rel"],
+    ...options,
+  })
+}
 
 const getVisibilityIcon = (attendance) => {
   const visibility = attendance.resourceLinkListFromEntity?.[0]?.visibility || 0

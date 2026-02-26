@@ -232,6 +232,7 @@ import { ref, reactive, computed, onBeforeUnmount, watch, onMounted } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRoute } from "vue-router"
 import { useCidReq } from "../../composables/cidReq"
+import DOMPurify from "dompurify"
 
 const { t } = useI18n({ useScope: "global" })
 const route = useRoute()
@@ -527,12 +528,6 @@ function normalizeContactsHtmlForAiTutor(html) {
   return wrap.innerHTML
 }
 
-function linkify(str) {
-  return (str || "").replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
-}
-function renderMessage(html) {
-  return linkify(html)
-}
 function formatTs(ts) {
   const d = Number(ts) * 1000
   if (!Number.isFinite(d)) return ""
@@ -556,6 +551,65 @@ function escapeForHtml(s) {
     (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[m],
   )
 }
+
+/**
+ * Convert plain text to safe HTML with clickable links.
+ * - Escapes all user content first (prevents HTML injection).
+ * - Then converts URLs to <a> tags with safe attributes.
+ * - Newlines are converted to <br> for readability.
+ */
+function linkify(raw) {
+  const s = String(raw ?? "")
+  const re = /(https?:\/\/[^\s<>"']+)/g
+
+  let out = ""
+  let last = 0
+  let m
+
+  while ((m = re.exec(s)) !== null) {
+    const url = m[0]
+    const start = m.index
+
+    out += escapeForHtml(s.slice(last, start)).replace(/\n/g, "<br>")
+
+    // Build a safe href. URL() will normalize/encode unsafe characters.
+    let href = ""
+    try {
+      const u = new URL(url)
+      if (/^https?:$/i.test(u.protocol)) href = u.toString()
+    } catch {
+      href = ""
+    }
+
+    if (href) {
+      // Extra hardening: prevent quote-based attribute breaking.
+      const safeHref = href.replace(/"/g, "%22").replace(/'/g, "%27")
+      const text = escapeForHtml(url)
+      out += `<a href="${safeHref}" target="_blank" rel="noopener noreferrer">${text}</a>`
+    } else {
+      out += escapeForHtml(url)
+    }
+
+    last = start + url.length
+  }
+
+  out += escapeForHtml(s.slice(last)).replace(/\n/g, "<br>")
+  return out
+}
+
+/**
+ * Render chat message safely for v-html.
+ * Allow only <a> and <br> tags (chat messages are treated as plain text).
+ */
+function renderMessage(rawMessage) {
+  const html = linkify(rawMessage)
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ["a", "br"],
+    ALLOWED_ATTR: ["href", "target", "rel"],
+    ADD_ATTR: ["target", "rel"],
+  })
+}
+
 function isMine(m) {
   return Number(m?.from_user_info?.id) === me.id || Number(m?.f) === me.id
 }
@@ -1314,7 +1368,6 @@ async function send() {
     if (!tutorCtx.enabled || !inCourse.value) return
   }
 
-  const msgEscaped = escapeForHtml(raw)
   const nowSec = Math.floor(Date.now() / 1000)
 
   const tempId = -Date.now()
@@ -1323,7 +1376,8 @@ async function send() {
     username: me.name,
     date: nowSec,
     f: me.id,
-    message: msgEscaped,
+    // Store raw message; rendering will escape + sanitize to prevent XSS.
+    message: raw,
     id: tempId,
     recd: 0,
     pending: true,

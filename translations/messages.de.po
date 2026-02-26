@@ -9227,7 +9227,7 @@ msgid "Modules"
 msgstr "Werkzeuge"
 
 msgid "Everyone"
-msgstr "jeden"
+msgstr "Jeder"
 
 msgid "Select groups/users"
 msgstr "Nutzer/Gruppe auswählen"

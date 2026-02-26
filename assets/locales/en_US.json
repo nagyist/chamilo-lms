@@ -1521,5 +1521,6 @@
     "SSL public key": "SSL public key",
     "Branch type": "Branch type",
     "Room": "Room",
-    "{0} (current)": "{0} (current)"
+    "{0} (current)": "{0} (current)",
+    "Course home": "Course home"
 }

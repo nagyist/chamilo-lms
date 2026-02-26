@@ -1521,5 +1521,6 @@
     "SSL public key": "Cl\u00e9 publique SSL",
     "Branch type": "Type de succursale",
     "Room": "Salle",
-    "{0} (current)": "{0} (actuel)"
+    "{0} (current)": "{0} (actuel)",
+    "Course home": "Page d'accueil"
 }

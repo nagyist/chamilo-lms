@@ -1521,5 +1521,6 @@
     "SSL public key": "Chave p\u00fablica SSL",
     "Branch type": "Tipo de ramo",
     "Room": "Sala",
-    "{0} (current)": "{0} (atual)"
+    "{0} (current)": "{0} (atual)",
+    "Course home": "home Curso"
 }

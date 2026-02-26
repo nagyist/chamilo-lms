@@ -1521,5 +1521,6 @@
     "SSL public key": "Klucz publiczny SSL",
     "Branch type": "Typ oddzia\u0142u",
     "Room": "Sala",
-    "{0} (current)": "{0} (bie\u017c\u0105cy)"
+    "{0} (current)": "{0} (bie\u017c\u0105cy)",
+    "Course home": "Strona kursu"
 }

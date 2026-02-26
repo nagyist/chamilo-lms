@@ -1349,7 +1349,7 @@ msgid "Exercise list."
 msgstr "Liste d'exercices"
 
 msgid "Course home"
-msgstr "Page d'accueil du cours"
+msgstr "Page d'accueil"
 
 msgid "Exercise end button"
 msgstr "Bouton de fin d'exercice"

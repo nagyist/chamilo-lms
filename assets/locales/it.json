@@ -1521,5 +1521,6 @@
     "SSL public key": "Chiave pubblica SSL",
     "Branch type": "Tipo filiale",
     "Room": "Stanza",
-    "{0} (current)": "{0} (attuale)"
+    "{0} (current)": "{0} (attuale)",
+    "Course home": "Pagina del Corso"
 }

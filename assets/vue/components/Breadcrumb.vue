@@ -555,7 +555,7 @@ watchEffect(() => {
     const label = currentMatched.meta?.breadcrumb
     if (label !== "") {
       const finalLabel = label || formatToolName(currentMatched.name)
-      const alreadyShown = calculatedList.value.some((item) => item.label === finalLabel)
+      const alreadyShown = calculatedList.value.some((item) => item.label === t(finalLabel))
       if (!alreadyShown) {
         calculatedList.value.push({
           label: t(finalLabel),

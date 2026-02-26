@@ -1521,5 +1521,6 @@
     "SSL public key": "Kunci publik SSL",
     "Branch type": "Jenis cabang",
     "Room": "Ruangan",
-    "{0} (current)": "{0} (saat ini)"
+    "{0} (current)": "{0} (saat ini)",
+    "Course home": "Beranda kursus"
 }

@@ -1521,5 +1521,6 @@
     "SSL public key": "SSL \u516c\u9470",
     "Branch type": "\u5206\u652f\u985e\u578b",
     "Room": "\u623f\u9593",
-    "{0} (current)": "{0} (\u76ee\u524d)"
+    "{0} (current)": "{0} (\u76ee\u524d)",
+    "Course home": "\u8ab2\u7a0b\u9996\u9801"
 }

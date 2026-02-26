@@ -1521,5 +1521,6 @@
     "SSL public key": "SSL offentlig n\u00f8kkel",
     "Branch type": "Gren type",
     "Room": "Rom",
-    "{0} (current)": "{0} (noe)"
+    "{0} (current)": "{0} (noe)",
+    "Course home": "Kursstartsida"
 }

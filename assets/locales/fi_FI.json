@@ -1521,5 +1521,6 @@
     "SSL public key": "SSL-julkainen avain",
     "Branch type": "Haaran tyyppi",
     "Room": "Huone",
-    "{0} (current)": "{0} (nykyinen)"
+    "{0} (current)": "{0} (nykyinen)",
+    "Course home": "Kurssin aloitussivu"
 }

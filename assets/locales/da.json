@@ -1521,5 +1521,6 @@
     "SSL public key": "SSL-offentlig n\u00f8gle",
     "Branch type": "Filialtype",
     "Room": "Lokale",
-    "{0} (current)": "{0} (current)"
+    "{0} (current)": "{0} (current)",
+    "Course home": "Kursets startside"
 }

@@ -1521,5 +1521,6 @@
     "SSL public key": "SSL nyilv\u00e1nos kulcs",
     "Branch type": "Filia t\u00edpusa",
     "Room": "Szoba",
-    "{0} (current)": "{0} (jelenlegi)"
+    "{0} (current)": "{0} (jelenlegi)",
+    "Course home": "Kurzus kezd\u0151lap"
 }

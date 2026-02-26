@@ -1521,5 +1521,6 @@
     "SSL public key": "Clave p\u00fablica SSL",
     "Branch type": "Tipo de sucursal",
     "Room": "Sala",
-    "{0} (current)": "{0} (actual)"
+    "{0} (current)": "{0} (actual)",
+    "Course home": "Inicio del curso"
 }

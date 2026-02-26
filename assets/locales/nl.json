@@ -1510,5 +1510,6 @@
     "SSL public key": "SSL openbare sleutel",
     "Branch type": "Type vestiging",
     "Room": "Ruimte",
-    "{0} (current)": "{0} (huidig)"
+    "{0} (current)": "{0} (huidig)",
+    "Course home": "Cursus homepage"
 }

@@ -1521,5 +1521,6 @@
     "SSL public key": "SSL-\u00d6ffentlicher Schl\u00fcssel",
     "Branch type": "Filialtyp",
     "Room": "Raum",
-    "{0} (current)": "{0} (aktuell)"
+    "{0} (current)": "{0} (aktuell)",
+    "Course home": "Kurs Startseite"
 }

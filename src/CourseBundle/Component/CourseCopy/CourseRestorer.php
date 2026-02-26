@@ -114,6 +114,9 @@ class CourseRestorer
     public $set_tools_invisible_by_default;
     public $skip_content;
 
+    // Track if documents were already restored during this restore run.
+    private bool $documentsRestored = false;
+
     /**
      * Restore order (keep existing order; docs first).
      */
@@ -240,6 +243,7 @@ class CourseRestorer
         $update_course_settings = false,
         $respect_base_content = false
     ) {
+        $this->normalizeDocumentKeys();
         $session_id = (int) $session_id;
         $this->dlog('Restore() called', [
             'destination_code' => $destination_course_code,
@@ -455,6 +459,12 @@ class CourseRestorer
      */
     public function restore_documents($session_id = 0, $respect_base_content = false, $destination_course_code = ''): void
     {
+        // Avoid double-restore in the same run (LP restore calls documents again).
+        if ($this->documentsRestored) {
+            $this->dlog('restore_documents: already restored in this run, skipping');
+            return;
+        }
+
         // Resolve the documents bucket robustly (RESOURCE_DOCUMENT vs document(s))
         $docBucketKey = null;
         $bucketCandidates = [];
@@ -1195,6 +1205,8 @@ class CourseRestorer
             'mapByRel'   => \count($urlMapByRel),
             'mapByBase'  => \count($urlMapByBase),
         ]);
+
+        $this->documentsRestored = true;
     }
 
     /**
@@ -7985,5 +7997,41 @@ class CourseRestorer
         $zip->close();
 
         return ['zip' => $tmp, 'temp' => true];
+    }
+
+    // Ensure all known document bucket keys point to the same array (by reference).
+    private function normalizeDocumentKeys(): void
+    {
+        if (!\is_array($this->course->resources ?? null)) {
+            $this->course->resources = [];
+            return;
+        }
+
+        $r = &$this->course->resources;
+
+        $candidates = [];
+        if (\defined('RESOURCE_DOCUMENT')) {
+            $candidates[] = RESOURCE_DOCUMENT;
+        }
+        $candidates[] = 'documents';
+        $candidates[] = 'document';
+
+        $found = null;
+        foreach ($candidates as $k) {
+            if (isset($r[$k]) && \is_array($r[$k]) && \count($r[$k]) > 0) {
+                $found = $k;
+                break;
+            }
+        }
+
+        if (null === $found) {
+            return;
+        }
+
+        if (\defined('RESOURCE_DOCUMENT') && $found !== RESOURCE_DOCUMENT) {
+            $r[RESOURCE_DOCUMENT] =& $r[$found];
+        }
+        $r['documents'] =& $r[$found];
+        $r['document']  =& $r[$found];
     }
 }

@@ -1239,42 +1239,47 @@ class SkillModel extends Model
     public function getSkillToJson($subtree, $depth = 1, $max_depth = 2)
     {
         $simple_sub_tree = [];
-        if (is_array($subtree)) {
-            $counter = 1;
-            foreach ($subtree as $elem) {
-                $tmp = [];
-                $tmp['title'] = $elem['title'];
-                $tmp['id'] = $elem['id'];
-                $tmp['isSearched'] = self::isSearched($elem['id']);
+        if (!is_array($subtree)) {
+            return null;
+        }
 
-                if (isset($elem['children']) && is_array($elem['children'])) {
-                    $tmp['children'] = $this->getSkillToJson(
-                        $elem['children'],
-                        $depth + 1,
-                        $max_depth
-                    );
-                }
-
-                if ($depth > $max_depth) {
-                    continue;
-                }
-
-                $tmp['depth'] = $depth;
-                $tmp['counter'] = $counter;
-                $counter++;
-
-                if (isset($elem['data']) && is_array($elem['data'])) {
-                    foreach ($elem['data'] as $key => $item) {
-                        $tmp[$key] = $item;
-                    }
-                }
-                $simple_sub_tree[] = $tmp;
-            }
-
+        // Stop early to avoid traversing the whole tree when a small depth is requested.
+        if ($depth > $max_depth) {
             return $simple_sub_tree;
         }
 
-        return null;
+        $counter = 1;
+        foreach ($subtree as $elem) {
+            $tmp = [];
+            $tmp['title'] = $elem['title'];
+            $tmp['id'] = $elem['id'];
+            $tmp['isSearched'] = self::isSearched($elem['id']);
+
+            // Only go deeper when we are still below the requested depth.
+            if ($depth < $max_depth && isset($elem['children']) && is_array($elem['children'])) {
+                $tmp['children'] = $this->getSkillToJson(
+                    $elem['children'],
+                    $depth + 1,
+                    $max_depth
+                );
+            } else {
+                $tmp['children'] = [];
+            }
+
+            $tmp['depth'] = $depth;
+            $tmp['counter'] = $counter;
+            $counter++;
+
+            if (isset($elem['data']) && is_array($elem['data'])) {
+                foreach ($elem['data'] as $key => $item) {
+                    $tmp[$key] = $item;
+                }
+            }
+
+            $simple_sub_tree[] = $tmp;
+        }
+
+        return $simple_sub_tree;
     }
 
     /**

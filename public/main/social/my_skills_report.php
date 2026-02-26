@@ -15,6 +15,19 @@ require_once __DIR__.'/../inc/global.inc.php';
 $userId = api_get_user_id();
 SkillModel::isAllowed($userId);
 
+$action = (string) ($_GET['a'] ?? '');
+
+/**
+ * Handle custom certificate generation BEFORE any role-based redirects.
+ * This prevents admins (or other roles) from being redirected to skills_wheel.php
+ * when they only want to generate the PDF.
+ */
+if ('generate_custom_skill' === $action) {
+    $certificate = new Certificate(0, $userId, false, false);
+    $certificate->generatePdfFromCustomCertificate();
+    exit;
+}
+
 $isStudent = api_is_student();
 $isStudentBoss = api_is_student_boss();
 $isDRH = api_is_drh();
@@ -26,14 +39,9 @@ if (!$isStudent && !$isStudentBoss && !$isDRH) {
     exit;
 }
 
-$action = isset($_GET['a']) ? $_GET['a'] : '';
 switch ($action) {
-    case 'generate_custom_skill':
-        $certificate = new Certificate(0, api_get_user_id(), false, false);
-        $certificate->generatePdfFromCustomCertificate();
-        break;
     case 'generate':
-        $certificate = Certificate::generateUserSkills(api_get_user_id());
+        Certificate::generateUserSkills($userId);
         Display::addFlash(Display::return_message(get_lang('Update successful')));
         header('Location: '.api_get_self());
         exit;

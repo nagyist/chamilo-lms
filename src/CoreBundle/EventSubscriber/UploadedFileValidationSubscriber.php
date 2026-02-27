@@ -44,22 +44,37 @@ final class UploadedFileValidationSubscriber implements EventSubscriberInterface
      * @param mixed $value
      * @return mixed
      */
-    private function sanitizeRecursive(mixed $value): mixed
+    private function sanitizeRecursive($value)
     {
         if ($value instanceof UploadedFile) {
             return $this->sanitizeUploadedFile($value);
         }
 
+        // FileBag may contain null for UPLOAD_ERR_NO_FILE after conversion.
+        // We must not re-insert null back into FileBag::replace().
+        if (null === $value) {
+            return null;
+        }
+
         if (is_array($value)) {
             $out = [];
+
             foreach ($value as $k => $v) {
-                $out[$k] = $this->sanitizeRecursive($v);
+                $san = $this->sanitizeRecursive($v);
+
+                // Drop nulls entirely, otherwise FileBag->replace() will throw.
+                if (null === $san) {
+                    continue;
+                }
+
+                $out[$k] = $san;
             }
 
             return $out;
         }
 
-        return $value;
+        // Anything else inside Request::files is invalid; drop it.
+        return null;
     }
 
     private function sanitizeUploadedFile(UploadedFile $file): UploadedFile

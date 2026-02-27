@@ -31432,8 +31432,8 @@ msgstr "В имени базы данных разрешены только бу
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Какие общие условия предоставляются пользователям для использования этой платформы?"
 
-msgid "ex. {examplePassword}"
-msgstr "напр. {examplePassword}"
+msgid "ex. %s"
+msgstr "напр. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Добро пожаловать в Chamilo!"

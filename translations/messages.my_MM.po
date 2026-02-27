@@ -31429,8 +31429,8 @@ msgstr "ဒေတာဘေ့စ်နာမည်တွင် အက္ခရ�
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "ဤပလက်ဖောင်းကို အသုံးပြုရန် အသုံးပြုသူများအား ပေးထားသော ယေဘုယျ စည်းမျဉ်းများနှင့် အခြေအနေများမှာ အဘယ်နည်း?"
 
-msgid "ex. {examplePassword}"
-msgstr "ဥပမာ။ {examplePassword}"
+msgid "ex. %s"
+msgstr "ဥပမာ။ %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Chamilo သို့ ကြိုဆိုပါသည်!"

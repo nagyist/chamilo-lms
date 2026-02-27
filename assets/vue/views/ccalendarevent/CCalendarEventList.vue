@@ -556,9 +556,7 @@ function confirmDelete() {
           ? item.value["resourceLinkListFromEntity"]
           : []
 
-        const userLink = resourceLinks.find(
-          (link) => link?.user?.id === securityStore.user["id"]
-        )
+        const userLink = resourceLinks.find((link) => link?.user?.id === securityStore.user["id"])
 
         if (userLink) {
           store
@@ -675,7 +673,7 @@ watch(
   (created) => {
     toast.add({
       severity: "success",
-      detail: t("{resource} created", { resource: created.resourceNode.title }),
+      detail: t("{0} created", [created.resourceNode.title]),
       life: 3500,
     })
 
@@ -688,7 +686,7 @@ watch(
   (updated) => {
     toast.add({
       severity: "success",
-      detail: t("{resource} updated", { resource: updated.resourceNode.title }),
+      detail: t("{0} updated", [updated.resourceNode.title]),
       life: 3500,
     })
 

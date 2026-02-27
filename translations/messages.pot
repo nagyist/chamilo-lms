@@ -31371,7 +31371,7 @@ msgstr ""
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr ""
 
-msgid "ex. {examplePassword}"
+msgid "ex. %s"
 msgstr ""
 
 msgid "Welcome to Chamilo!"
@@ -32653,4 +32653,13 @@ msgid "URI"
 msgstr ""
 
 msgid "%s (current)"
+msgstr ""
+
+msgid "Upload an image or create one with Badge Studio."
+msgstr ""
+
+msgid "No image selected"
+msgstr ""
+
+msgid "Current badge set"
 msgstr ""

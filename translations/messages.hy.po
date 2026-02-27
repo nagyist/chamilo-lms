@@ -31429,8 +31429,8 @@ msgstr "Տվյալների բազայի անվանումում թույլատր�
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Ի՞նչ ընդհանուր պայմաններ և կանոններ են տրվում օգտատերերին այս հարթակն օգտագործելու համար:"
 
-msgid "ex. {examplePassword}"
-msgstr "օր. {examplePassword}"
+msgid "ex. %s"
+msgstr "օր. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Բարի գալուստ Chamilo-ում:"

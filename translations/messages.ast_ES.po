@@ -31431,8 +31431,8 @@ msgstr "Namái güiones baixos (_), díxitos y lletres tán permitíos nel nome 
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "¿Qué términos y condicions xenerales se dan a los usuarios pa usar esta plataforma?"
 
-msgid "ex. {examplePassword}"
-msgstr "p. es. {examplePassword}"
+msgid "ex. %s"
+msgstr "p. es. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "¡Bienveníu a Chamilo!"

@@ -1,34 +1,41 @@
 <template>
   <BaseToolbar>
-    <BaseButton
-      v-if="showNewFolderButton"
-      :label="t('New folder')"
-      icon="folder-plus"
-      only-icon
-      type="black"
-      @click="openNew"
-    />
+    <!-- Toolbar actions: keep spacing consistent and avoid overlapping icons -->
+    <div class="flex items-center gap-2">
+      <BaseButton
+        v-if="showNewFolderButton"
+        :label="t('New folder')"
+        :title="t('New folder')"
+        icon="folder-plus"
+        only-icon
+        type="black"
+        class="!w-10 !h-10 !p-0 !flex !items-center !justify-center"
+        @click="openNew"
+      />
 
-    <BaseButton
-      v-if="showUploadButton"
-      :label="t('Upload')"
-      icon="file-upload"
-      only-icon
-      type="black"
-      @click="uploadDocumentHandler"
-    />
-    <input
-      ref="uploadInput"
-      type="file"
-      class="hidden"
-      :accept="uploadAccept"
-      @change="handleUploadSelected"
-    />
+      <BaseButton
+        v-if="showUploadButton"
+        :label="t('Upload')"
+        :title="t('Upload')"
+        icon="file-upload"
+        only-icon
+        type="black"
+        class="!w-10 !h-10 !p-0 !flex !items-center !justify-center"
+        @click="uploadDocumentHandler"
+      />
+      <input
+        ref="uploadInput"
+        type="file"
+        class="hidden"
+        :accept="uploadAccept"
+        @change="handleUploadSelected"
+      />
+    </div>
   </BaseToolbar>
   <div class="px-4 pt-2 pb-1 flex items-center justify-between gap-3">
     <div class="flex items-center gap-2 min-w-0">
       <BaseButton
-        icon="home"
+        icon="compass"
         only-icon
         type="black"
         :disabled="isAtRoot"
@@ -453,9 +460,6 @@ export default {
         cursor = info.parentId
         safety++
       }
-
-      // If we did not include a "courses" node but we have parents, keep walking until parentId is null.
-      // (Already handled above)
 
       chain.reverse()
 

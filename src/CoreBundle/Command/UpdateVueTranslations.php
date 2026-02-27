@@ -59,6 +59,7 @@ class UpdateVueTranslations extends Command
                         $gettextVariable = $this->replaceMarkersVueToGettext($variable, true);
                         $translated = $this->getTranslationWithFallback($gettextVariable, $language);
                     }
+                    $translated = $this->escapeVueI18nSpecialChars($translated);
                     $newLanguage[$variable] = $this->replaceMarkersGettextToVue($translated);
                 }
                 $newLanguageToString = json_encode($newLanguage, JSON_PRETTY_PRINT);
@@ -77,6 +78,7 @@ class UpdateVueTranslations extends Command
                     $gettextVariable = $this->replaceMarkersVueToGettext($variable, true);
                     $translated = $this->getTranslationWithFallback($gettextVariable, $language);
                 }
+                $translated = $this->escapeVueI18nSpecialChars($translated);
                 $newLanguage[$variable] = $this->replaceMarkersGettextToVue($translated);
             }
             $newLanguage = array_filter($newLanguage);
@@ -172,5 +174,21 @@ class UpdateVueTranslations extends Command
         }
 
         return preg_replace($pattern, '%s', $text);
+    }
+
+    /**
+     * The characters used in the message format syntax are processed by the compiler as special characters: { } @ $ |
+     */
+    private function escapeVueI18nSpecialChars(string $text): string
+    {
+        $replace = function ($matches) use (&$count) {
+            $type = $matches[0];
+
+            return "{'$type'}";
+        };
+
+        $pattern = '/[\{\}\@\$\|]/';
+
+        return preg_replace_callback($pattern, $replace, $text);
     }
 }

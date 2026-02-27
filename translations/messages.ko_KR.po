@@ -31429,8 +31429,8 @@ msgstr "데이터베이스 이름에는 문자, 숫자, 밑줄(_)만 허용됩�
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "이 플랫폼을 사용하기 위해 사용자에게 제공되는 일반 이용약관은 무엇인가요?"
 
-msgid "ex. {examplePassword}"
-msgstr "예. {examplePassword}"
+msgid "ex. %s"
+msgstr "예. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Chamilo에 오신 것을 환영합니다!"

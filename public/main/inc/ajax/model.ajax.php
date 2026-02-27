@@ -79,7 +79,20 @@ $adminActions = [
     'get_sessions',
 ];
 
-if (in_array($action, $courseActions, true)) {
+$origin = $_REQUEST['origin'] ?? '';
+
+/**
+ * Special case: "Diagnosis / load_search" calls get_sessions via AJAX.
+ * This must be accessible to DRH, Student Boss and Platform Admin, even if it is an "adminAction".
+ */
+$isDiagnosisLoadSearch = ('get_sessions' === $action && 'load_search' === $origin);
+if ($isDiagnosisLoadSearch) {
+    api_block_anonymous_users();
+
+    if (!(api_is_drh() || api_is_student_boss() || api_is_platform_admin())) {
+        api_not_allowed(true);
+    }
+} elseif (in_array($action, $courseActions, true)) {
     // Must be in a course context.
     api_protect_course_script();
 
@@ -270,8 +283,28 @@ if (($search || $forceSearch) && ('false' !== $search)) {
 
                 $whereCondition .= $extraQuestionCondition;
 
-                if (isset($filters->custom_dates)) {
-                    $whereCondition .= $filters->custom_dates;
+                if (!empty($filters->custom_dates)) {
+                    $userStartDateMinus = isset($filters->custom_dates->start_date)
+                        ? Database::escape_string($filters->custom_dates->start_date)
+                        : null;
+                    $userEndDatePlus = isset($filters->custom_dates->end_date)
+                        ? Database::escape_string($filters->custom_dates->end_date)
+                        : null;
+
+                    if ($userStartDateMinus) {
+                        if (!$userEndDatePlus) {
+                            $whereCondition .= " AND (
+                                (s.access_start_date >= '$userStartDateMinus') OR
+                                ((s.access_start_date = '' OR s.access_start_date IS NULL) AND (s.access_end_date = '' OR s.access_end_date IS NULL))
+                            )";
+                        } else {
+                            $whereCondition .= " AND (
+                                (s.access_start_date >= '$userStartDateMinus' AND s.access_end_date < '$userEndDatePlus') OR
+                                (s.access_start_date >= '$userStartDateMinus' AND (s.access_end_date = '' OR s.access_end_date IS NULL)) OR
+                                ((s.access_start_date = '' OR s.access_start_date IS NULL) AND (s.access_end_date = '' OR s.access_end_date IS NULL))
+                            )";
+                        }
+                    }
                 }
             }
         } elseif (!empty($filters->rules)) {
@@ -2001,7 +2034,6 @@ switch ($action) {
             $sidx = in_array($sidx, $columns) ? $sidx : 'title';
         }
         $orderBy = "$sidx $sord, s.title";
-        $limit = 20;
         $total_pages = 0;
         if ($count > 0) {
             if (!empty($limit)) {

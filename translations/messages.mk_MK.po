@@ -31429,8 +31429,8 @@ msgstr "Во името на базата на податоци се дозво�
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Кои општи услови и правила им се даваат на корисниците за користење на оваа платформа?"
 
-msgid "ex. {examplePassword}"
-msgstr "нпр. {examplePassword}"
+msgid "ex. %s"
+msgstr "нпр. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Добредојдовте во Chamilo!"

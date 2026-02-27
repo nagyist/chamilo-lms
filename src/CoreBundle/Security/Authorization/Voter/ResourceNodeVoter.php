@@ -22,6 +22,7 @@ use Chamilo\CourseBundle\Entity\CStudentPublicationRelDocument;
 use ChamiloSession;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
@@ -112,6 +113,12 @@ class ResourceNodeVoter extends Voter
             return true;
         }
 
+        // Special case: allow quiz attempt feedback audio files to be played by
+        // authorized users (student/teacher) when opened from exercise/LP views.
+        if (self::VIEW === $attribute && $this->isQuizAttemptFeedbackVisibleForCurrentRequest($resourceNode, $token)) {
+            return true;
+        }
+
         // @todo
         switch ($attribute) {
             case self::VIEW:
@@ -140,7 +147,7 @@ class ResourceNodeVoter extends Voter
                     }
                 }
 
-                // no break
+            // no break
             case self::EDIT:
                 break;
         }
@@ -489,6 +496,90 @@ class ResourceNodeVoter extends Voter
             $user,
             $locale
         );
+    }
+
+    /**
+     * Allows access to quiz attempt feedback audio files for authenticated users.
+     *
+     * This is a narrow compatibility exception for:
+     * /r/quiz/attempt_feedback/{uuid}/view
+     *
+     * It avoids depending on cid/sid contextual roles, which are often missing
+     * on direct /r/... resource requests.
+     */
+    private function isQuizAttemptFeedbackVisibleForCurrentRequest(ResourceNode $resourceNode, TokenInterface $token): bool
+    {
+        $request = $this->requestStack->getCurrentRequest();
+        if (null === $request) {
+            return false;
+        }
+
+        $pathInfo = (string) $request->getPathInfo();
+        if ('' === $pathInfo) {
+            return false;
+        }
+
+        // Match only:
+        // /r/quiz/attempt_feedback/{uuid}/view
+        // /r/quiz/attempt_file/{uuid}/view
+        if (!preg_match('#^/r/quiz/(attempt_feedback|attempt_file)/[0-9a-fA-F-]{36}/view$#', $pathInfo)) {
+            return false;
+        }
+
+        $user = $token->getUser();
+        if (!$user instanceof UserInterface) {
+            return false;
+        }
+
+        // Reject explicit cross-site requests when headers are present.
+        if ($this->hasCrossSiteHeaderMismatch($request)) {
+            return false;
+        }
+
+        // Keep the exception scoped to expected resource types.
+        $type = strtolower((string) ($resourceNode->getResourceType()?->getTitle() ?? ''));
+        if (!\in_array($type, ['files', 'quiz', 'attempt_feedback', 'attempt_file'], true)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Returns true when Origin/Referer explicitly points to another host.
+     * Missing headers are allowed (common in some browsers/privacy settings).
+     */
+    private function hasCrossSiteHeaderMismatch(Request $request): bool
+    {
+        $currentHost = (string) $request->getSchemeAndHttpHost();
+
+        foreach (['origin', 'referer'] as $headerName) {
+            $headerValue = trim((string) $request->headers->get($headerName, ''));
+            if ('' === $headerValue) {
+                continue;
+            }
+
+            $parsed = parse_url($headerValue);
+            if (!\is_array($parsed)) {
+                // Ignore malformed headers to avoid false negatives for legitimate users.
+                continue;
+            }
+
+            $scheme = isset($parsed['scheme']) ? (string) $parsed['scheme'] : '';
+            $host = isset($parsed['host']) ? (string) $parsed['host'] : '';
+            $port = isset($parsed['port']) ? (int) $parsed['port'] : null;
+
+            if ('' === $scheme || '' === $host) {
+                continue;
+            }
+
+            $headerHost = $scheme.'://'.$host.(null !== $port ? ':'.$port : '');
+            if ($headerHost !== $currentHost) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function isBlogResource(ResourceNode $node): bool

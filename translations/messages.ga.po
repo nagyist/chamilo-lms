@@ -31429,8 +31429,8 @@ msgstr "Níl ach litreacha, digití agus underscore (_) ceadaithe in ainm an bhu
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Cé na téarmaí agus coinníollacha ginearálta a thugtar d'úsáideoirí chun an t-ardán seo a úsáid?"
 
-msgid "ex. {examplePassword}"
-msgstr "m.sh. {examplePassword}"
+msgid "ex. %s"
+msgstr "m.sh. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Fáilte chuig Chamilo!"

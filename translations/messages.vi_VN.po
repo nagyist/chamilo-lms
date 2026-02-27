@@ -31431,8 +31431,8 @@ msgstr "Tên cơ sở dữ liệu chỉ cho phép chữ cái, chữ số và d�
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Điều khoản và điều kiện chung nào được cung cấp cho người dùng để sử dụng nền tảng này?"
 
-msgid "ex. {examplePassword}"
-msgstr "vd. {examplePassword}"
+msgid "ex. %s"
+msgstr "vd. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Chào mừng đến với Chamilo!"

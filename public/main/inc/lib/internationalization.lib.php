@@ -64,34 +64,55 @@ function get_lang(string $variable, ?string $locale = null): string
     }
 
     $domain = 'messages';
-
-    // Resolve effective locale when legacy code calls get_lang() without locale.
     $effectiveLocale = $locale;
 
+    // 1) Explicit locale passed by caller
     if (empty($effectiveLocale)) {
-        // Symfony Request locale (only available when RequestStack is set).
-        $requestStack = Container::$container?->has('request_stack') ? Container::$container->get('request_stack') : null;
-        $request = $requestStack?->getCurrentRequest();
-        if ($request) {
-            $effectiveLocale = $request->getLocale();
+        // 2) Legacy/URL query locale (works in legacy pages)
+        if (!empty($_GET['_locale'])) {
+            $effectiveLocale = (string) $_GET['_locale'];
+        } elseif (!empty($_POST['_locale'])) {
+            $effectiveLocale = (string) $_POST['_locale'];
         }
+    }
+
+    if (empty($effectiveLocale)) {
+        // 3) Symfony main request locale (if available)
+        $requestStack = Container::$container?->has('request_stack')
+            ? Container::$container->get('request_stack')
+            : null;
+
+        $request = $requestStack?->getMainRequest();
+        if ($request) {
+            // Query param should win in legacy pages
+            $effectiveLocale = (string) ($request->query->get('_locale') ?: $request->getLocale());
+        }
+    }
+
+    if (empty($effectiveLocale)) {
+        // 4) Translator current locale (set by Chamilo/bootstrap)
+        $effectiveLocale = $translator->getLocale();
     }
 
     if (empty($effectiveLocale)) {
         $effectiveLocale = 'en_US';
     }
 
-    // Build fallback chain per locale (sublanguage -> mother -> ... -> en_US).
+    $effectiveLocale = str_replace('-', '_', trim((string) $effectiveLocale));
+
+    // Build fallback chain per locale (sublanguage -> mother -> ... -> en_US)
     static $fallbacksByLocale = [];
     if (!isset($fallbacksByLocale[$effectiveLocale])) {
         $fallbacks = [];
         $visited = [];
         $current = $effectiveLocale;
+
         while (true) {
             $parent = SubLanguageManager::getParentLocale($current);
             if (empty($parent) || isset($visited[$parent])) {
                 break;
             }
+
             $visited[$parent] = true;
             $fallbacks[] = $parent;
             $current = $parent;
@@ -104,15 +125,12 @@ function get_lang(string $variable, ?string $locale = null): string
         $fallbacksByLocale[$effectiveLocale] = $fallbacks;
     }
 
-    $fallbacks = $fallbacksByLocale[$effectiveLocale];
-
-    // Fallback strategy when catalogue is not accessible: compare against msgid.
     $translation = $translator->trans($variable, [], $domain, $effectiveLocale);
     if ($translation !== $variable) {
         return $translation;
     }
 
-    foreach ($fallbacks as $fb) {
+    foreach ($fallbacksByLocale[$effectiveLocale] as $fb) {
         $t = $translator->trans($variable, [], $domain, $fb);
         if ($t !== $variable) {
             return $t;

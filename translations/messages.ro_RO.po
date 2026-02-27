@@ -31445,8 +31445,8 @@ msgstr "În numele bazei de date sunt permise doar litere, cifre și underscore 
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Ce termeni și condiții generale sunt acordați utilizatorilor pentru a utiliza această platformă?"
 
-msgid "ex. {examplePassword}"
-msgstr "ex. {examplePassword}"
+msgid "ex. %s"
+msgstr "ex. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Bine ați venit la Chamilo!"

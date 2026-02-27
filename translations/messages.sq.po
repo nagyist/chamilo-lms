@@ -31429,8 +31429,8 @@ msgstr "Vetëm shkronja, shifra dhe nënvija (_) lejohen në emrin e bazës së 
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Çfarë kushtesh të përgjithshme dhe kushtesh përdorimi u jepen përdoruesve për të përdorur këtë platformë?"
 
-msgid "ex. {examplePassword}"
-msgstr "p.sh. {examplePassword}"
+msgid "ex. %s"
+msgstr "p.sh. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Mirësevini në Chamilo!"

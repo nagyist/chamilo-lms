@@ -171,6 +171,9 @@ const router = createRouter({
       path: "/course/:id/home",
       name: "CourseHome",
       component: CourseHome,
+      meta: {
+        breadcrumb: "Course home",
+      },
       beforeEnter: async (to) => {
         const courseId = to.params.id
         const sessionId = to.query?.sid

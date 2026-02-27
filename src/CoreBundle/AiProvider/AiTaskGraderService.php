@@ -9,6 +9,7 @@ namespace Chamilo\CoreBundle\AiProvider;
 use Chamilo\CoreBundle\Entity\User;
 use Chamilo\CoreBundle\Repository\ResourceNodeRepository;
 use Chamilo\CourseBundle\Entity\CStudentPublication;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Process\Process;
 use Throwable;
 use ZipArchive;
@@ -27,6 +28,10 @@ final class AiTaskGraderService
     public function __construct(
         private readonly AiProviderFactory $aiProviderFactory,
         private readonly ResourceNodeRepository $resourceNodeRepository,
+        #[Autowire('%kernel.environment%')]
+        private readonly string $kernelEnvironment = 'prod',
+        #[Autowire('%kernel.debug%')]
+        private readonly bool $kernelDebug = false,
     ) {}
 
     /**
@@ -707,13 +712,12 @@ final class AiTaskGraderService
 
     private function isDebugEnabled(): bool
     {
-        $env = (string) ($_ENV['APP_ENV'] ?? $_SERVER['APP_ENV'] ?? '');
-        $debug = (string) ($_ENV['APP_DEBUG'] ?? $_SERVER['APP_DEBUG'] ?? '');
-        if ('1' === $debug || 'true' === strtolower($debug)) {
+        // Avoid reading $_ENV/$_SERVER directly. Use kernel parameters injected by Symfony.
+        if ($this->kernelDebug) {
             return true;
         }
 
-        return '' !== $env && 'prod' !== strtolower($env);
+        return 'prod' !== strtolower($this->kernelEnvironment);
     }
 
     /**

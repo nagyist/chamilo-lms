@@ -31430,8 +31430,8 @@ msgstr "Only letters, digits and underscore (_) are allowed in the database name
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "What general terms and conditions are given to users to use this platform?"
 
-msgid "ex. {examplePassword}"
-msgstr "ex. {examplePassword}"
+msgid "ex. %s"
+msgstr "ex. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Welcome to Chamilo!"
@@ -32743,3 +32743,9 @@ msgstr "URI"
 
 msgid "%s (current)"
 msgstr "%s (current)"
+
+msgid "Upload an image or create one with Badge Studio."
+msgstr "Upload an image or create one with Badge Studio."
+
+msgid "Current badge set"
+msgstr "Current badge set"

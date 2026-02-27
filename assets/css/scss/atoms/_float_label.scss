@@ -25,6 +25,18 @@
     @apply top-0 left-2 text-caption px-1 bg-white text-primary z-[1];
   }
 
+  &:has(input:focus) label,
+  &:has(input.p-filled) label,
+  &:has(input:-webkit-autofill) label,
+  &:has(textarea:focus) label,
+  &:has(textarea.p-filled) label,
+  &:has(.p-inputwrapper-focus) label,
+  &:has(.p-inputwrapper-filled) label,
+  &:has(input[placeholder]) label,
+  &:has(textarea[placeholder]) label {
+    @apply top-0 left-2 text-caption px-1 bg-white text-primary z-[1];
+  }
+
   &:has(input.p-filled) label,
   &:has(textarea.p-filled) label,
   &:has(.p-inputwrapper-filled) label {

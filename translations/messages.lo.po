@@ -33775,8 +33775,8 @@ msgstr "ຊື່ຖານຂໍ້ມູນຈະໃຊ້ໄດ້ພຽງຕ
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "ຂໍ້ກຳນົດແລະເງື່ອນໄຂທົ່ວໄປທີ່ໃຫ້ກັບຜູ້ໃຊ້ເພື່ອໃຊ້ແພລັດຟອມນີ້ແມ່ນຫຍັງ?"
 
-msgid "ex. {examplePassword}"
-msgstr "ຕົວຢ່າງ. {examplePassword}"
+msgid "ex. %s"
+msgstr "ຕົວຢ່າງ. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "ຍິນດີຕ້ອນຮັບສູ່ Chamilo!"

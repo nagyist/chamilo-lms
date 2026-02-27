@@ -42,6 +42,12 @@ class AccountController extends BaseController
 {
     use ControllerTrait;
 
+    /**
+     * Prefix used to identify HKDF-based encryption format for MFA secrets.
+     * Legacy secrets have no prefix and remain readable for backward compatibility.
+     */
+    private const MFA_SECRET_V2_PREFIX = 'v2:';
+
     public function __construct(
         private readonly UserHelper $userHelper,
         private readonly TranslatorInterface $translator
@@ -254,26 +260,107 @@ class AccountController extends BaseController
     }
 
     /**
+     * Derive a dedicated 32-byte encryption key for MFA secrets via HKDF.
+     * This avoids using APP_SECRET directly as an OpenSSL key.
+     */
+    private function deriveMfaKey(string $baseKey): string
+    {
+        $baseKey = (string) $baseKey;
+        if ('' === $baseKey) {
+            return '';
+        }
+
+        // 32 bytes for AES-256 key length.
+        return hash_hkdf('sha256', $baseKey, 32, 'chamilo:mfa:totp-secret:v1');
+    }
+
+    /**
      * Encrypts the TOTP secret using AES-256-CBC encryption.
+     *
+     * New format:
+     * - v2:<base64(iv + ciphertext_raw)>
+     *
+     * Legacy format remains readable for backward compatibility:
+     * - base64(iv.'::'.ciphertext_base64)
      */
     private function encryptTOTPSecret(string $secret, string $encryptionKey): string
     {
         $cipherMethod = 'aes-256-cbc';
-        $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length($cipherMethod));
-        $encryptedSecret = openssl_encrypt($secret, $cipherMethod, $encryptionKey, 0, $iv);
 
-        return base64_encode($iv.'::'.$encryptedSecret);
+        // Use HKDF-derived key (dedicated key separation).
+        $derivedKey = $this->deriveMfaKey($encryptionKey);
+        if ('' === $derivedKey) {
+            return '';
+        }
+
+        $ivLen = openssl_cipher_iv_length($cipherMethod);
+        $iv = openssl_random_pseudo_bytes($ivLen);
+
+        // Store raw ciphertext so we control encoding and versioning.
+        $ciphertextRaw = openssl_encrypt($secret, $cipherMethod, $derivedKey, OPENSSL_RAW_DATA, $iv);
+        if (false === $ciphertextRaw) {
+            return '';
+        }
+
+        return self::MFA_SECRET_V2_PREFIX.base64_encode($iv.$ciphertextRaw);
     }
 
     /**
      * Decrypts the TOTP secret using AES-256-CBC decryption.
+     *
+     * Supports:
+     * - v2 format (HKDF-derived key)
+     * - legacy format (APP_SECRET used directly), for existing users
      */
     private function decryptTOTPSecret(string $encryptedSecret, string $encryptionKey): string
     {
         $cipherMethod = 'aes-256-cbc';
-        list($iv, $encryptedData) = explode('::', base64_decode($encryptedSecret), 2);
+        $encryptedSecret = (string) $encryptedSecret;
 
-        return openssl_decrypt($encryptedData, $cipherMethod, $encryptionKey, 0, $iv);
+        if ('' === $encryptedSecret) {
+            return '';
+        }
+
+        // v2 format (preferred): v2:<base64(iv + ciphertext_raw)>
+        if (str_starts_with($encryptedSecret, self::MFA_SECRET_V2_PREFIX)) {
+            $payload = base64_decode(substr($encryptedSecret, \strlen(self::MFA_SECRET_V2_PREFIX)), true);
+            if (false === $payload) {
+                return '';
+            }
+
+            $ivLen = openssl_cipher_iv_length($cipherMethod);
+            if (\strlen($payload) <= $ivLen) {
+                return '';
+            }
+
+            $iv = substr($payload, 0, $ivLen);
+            $ciphertextRaw = substr($payload, $ivLen);
+
+            $derivedKey = $this->deriveMfaKey($encryptionKey);
+            if ('' === $derivedKey) {
+                return '';
+            }
+
+            $pt = openssl_decrypt($ciphertextRaw, $cipherMethod, $derivedKey, OPENSSL_RAW_DATA, $iv);
+
+            return false === $pt ? '' : (string) $pt;
+        }
+
+        // Legacy format: base64(iv.'::'.ciphertext_base64)
+        $decoded = base64_decode($encryptedSecret, true);
+        if (false === $decoded) {
+            return '';
+        }
+
+        // Keep legacy parsing unchanged.
+        [$iv, $encryptedData] = explode('::', $decoded, 2) + ['', ''];
+        if ('' === (string) $iv || '' === (string) $encryptedData) {
+            return '';
+        }
+
+        $pt = openssl_decrypt((string) $encryptedData, $cipherMethod, $encryptionKey, 0, (string) $iv);
+
+        return false === $pt ? '' : (string) $pt;
     }
 
     /**

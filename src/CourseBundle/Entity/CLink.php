@@ -175,7 +175,7 @@ use Symfony\Component\Validator\Constraints as Assert;
             openapi: new Operation(
                 summary: 'Check if a link URL is valid',
             ),
-            security: "is_granted('VIEW', object.resourceNode)"
+            security: "is_granted('EDIT', object.resourceNode)"
         ),
         new Delete(security: "is_granted('DELETE', object.resourceNode)"),
         new GetCollection(

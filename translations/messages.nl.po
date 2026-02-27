@@ -33509,8 +33509,8 @@ msgstr "Alleen letters, cijfers en onderstrepingsteken (_) zijn toegestaan in de
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Welke algemene voorwaarden worden aan gebruikers gegeven om dit platform te gebruiken?"
 
-msgid "ex. {examplePassword}"
-msgstr "bijv. {examplePassword}"
+msgid "ex. %s"
+msgstr "bijv. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Welkom bij Chamilo!"

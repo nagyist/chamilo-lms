@@ -31431,8 +31431,8 @@ msgstr "資料庫名稱僅允許字母、數字和底線 (_)。無效字元將�
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "提供給使用者使用此平台的通用條款和條件是什麼？"
 
-msgid "ex. {examplePassword}"
-msgstr "例如 {examplePassword}"
+msgid "ex. %s"
+msgstr "例如 %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "歡迎來到 Chamilo！"

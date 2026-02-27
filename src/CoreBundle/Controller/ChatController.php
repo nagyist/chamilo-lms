@@ -278,6 +278,11 @@ final class ChatController extends AbstractController
     /**
      * ===== GLOBAL CHAT (docked) =====
      * This is the API used by DockedChat.vue.
+     *
+     * Important:
+     * - DockedChat uses fetch() wrappers that throw on non-2xx responses.
+     * - When global chat is disabled, we must return 200 with a safe payload,
+     *   otherwise the UI may break during startup (contacts/heartbeat/etc).
      */
     #[Route(path: '/account/chat', name: 'chamilo_core_global_chat_home', options: ['expose' => true])]
     public function globalHome(): Response
@@ -287,7 +292,7 @@ final class ChatController extends AbstractController
             throw $this->createAccessDeniedException('User is not authenticated.');
         }
 
-        if ('true' !== $this->settingsManager->getSetting('chat.allow_global_chat')) {
+        if (!$this->isGlobalChatEnabled()) {
             return $this->redirectToRoute('homepage');
         }
 
@@ -311,8 +316,15 @@ final class ChatController extends AbstractController
             return new JsonResponse(['error' => 'unauthorized'], 401);
         }
 
-        if ('true' !== $this->settingsManager->getSetting('chat.allow_global_chat')) {
-            return new JsonResponse(['error' => 'disabled'], 403);
+        if (!$this->isGlobalChatEnabled()) {
+            // Return a safe payload (200) so the frontend does not throw.
+            return $this->globalChatDisabledJson([
+                'me' => '',
+                'user_id' => (int) $me,
+                'user_status' => 0,
+                'sec_token' => '',
+                'items' => [],
+            ]);
         }
 
         $chat = new Chat();
@@ -341,8 +353,9 @@ final class ChatController extends AbstractController
             return new Response('', 401);
         }
 
-        if ('true' !== $this->settingsManager->getSetting('chat.allow_global_chat')) {
-            return new Response('', 403);
+        if (!$this->isGlobalChatEnabled()) {
+            // Return empty HTML (200) so the frontend can continue without errors.
+            return $this->globalChatDisabledHtml();
         }
 
         $chat = new Chat();
@@ -359,10 +372,6 @@ final class ChatController extends AbstractController
             return new JsonResponse(['error' => 'unauthorized'], 401);
         }
 
-        if ('true' !== $this->settingsManager->getSetting('chat.allow_global_chat')) {
-            return new JsonResponse(['error' => 'disabled'], 403);
-        }
-
         $mode = (string) $req->query->get('mode', 'min');
         $sinceId = (int) $req->query->get('since_id', 0);
         $peerId = (int) $req->query->get('peer_id', 0);
@@ -373,6 +382,28 @@ final class ChatController extends AbstractController
 
         // Optional contacts refresh flag.
         $includeContacts = (bool) $req->query->get('include_contacts', false);
+
+        if (!$this->isGlobalChatEnabled()) {
+            // Return a minimal heartbeat payload (200) to prevent frontend exceptions.
+            $payload = [
+                'error' => 'disabled',
+                'last_id' => $sinceId,
+                'has_new' => false,
+                'unread_by_peer' => [],
+            ];
+
+            if (!empty($presenceIds)) {
+                $payload['presence'] = [];
+            }
+            if ($includeContacts) {
+                $payload['contacts_html'] = '';
+            }
+
+            $resp = new JsonResponse($payload);
+            $resp->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+
+            return $resp;
+        }
 
         $chat = new Chat();
         $data = [];
@@ -434,8 +465,9 @@ final class ChatController extends AbstractController
             return new JsonResponse(['error' => 'unauthorized'], 401);
         }
 
-        if ('true' !== $this->settingsManager->getSetting('chat.allow_global_chat')) {
-            return new JsonResponse(['error' => 'disabled'], 403);
+        if (!$this->isGlobalChatEnabled()) {
+            // Return an empty list (200) to avoid frontend exceptions.
+            return new JsonResponse([]);
         }
 
         $peerId = (int) $req->query->get('user_id', 0);
@@ -533,8 +565,9 @@ final class ChatController extends AbstractController
             return new JsonResponse(['error' => 'unauthorized'], 401);
         }
 
-        if ('true' !== $this->settingsManager->getSetting('chat.allow_global_chat')) {
-            return new JsonResponse(['error' => 'disabled'], 403);
+        if (!$this->isGlobalChatEnabled()) {
+            // Return 200 to avoid frontend exceptions; message won't be delivered.
+            return $this->globalChatDisabledJson(['id' => 0]);
         }
 
         $to = (int) $req->request->get('to', 0);
@@ -774,8 +807,8 @@ final class ChatController extends AbstractController
             return new JsonResponse(['error' => 'unauthorized'], 401);
         }
 
-        if ('true' !== $this->settingsManager->getSetting('chat.allow_global_chat')) {
-            return new JsonResponse(['error' => 'disabled'], 403);
+        if (!$this->isGlobalChatEnabled()) {
+            return $this->globalChatDisabledJson(['ok' => false]);
         }
 
         $course = $this->resolveCourseFromRequest($req, $doctrine);
@@ -825,17 +858,18 @@ final class ChatController extends AbstractController
             return new JsonResponse(['error' => 'unauthorized'], 401);
         }
 
-        if ('true' !== $this->settingsManager->getSetting('chat.allow_global_chat')) {
-            return new JsonResponse(['error' => 'disabled'], 403);
-        }
-
         $status = (int) $req->request->get('status', 0);
+
+        if (!$this->isGlobalChatEnabled()) {
+            return $this->globalChatDisabledJson(['ok' => false, 'status' => $status]);
+        }
 
         $chat = new Chat();
         $chat->setUserStatus($status);
 
         return new JsonResponse(['ok' => true, 'status' => $status]);
     }
+
     #[Route(path: '/account/chat/api/history', name: 'chamilo_core_chat_api_history', options: ['expose' => true], methods: ['GET'])]
     public function globalHistory(
         Request $req,
@@ -849,8 +883,8 @@ final class ChatController extends AbstractController
             return new JsonResponse(['error' => 'unauthorized'], 401);
         }
 
-        if ('true' !== $this->settingsManager->getSetting('chat.allow_global_chat')) {
-            return new JsonResponse(['error' => 'disabled'], 403);
+        if (!$this->isGlobalChatEnabled()) {
+            return new JsonResponse([]);
         }
 
         $peerId = (int) $req->query->get('user_id', 0);
@@ -940,8 +974,8 @@ final class ChatController extends AbstractController
             return new Response('', 401);
         }
 
-        if ('true' !== $this->settingsManager->getSetting('chat.allow_global_chat')) {
-            return new Response('', 403);
+        if (!$this->isGlobalChatEnabled()) {
+            return $this->globalChatDisabledHtml();
         }
 
         $html = CourseChatUtils::prepareMessage((string) $req->request->get('message', ''));
@@ -957,8 +991,8 @@ final class ChatController extends AbstractController
             return new JsonResponse(['error' => 'unauthorized'], 401);
         }
 
-        if ('true' !== $this->settingsManager->getSetting('chat.allow_global_chat')) {
-            return new JsonResponse(['error' => 'disabled'], 403);
+        if (!$this->isGlobalChatEnabled()) {
+            return $this->globalChatDisabledJson(['presence' => []]);
         }
 
         $raw = (string) $req->request->get('ids', '');
@@ -980,8 +1014,9 @@ final class ChatController extends AbstractController
             return new JsonResponse(['error' => 'unauthorized'], 401);
         }
 
-        if ('true' !== $this->settingsManager->getSetting('chat.allow_global_chat')) {
-            return new JsonResponse(['error' => 'disabled'], 403);
+        if (!$this->isGlobalChatEnabled()) {
+            // Return 200 to avoid frontend exceptions; ack will be ignored.
+            return $this->globalChatDisabledJson(['ok' => false]);
         }
 
         $peerId = (int) $req->request->get('peer_id', 0);
@@ -1038,11 +1073,19 @@ final class ChatController extends AbstractController
             return new JsonResponse(['error' => 'unauthorized'], 401);
         }
 
-        if ('true' !== $this->settingsManager->getSetting('chat.allow_global_chat')) {
-            return new JsonResponse(['error' => 'disabled'], 403);
-        }
-
         $inTest = !empty($_SESSION['is_in_a_test']);
+
+        if (!$this->isGlobalChatEnabled()) {
+            // Return 200 with a normalized payload to avoid frontend exceptions.
+            return new JsonResponse([
+                'enabled' => false,
+                'in_test' => $inTest,
+                'course' => null,
+                'mode' => null,
+                'provider' => null,
+                'reason' => 'global_chat_disabled',
+            ]);
+        }
 
         $aiEnabledSetting = ('true' === $this->settingsManager->getSetting('ai_helpers.tutor_chatbot'));
         $providers = $aiProviderFactory->getProvidersForType('text');
@@ -1328,5 +1371,31 @@ final class ChatController extends AbstractController
         }
 
         return $doctrine->getRepository(Course::class)->find($cid);
+    }
+
+    /**
+     * Global chat enable switch.
+     */
+    private function isGlobalChatEnabled(): bool
+    {
+        return 'true' === (string) $this->settingsManager->getSetting('chat.allow_global_chat', true);
+    }
+
+    /**
+     * Return a normalized JSON response when global chat is disabled.
+     * This MUST be 200 to avoid frontend fetch wrappers throwing on non-2xx.
+     */
+    private function globalChatDisabledJson(array $payload = []): JsonResponse
+    {
+        return new JsonResponse(array_merge(['error' => 'disabled'], $payload));
+    }
+
+    /**
+     * Return an empty HTML response when global chat is disabled.
+     * This MUST be 200 to avoid frontend fetch wrappers throwing on non-2xx.
+     */
+    private function globalChatDisabledHtml(): Response
+    {
+        return new Response('', 200, ['Content-Type' => 'text/html; charset=UTF-8']);
     }
 }

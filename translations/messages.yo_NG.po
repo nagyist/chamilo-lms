@@ -31425,8 +31425,8 @@ msgstr "Awọn lẹ́tà, nọ́mba àti ìdásílẹ̀ (_) nìkan ni a fọwọ
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Àwùn ìlànà ìbámu àti ìpinnu wo ni a fún awọn olùpẹ̀lò láti lo pẹpẹ yìí?"
 
-msgid "ex. {examplePassword}"
-msgstr "apẹẹrẹ. {examplePassword}"
+msgid "ex. %s"
+msgstr "apẹẹrẹ. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Káabọ̀ sí Chamilo!"

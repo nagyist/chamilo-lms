@@ -31425,8 +31425,8 @@ msgstr "Herufi, nambari na underscore (_) pekee zinazoruhusiwa katika jina la hi
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Sheria na masharti ya jumla ni yapi yanayotolewa kwa watumiaji kutumia jukwaa hili?"
 
-msgid "ex. {examplePassword}"
-msgstr "mf. {examplePassword}"
+msgid "ex. %s"
+msgstr "mf. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Karibu Chamilo!"

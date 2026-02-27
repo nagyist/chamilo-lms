@@ -1,5 +1,8 @@
 <template>
-  <div class="field">
+  <div
+    class="field"
+    data-chamilo-editor="BaseTinyEditor"
+  >
     <FloatLabel
       variant="on"
       :class="{
@@ -121,6 +124,210 @@ const languageConfig = getLanguageConfig(appLocale.value)
 /* Pull base from global config file (tiny-settings.js) */
 const base = (typeof window !== "undefined" ? window.CHAMILO_TINYMCE_BASE_CONFIG : {}) || {}
 
+/* ------------------------------------------------------------------ */
+/* Responsive images support (TinyMCE image dialog)                    */
+/* ------------------------------------------------------------------ */
+
+/**
+ * CSS class used to make images responsive.
+ * We also enforce inline style on save for maximum compatibility.
+ */
+const RESPONSIVE_IMAGE_CLASS = "ch-img-responsive"
+
+/**
+ * Editor hook guard: prevents attaching the same handlers multiple times
+ * even if setup() is wrapped by other config layers.
+ */
+const HOOK_GUARD_KEY = "__chamiloBaseTinyEditorHooksAttached"
+
+/**
+ * Normalize items so TinyMCE receives objects: { title: string, value: string }.
+ */
+function normalizeImageClassListItem(item) {
+  if (!item) return null
+
+  if (typeof item === "string") {
+    const v = item.trim()
+    if (!v) return null
+    return { title: v, value: v }
+  }
+
+  if (typeof item === "object") {
+    const title = String(item.title ?? "").trim()
+    const value = String(item.value ?? "").trim()
+
+    // Support alternative keys, just in case.
+    const fallbackTitle = String(item.text ?? item.name ?? "").trim()
+    const fallbackValue = String(item.class ?? "").trim()
+
+    const finalValue = value || fallbackValue
+    const finalTitle = title || fallbackTitle || finalValue
+
+    if (!finalValue && !finalTitle) return null
+
+    return {
+      title: finalTitle || finalValue,
+      value: finalValue,
+    }
+  }
+
+  return null
+}
+
+/**
+ * Build a safe image class list for the image dialog:
+ * - Keep existing entries (base/caller)
+ * - Ensure "None" exists
+ * - Ensure "Responsive" exists
+ */
+function buildImageClassList(baseList) {
+  const list = Array.isArray(baseList) ? baseList : []
+  const normalized = []
+
+  for (const item of list) {
+    const n = normalizeImageClassListItem(item)
+    if (!n) continue
+
+    // Deduplicate by value+title
+    const key = `${n.value}::${n.title}`
+    if (normalized.some((x) => `${x.value}::${x.title}` === key)) continue
+
+    normalized.push(n)
+  }
+
+  if (!normalized.some((i) => String(i.value) === "")) {
+    normalized.unshift({ title: "None", value: "" })
+  }
+
+  if (!normalized.some((i) => String(i.value) === RESPONSIVE_IMAGE_CLASS)) {
+    normalized.push({ title: "Responsive", value: RESPONSIVE_IMAGE_CLASS })
+  }
+
+  return normalized
+}
+
+/**
+ * Ensure editor content_style includes:
+ * - Base wrapper styling (tiny-content font family)
+ * - Responsive image styling for the preview inside the editor
+ */
+function ensureTinyContentStyles(contentStyleRaw) {
+  const contentStyle = String(contentStyleRaw ?? "")
+
+  const baseWrapperRule = " .tiny-content { font-family: Arial, Helvetica, sans-serif; }"
+  const responsiveRule = ` .tiny-content img.${RESPONSIVE_IMAGE_CLASS} { max-width: 100%; height: auto; }`
+
+  let out = contentStyle
+
+  if (!out.includes(" .tiny-content {") && !out.includes(".tiny-content{")) {
+    out += baseWrapperRule
+  }
+  if (!out.includes(`img.${RESPONSIVE_IMAGE_CLASS}`)) {
+    out += responsiveRule
+  }
+
+  return out
+}
+
+/**
+ * Ensure TinyMCE keeps class/style attributes on img tags (in case base config is restrictive).
+ */
+function ensureExtendedValidElements(raw) {
+  const add = "img[class|style|src|alt|title|width|height]"
+  const s = String(raw ?? "").trim()
+  if (!s) return add
+  if (s.includes("img[")) return s
+  return `${s},${add}`
+}
+
+/**
+ * Apply inline responsive styles for images that use the responsive class.
+ * This guarantees responsiveness outside the editor even if CSS is missing.
+ */
+function applyResponsiveInlineStyles(htmlRaw) {
+  const html = String(htmlRaw ?? "")
+  if (!html.trim()) return html
+  if (!html.includes(RESPONSIVE_IMAGE_CLASS)) return html
+
+  try {
+    const doc = new DOMParser().parseFromString(`<div id="__root">${html}</div>`, "text/html")
+    const root = doc.getElementById("__root")
+    if (!root) return html
+
+    const imgs = root.querySelectorAll(`img.${RESPONSIVE_IMAGE_CLASS}`)
+    imgs.forEach((img) => {
+      const style = String(img.getAttribute("style") || "").trim()
+      const hasMaxWidth = /max-width\s*:/i.test(style)
+      const hasHeightAuto = /height\s*:\s*auto/i.test(style)
+
+      if (hasMaxWidth && hasHeightAuto) return
+
+      let next = style
+      if (next && !next.endsWith(";")) next += ";"
+
+      if (!hasMaxWidth) next += "max-width:100%;"
+      if (!hasHeightAuto) next += "height:auto;"
+
+      img.setAttribute("style", next)
+    })
+
+    return root.innerHTML
+  } catch {
+    return html
+  }
+}
+
+/**
+ * Attach Chamilo hooks to the editor (idempotent).
+ */
+function attachChamiloHooks(editor) {
+  try {
+    if (editor && editor[HOOK_GUARD_KEY]) return
+    if (editor) editor[HOOK_GUARD_KEY] = true
+  } catch {
+    // Ignore
+  }
+
+  // Debug without relying on console output.
+  editor.on("init", () => {
+    try {
+      window.__chamiloTinyEditorLoaded = true
+      window.__chamiloTinyEditorAppliedConfig = {
+        image_advtab: editor?.settings?.image_advtab,
+        image_class_list: editor?.settings?.image_class_list,
+        extended_valid_elements: editor?.settings?.extended_valid_elements,
+      }
+    } catch {
+      // Ignore
+    }
+  })
+
+  editor.on("focus", () => {
+    isFocused.value = true
+  })
+  editor.on("blur", () => {
+    isFocused.value = false
+  })
+
+  editor.on("GetContent", (e) => {
+    const html = String(e?.content ?? "")
+    if (!html.trim()) return
+
+    let out = html
+
+    // Ensure wrapper
+    const hasWrapper = /^\s*<div[^>]+class=["'][^"']*\btiny-content\b[^"']*["'][^>]*>/i.test(out)
+    if (!hasWrapper) {
+      out = `<div class="tiny-content">${out}</div>`
+    }
+
+    // Ensure responsive images get inline styles when class is used.
+    out = applyResponsiveInlineStyles(out)
+
+    e.content = out
+  })
+}
+
 /* Compose default editor config: use base and add Chamilo-specific bits */
 const defaultEditorConfig = {
   ...base,
@@ -135,8 +342,19 @@ const defaultEditorConfig = {
     : ["/build/css/editor_content.css"],
   language: languageConfig.language,
   language_url: languageConfig.language_url,
-  // Keep a wrapper class inside content for consistent styling in Chamilo
-  content_style: (base.content_style ?? "") + " .tiny-content { font-family: Arial, Helvetica, sans-serif; }",
+
+  // Ensure the image dialog shows the Advanced tab (where "Class" lives).
+  image_advtab: true,
+
+  // Add "Responsive" as an option in TinyMCE image dialog.
+  image_class_list: buildImageClassList(base.image_class_list),
+
+  // Ensure class/style is not stripped from <img>.
+  extended_valid_elements: ensureExtendedValidElements(base.extended_valid_elements),
+
+  // Wrapper + responsive preview styling inside the editor.
+  content_style: ensureTinyContentStyles(base.content_style ?? ""),
+
   body_class: "tiny-content",
 }
 
@@ -152,21 +370,16 @@ if (props.fullPage) {
 
 /**
  * Decide whether we should use the Chamilo file manager.
- * - If the caller explicitly sets useFileManager=true, always use it.
- * - If not set, we still try to use the file manager when a node id exists,
- *   because picking existing media is a common use case.
- * - If we cannot build a manager URL, we fallback to the native picker.
  */
 const effectiveUseFileManager = computed(() => {
   if (props.useFileManager === true) return true
   return Number(parentResourceNodeId.value || 0) > 0
 })
 
-/* Final config: merge base+local via builder to preserve both setup() handlers */
+/* Final config: merge base+local via builder and enforce options AFTER builder */
 const editorConfig = computed(() => {
   const builder = typeof window !== "undefined" ? window.buildTinyMceConfig : null
 
-  // Respect a custom file_picker_callback if the caller provided one.
   const callerHasPicker =
     props.editorConfig?.file_picker_callback && typeof props.editorConfig.file_picker_callback === "function"
 
@@ -182,30 +395,36 @@ const editorConfig = computed(() => {
       : {
           file_picker_callback: filePickerCallback,
         }),
-
-    setup(editor) {
-      editor.on("focus", () => {
-        isFocused.value = true
-      })
-      editor.on("blur", () => {
-        isFocused.value = false
-      })
-      editor.on("GetContent", (e) => {
-        const html = String(e?.content ?? "")
-        if (!html.trim()) return
-
-        const hasWrapper = /^\s*<div[^>]+class=["'][^"']*\btiny-content\b[^"']*["'][^>]*>/i.test(html)
-        if (!hasWrapper) {
-          e.content = `<div class="tiny-content">${html}</div>`
-        }
-      })
-      // Preserve caller's setup if provided
-      if (props.editorConfig?.setup && typeof props.editorConfig.setup === "function") {
-        props.editorConfig.setup(editor)
-      }
-    },
   }
-  return builder ? builder(local) : local
+
+  const built = builder ? builder(local) : local
+
+  // Enforce AFTER builder (builder may override/strip config keys).
+  built.image_advtab = built.image_advtab ?? true
+  built.image_class_list = buildImageClassList(built.image_class_list)
+  built.extended_valid_elements = ensureExtendedValidElements(built.extended_valid_elements)
+  built.content_style = ensureTinyContentStyles(built.content_style)
+
+  // Ensure our hooks survive even if builder replaces setup().
+  const prevSetup = built.setup
+  built.setup = (editor) => {
+    attachChamiloHooks(editor)
+    if (typeof prevSetup === "function") {
+      prevSetup(editor)
+    }
+  }
+
+  // If caller provided setup, keep it too (without depending on previous merges).
+  if (props.editorConfig?.setup && typeof props.editorConfig.setup === "function") {
+    const callerSetup = props.editorConfig.setup
+    const currentSetup = built.setup
+    built.setup = (editor) => {
+      currentSetup(editor)
+      callerSetup(editor)
+    }
+  }
+
+  return built
 })
 
 /* ---------- Picker helpers ---------- */

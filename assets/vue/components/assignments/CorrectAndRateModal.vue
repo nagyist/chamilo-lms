@@ -13,7 +13,7 @@
         </h4>
         <div
           class="text-sm text-gray-700 prose max-w-none"
-          v-html="props.item.publicationParent?.description"
+          v-html="safeParentDescription"
         />
       </div>
 
@@ -27,13 +27,13 @@
           v-if="isFullHtmlDocument"
           class="w-full min-h-[260px] border border-gray-200 rounded bg-white"
           sandbox=""
-          :srcdoc="submissionSrcDoc"
+          :srcdoc="submissionSrcDocSafe"
         />
 
         <div
           v-else-if="isHtmlFragment"
           class="text-sm text-gray-50 prose max-w-none"
-          v-html="submissionHtml"
+          v-html="submissionHtmlSafe"
         />
 
         <div
@@ -335,6 +335,7 @@ import cStudentPublicationService from "../../services/cstudentpublication"
 import { useRoute } from "vue-router"
 import { useSecurityStore } from "../../store/securityStore"
 import InputNumber from "primevue/inputnumber"
+import DOMPurify from "dompurify"
 
 // Settings gating (same style as glossary)
 import { usePlatformConfig } from "../../store/platformConfig"
@@ -371,6 +372,18 @@ const forceStudentView = !isEditor || isStudentView
 const { relativeDatetime } = useFormatDate()
 const comments = ref([])
 
+// Sanitize rich HTML content before rendering it with v-html / srcdoc.
+const sanitizeHtml = (html, options = {}) => {
+  return DOMPurify.sanitize(html ?? "", {
+    ADD_ATTR: ["target", "rel"],
+    ...options,
+  })
+}
+
+const safeParentDescription = computed(() => {
+  return sanitizeHtml(props.item?.publicationParent?.description ?? "")
+})
+
 // ----------------------------------
 // Submission rendering helpers
 // ----------------------------------
@@ -389,6 +402,15 @@ const isHtmlFragment = computed(() => {
 const submissionSrcDoc = computed(() => submissionRaw.value || "")
 const submissionHtml = computed(() => submissionRaw.value || "")
 const submissionText = computed(() => submissionRaw.value || "")
+
+// Sanitized variants for rendering.
+const submissionSrcDocSafe = computed(() => {
+  return sanitizeHtml(submissionSrcDoc.value || "", { WHOLE_DOCUMENT: true })
+})
+
+const submissionHtmlSafe = computed(() => {
+  return sanitizeHtml(submissionHtml.value || "")
+})
 
 // ----------------------------------
 // Student attachment detection (best-effort)

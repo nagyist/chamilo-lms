@@ -31,7 +31,7 @@ async function createItem(formData) {
   isLoading.value = true
   try {
     await baseService.post("/api/branches", formData, true)
-    toast.add({ severity: "success", detail: t("{resource} created", { resource: formData.title }), life: 3500 })
+    toast.add({ severity: "success", detail: t("{0} created", [formData.title]), life: 3500 })
     router.push({ name: "BranchList" })
   } catch (e) {
     toast.add({ severity: "error", detail: e.message, life: 3500 })

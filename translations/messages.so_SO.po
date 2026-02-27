@@ -31425,8 +31425,8 @@ msgstr "Harakadyada xuruufta ah, nambarrada iyo hoostaga (_) kaliya ayaa loo ogg
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Waa maxay shuruudaha guud ee la siiyo isticmaale si ay u isticmaalaan platformkan?"
 
-msgid "ex. {examplePassword}"
-msgstr "tusa. {examplePassword}"
+msgid "ex. %s"
+msgstr "tusa. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Ku soo dhawow Chamilo!"

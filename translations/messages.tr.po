@@ -31431,8 +31431,8 @@ msgstr "Veritabanı adında yalnızca harfler, rakamlar ve alt çizgi (_) izinli
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Kullanıcılara bu platformu kullanmak için verilen genel şartlar ve koşullar nelerdir?"
 
-msgid "ex. {examplePassword}"
-msgstr "ör. {examplePassword}"
+msgid "ex. %s"
+msgstr "ör. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Chamilo'ya hoş geldiniz!"

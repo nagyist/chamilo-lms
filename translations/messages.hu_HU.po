@@ -31429,8 +31429,8 @@ msgstr "Az adatbázis nevében csak betűk, számjegyek és aláhúzás (_) mege
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Milyen általános feltételeket kapnak a felhasználók ehhez a platformhoz?"
 
-msgid "ex. {examplePassword}"
-msgstr "pl. {examplePassword}"
+msgid "ex. %s"
+msgstr "pl. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Üdvözöljük a Chamilo-ban!"

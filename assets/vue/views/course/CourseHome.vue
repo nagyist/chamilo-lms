@@ -141,9 +141,11 @@
           @click="courseIntroEl.goToCreateOrUpdate()"
         />
 
-        <div class="grow-0">
+        <div
+          v-if="hasCourseTMenuItems"
+          class="grow-0"
+        >
           <BaseButton
-            v-if="isAllowedToEdit"
             icon="cog"
             only-icon
             popup-identifier="course-tmenu"
@@ -394,7 +396,14 @@ courseService
 
 const courseTMenu = ref(null)
 
+const hasCourseTMenuItems = computed(() => {
+  return isAllowedToEdit.value && Array.isArray(courseItems.value) && courseItems.value.length > 0
+})
+
 const toggleCourseTMenu = (event) => {
+  if (!courseTMenu.value) {
+    return
+  }
   courseTMenu.value.toggle(event)
 }
 

@@ -192,6 +192,11 @@ class DateTimeRangePicker extends DateRangePicker
                     'showDuration': true,
                     'timeFormat': 'H:i:s',
                     'scrollDefault': 'now',
+                    'lang': {
+                        'mins': '".get_lang('minutes')."',
+                        'hr': '".get_lang('hour')."',
+                        'hrs': '".get_lang('hours')."'
+                    }
                 });
 
                 $('#".$id."_time_range_start').timepicker('setTime', new Date('".$startTime."'));

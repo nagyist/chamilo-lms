@@ -31425,8 +31425,8 @@ msgstr "پایگاه ډاټا کې یوازې لیکي، شمېرې او لان�
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "څه عمومي شرایط او مقررات کاروونکو ته ورکول کېږي چې دا پلیټفارم وکاروي؟"
 
-msgid "ex. {examplePassword}"
-msgstr "مثال. {examplePassword}"
+msgid "ex. %s"
+msgstr "مثال. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "د Chamilo ښه راغلاست!"

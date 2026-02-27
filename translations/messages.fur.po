@@ -31425,8 +31425,8 @@ msgstr "Dentot i letaris, cifris e il trat sotsbar ( _) a son permitûts int nû
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Che condizions generâls e condizions d'ûs a son dâdis ai utents par doprâ chesti plateform?"
 
-msgid "ex. {examplePassword}"
-msgstr "p. {examplePassword}"
+msgid "ex. %s"
+msgstr "p. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Benvenûts a Chamilo!"

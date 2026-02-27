@@ -14,14 +14,16 @@
       </div>
     </template>
 
-    <div v-html="page.content" />
+    <div v-html="safeContent" />
   </BaseCard>
 </template>
 
 <script setup>
+import { computed } from "vue"
 import { useRouter } from "vue-router"
 import { useSecurityStore } from "../../store/securityStore"
 import { storeToRefs } from "pinia"
+import DOMPurify from "dompurify"
 import BaseCard from "../basecomponents/BaseCard.vue"
 import BaseButton from "../basecomponents/BaseButton.vue"
 
@@ -29,11 +31,18 @@ const router = useRouter()
 const securityStore = useSecurityStore()
 const { isAdmin } = storeToRefs(securityStore)
 
-defineProps({
+const props = defineProps({
   page: {
     type: Object,
     required: true,
   },
+})
+
+// Sanitize stored rich HTML content before rendering it with v-html.
+const safeContent = computed(() => {
+  return DOMPurify.sanitize(props.page?.content ?? "", {
+    ADD_ATTR: ["target", "rel"],
+  })
 })
 
 const handleClick = (page) => {

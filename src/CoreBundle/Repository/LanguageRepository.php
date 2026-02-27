@@ -35,7 +35,7 @@ class LanguageRepository extends ServiceEntityRepository
 
         $qb->where($qb->expr()->eq('l.available', ':avail'))
             ->setParameter('avail', true)
-            ->orderBy('l.englishName', 'ASC')
+            ->orderBy('l.originalName', 'ASC')
         ;
 
         if ($excludeDefaultLocale) {

@@ -45,6 +45,12 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 class SecurityController extends AbstractController
 {
+    /**
+     * Prefix used to identify HKDF-based encryption format for MFA secrets.
+     * Legacy secrets have no prefix and remain readable for backward compatibility.
+     */
+    private const MFA_SECRET_V2_PREFIX = 'v2:';
+
     public function __construct(
         private SerializerInterface $serializer,
         private TrackELoginRecordRepository $trackELoginRecordRepository,
@@ -65,8 +71,12 @@ class SecurityController extends AbstractController
         TokenStorageInterface $tokenStorage,
         TranslatorInterface $translator,
     ): Response {
+        // This endpoint is expected to be reached only after successful authentication.
+        // If not authenticated, return a controlled JSON error instead of exposing exception details.
         if (!$this->isGranted('IS_AUTHENTICATED_FULLY')) {
-            throw $this->createAccessDeniedException($translator->trans('Invalid login request: check that the Content-Type header is <em>application/json</em>.'));
+            return $this->json([
+                'error' => $translator->trans('Invalid login request.'),
+            ], Response::HTTP_UNAUTHORIZED);
         }
 
         $dataRequest = json_decode($request->getContent(), true);
@@ -78,6 +88,18 @@ class SecurityController extends AbstractController
 
         $user = $this->userHelper->getCurrent();
 
+        // Safety guard: avoid fatal errors if the security token is missing unexpectedly.
+        if (!$user instanceof User) {
+            $tokenStorage->setToken(null);
+            if ($request->hasSession()) {
+                $request->getSession()->invalidate();
+            }
+
+            return $this->json([
+                'error' => $translator->trans('Authentication failed.'),
+            ], Response::HTTP_UNAUTHORIZED);
+        }
+
         if (User::ACTIVE !== $user->getActive()) {
             if (User::INACTIVE === $user->getActive()) {
                 $message = $translator->trans('Your account has not been activated.');
@@ -88,7 +110,9 @@ class SecurityController extends AbstractController
             $tokenStorage->setToken(null);
             $request->getSession()->invalidate();
 
-            return $this->createAccessDeniedException($message);
+            return $this->json([
+                'error' => $message,
+            ], Response::HTTP_FORBIDDEN);
         }
 
         if ($user->getMfaEnabled()) {
@@ -98,14 +122,14 @@ class SecurityController extends AbstractController
                 $tokenStorage->setToken(null);
                 $request->getSession()->invalidate();
 
-                return $this->json(['requires2FA' => true], 200);
+                return $this->json(['requires2FA' => true], Response::HTTP_OK);
             }
 
-            if (!$this->isTOTPValid($user, $totpCode)) {
+            if (!$this->isTOTPValid($user, (string) $totpCode)) {
                 $tokenStorage->setToken(null);
                 $request->getSession()->invalidate();
 
-                return $this->json(['error' => 'Invalid 2FA code.'], 401);
+                return $this->json(['error' => 'Invalid 2FA code.'], Response::HTTP_UNAUTHORIZED);
             }
         }
 
@@ -115,7 +139,9 @@ class SecurityController extends AbstractController
             $tokenStorage->setToken(null);
             $request->getSession()->invalidate();
 
-            return $this->createAccessDeniedException($message);
+            return $this->json([
+                'error' => $message,
+            ], Response::HTTP_FORBIDDEN);
         }
 
         $extraFieldValuesRepository = $this->entityManager->getRepository(ExtraFieldValues::class);
@@ -150,6 +176,7 @@ class SecurityController extends AbstractController
                     'redirect' => '/main/auth/tc.php?return='.urlencode($afterLogin),
                 ]);
             }
+
             $request->getSession()->remove('term_and_condition');
         }
 
@@ -171,7 +198,7 @@ class SecurityController extends AbstractController
             $diffDays = (new DateTimeImmutable())->diff($lastUpdate)->days;
 
             if ($diffDays > $days) {
-                // Clean token & session
+                // Clean token and session before forcing password rotation.
                 $tokenStorage->setToken(null);
                 $request->getSession()->invalidate();
 
@@ -294,22 +321,83 @@ class SecurityController extends AbstractController
     private function isTOTPValid($user, string $totpCode): bool
     {
         $decryptedSecret = $this->decryptTOTPSecret($user->getMfaSecret(), $_ENV['APP_SECRET']);
+
+        // Safety guard: if secret cannot be decrypted, never accept the code.
+        if ('' === $decryptedSecret) {
+            return false;
+        }
+
         $totp = TOTP::create($decryptedSecret);
 
         return $totp->verify($totpCode);
     }
 
     /**
+     * Derive a dedicated 32-byte encryption key for MFA secrets via HKDF.
+     * This avoids using APP_SECRET directly as an OpenSSL key for new secrets.
+     */
+    private function deriveMfaKey(string $baseKey): string
+    {
+        $baseKey = (string) $baseKey;
+        if ('' === $baseKey) {
+            return '';
+        }
+
+        // 32 bytes for AES-256 key length.
+        return hash_hkdf('sha256', $baseKey, 32, 'chamilo:mfa:totp-secret:v1');
+    }
+
+    /**
      * Decrypts the stored TOTP secret.
+     *
+     * Supports:
+     * - v2 format (HKDF-derived key): v2:<base64(iv + ciphertext_raw)>
+     * - legacy format (APP_SECRET used directly): base64(iv.'::'.$encryptedSecret)
      */
     private function decryptTOTPSecret(string $encryptedSecret, string $encryptionKey): string
     {
         $cipherMethod = 'aes-256-cbc';
 
         try {
-            list($iv, $encryptedData) = explode('::', base64_decode($encryptedSecret), 2);
+            $encryptedSecret = (string) $encryptedSecret;
+            if ('' === $encryptedSecret) {
+                return '';
+            }
 
-            return openssl_decrypt($encryptedData, $cipherMethod, $encryptionKey, 0, $iv);
+            // v2 format (preferred): v2:<base64(iv + ciphertext_raw)>
+            if (str_starts_with($encryptedSecret, self::MFA_SECRET_V2_PREFIX)) {
+                $payload = base64_decode(substr($encryptedSecret, \strlen(self::MFA_SECRET_V2_PREFIX)), true);
+                if (false === $payload) {
+                    return '';
+                }
+
+                $ivLen = openssl_cipher_iv_length($cipherMethod);
+                if (\strlen($payload) <= $ivLen) {
+                    return '';
+                }
+
+                $iv = substr($payload, 0, $ivLen);
+                $ciphertextRaw = substr($payload, $ivLen);
+
+                $derivedKey = $this->deriveMfaKey($encryptionKey);
+                if ('' === $derivedKey) {
+                    return '';
+                }
+
+                $pt = openssl_decrypt($ciphertextRaw, $cipherMethod, $derivedKey, OPENSSL_RAW_DATA, $iv);
+
+                return false === $pt ? '' : (string) $pt;
+            }
+
+            // Legacy format: base64(iv.'::'.$encryptedSecret)
+            $decoded = base64_decode($encryptedSecret, true);
+            if (false === $decoded) {
+                return '';
+            }
+
+            [$iv, $encryptedData] = explode('::', $decoded, 2) + ['', ''];
+
+            return (string) (openssl_decrypt((string) $encryptedData, $cipherMethod, $encryptionKey, 0, (string) $iv) ?: '');
         } catch (Exception $e) {
             error_log('Exception caught during decryption: '.$e->getMessage());
 

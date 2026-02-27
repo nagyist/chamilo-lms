@@ -31430,8 +31430,8 @@ msgstr "U nazivu baze podataka su dopušteni samo slova, znamenke i podvlaka (_)
 msgid "What general terms and conditions are given to users to use this platform?"
 msgstr "Koji opći uvjeti korištenja se daju korisnicima za korištenje ove platforme?"
 
-msgid "ex. {examplePassword}"
-msgstr "npr. {examplePassword}"
+msgid "ex. %s"
+msgstr "npr. %s"
 
 msgid "Welcome to Chamilo!"
 msgstr "Dobrodošli u Chamilo!"

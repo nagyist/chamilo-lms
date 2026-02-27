@@ -1000,6 +1000,11 @@ img.course-tool__icon {
   }
 }
 
+.tiny-content img.ch-img-responsive {
+  max-width: 100%;
+  height: auto;
+}
+
 @import "~@fancyapps/fancybox/dist/jquery.fancybox.css";
 @import "~timepicker/jquery.timepicker.min.css";
 @import "~qtip2/dist/jquery.qtip.min.css";

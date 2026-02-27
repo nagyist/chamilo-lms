@@ -14,11 +14,13 @@ use Chamilo\CoreBundle\Entity\ResourceNode;
 use Chamilo\CoreBundle\Entity\Session;
 use Chamilo\CoreBundle\Entity\User;
 use Chamilo\CoreBundle\Entity\Usergroup;
+use Chamilo\CoreBundle\Framework\Container;
 use Chamilo\CoreBundle\Helpers\CourseHelper;
 use Chamilo\CoreBundle\Helpers\CreateUploadedFileHelper;
 use Chamilo\CoreBundle\Repository\Node\CourseRepository;
 use Chamilo\CoreBundle\Repository\ResourceLinkRepository;
 use Chamilo\CoreBundle\Repository\ResourceRepository;
+use Chamilo\CoreBundle\Security\Upload\UploadFilenamePolicy;
 use Chamilo\CourseBundle\Entity\CDocument;
 use Chamilo\CourseBundle\Entity\CGroup;
 use Chamilo\CourseBundle\Repository\CDocumentRepository;
@@ -801,36 +803,78 @@ class BaseResourceFileAction
 
     private function extractZipFile(UploadedFile $file, KernelInterface $kernel): array
     {
-        // Get the temporary path of the ZIP file
         $zipFilePath = $file->getRealPath();
+        if (!$zipFilePath) {
+            throw new BadRequestHttpException('ZIP file path is invalid.');
+        }
 
-        // Create an instance of the ZipArchive class
         $zip = new ZipArchive();
-        $zip->open($zipFilePath);
+        if (true !== $zip->open($zipFilePath)) {
+            throw new BadRequestHttpException('Could not open ZIP file.');
+        }
 
         $cacheDirectory = $kernel->getCacheDir();
         $extractPath = $cacheDirectory.'/'.uniqid('extracted_', true);
-        mkdir($extractPath);
 
-        // Extract the contents of the ZIP file
-        $zip->extractTo($extractPath);
-
-        // Array to store the sorted extracted paths
-        $extractedPaths = [];
-
-        // Iterate over each file or directory in the ZIP file
-        for ($i = 0; $i < $zip->numFiles; $i++) {
-            $filename = $zip->getNameIndex($i);
-            $extractedPaths[] = $extractPath.'/'.$filename;
+        if (!@mkdir($extractPath, 0770, true) && !is_dir($extractPath)) {
+            $zip->close();
+            throw new BadRequestHttpException('Could not create ZIP extraction directory.');
         }
 
-        // Close the ZIP file
+        $policy = $this->getUploadFilenamePolicy();
+
+        $extractedPaths = [];
+
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $name = (string) $zip->getNameIndex($i);
+            if ('' === $name) {
+                continue;
+            }
+
+            if ($this->shouldSkipZipEntry($name)) {
+                continue;
+            }
+
+            $stat = $zip->statIndex($i);
+            if (is_array($stat) && $this->isZipSymlink($stat)) {
+                // Skip symlinks to avoid writing outside extraction dir indirectly.
+                continue;
+            }
+
+            $isDir = str_ends_with($name, '/');
+
+            $safeRelative = $this->sanitizeZipRelativePath($name, $policy, $isDir);
+            if (null === $safeRelative) {
+                // Skip unsafe/blocked entries without failing the whole import.
+                continue;
+            }
+
+            $targetPath = $extractPath.'/'.$safeRelative;
+
+            if ($isDir) {
+                if (!@mkdir($targetPath, 0770, true) && !is_dir($targetPath)) {
+                    continue;
+                }
+                $extractedPaths[] = $targetPath;
+                continue;
+            }
+
+            $targetDir = \dirname($targetPath);
+            if (!@mkdir($targetDir, 0770, true) && !is_dir($targetDir)) {
+                continue;
+            }
+
+            if (!$this->writeZipEntryToPath($zip, $name, $targetPath)) {
+                continue;
+            }
+
+            $extractedPaths[] = $targetPath;
+        }
+
         $zip->close();
 
-        // Build the folder structure and file associations
         $folderStructure = $this->buildFolderStructure($extractedPaths, $extractPath);
 
-        // Return the array of folder structure and the extraction path
         return [
             'folderStructure' => $folderStructure,
             'extractPath' => $extractPath,
@@ -990,5 +1034,140 @@ class BaseResourceFileAction
         }
 
         return array_values($courses);
+    }
+
+    private function getUploadFilenamePolicy(): ?UploadFilenamePolicy
+    {
+        try {
+            $svc = Container::$container->get(UploadFilenamePolicy::class);
+            return $svc instanceof UploadFilenamePolicy ? $svc : null;
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    private function shouldSkipZipEntry(string $name): bool
+    {
+        $base = basename(str_replace('\\', '/', $name));
+
+        if ('' === $base) {
+            return false;
+        }
+
+        $skip = [
+            '__MACOSX',
+            '.DS_Store',
+            'Thumbs.db',
+            '.Thumbs.db',
+        ];
+
+        return in_array($base, $skip, true);
+    }
+
+    private function isZipSymlink(array $stat): bool
+    {
+        // external_attributes contains unix permissions in upper 16 bits for many zips
+        $attrs = (int) ($stat['external_attributes'] ?? 0);
+        $mode = ($attrs >> 16) & 0xFFFF;
+
+        // 0xA000 is symlink in unix mode bits
+        return (0xA000 === ($mode & 0xF000));
+    }
+
+    private function sanitizeZipRelativePath(string $zipName, ?UploadFilenamePolicy $policy, bool $isDir): ?string
+    {
+        $name = str_replace('\\', '/', $zipName);
+        $name = ltrim($name, '/');
+
+        // Block null bytes and Windows drive paths
+        if (str_contains($name, "\0") || preg_match('/^[a-zA-Z]:\//', $name)) {
+            return null;
+        }
+
+        // Block path traversal
+        if (preg_match('#(^|/)\.\.(/|$)#', $name)) {
+            return null;
+        }
+
+        $parts = array_values(array_filter(explode('/', $name), static fn ($p) => '' !== $p && '.' !== $p));
+        if (empty($parts)) {
+            return null;
+        }
+
+        $sanitizedParts = [];
+
+        foreach ($parts as $idx => $part) {
+            if ('..' === $part) {
+                return null;
+            }
+
+            $isLast = ($idx === \count($parts) - 1);
+            $part = $this->sanitizeZipSegment($part);
+            $part = $this->disableDangerousZipName($part);
+
+            // Apply extension allow/deny only to files (last segment when not dir)
+            if ($isLast && !$isDir && $policy instanceof UploadFilenamePolicy) {
+                $decision = $policy->filter($part);
+
+                if (!($decision['allowed'] ?? false)) {
+                    return null; // skip file
+                }
+
+                $part = (string) ($decision['filename'] ?? $part);
+            }
+
+            $sanitizedParts[] = $part;
+        }
+
+        $safe = implode('/', $sanitizedParts);
+
+        // Avoid empty results
+        if ('' === $safe) {
+            return null;
+        }
+
+        return $safe;
+    }
+
+    private function sanitizeZipSegment(string $segment): string
+    {
+        $segment = trim($segment);
+        $segment = preg_replace('/[\\x00-\\x1F\\x7F]/u', '', $segment) ?? $segment;
+        $segment = str_replace(['\\', '/', "\0"], '-', $segment);
+
+        if ('' === $segment) {
+            return 'item';
+        }
+
+        return $segment;
+    }
+
+    private function disableDangerousZipName(string $name): string
+    {
+        $name = (string) preg_replace('/\.(phar.?|php.?|phtml.?)(\.){0,1}.*$/i', '.phps', $name);
+        $name = str_ireplace('.htaccess', 'htaccess.txt', $name);
+
+        return $name;
+    }
+
+    private function writeZipEntryToPath(ZipArchive $zip, string $zipName, string $targetPath): bool
+    {
+        $stream = $zip->getStream($zipName);
+        if (false === $stream) {
+            return false;
+        }
+
+        $out = @fopen($targetPath, 'wb');
+        if (false === $out) {
+            @fclose($stream);
+            return false;
+        }
+
+        stream_copy_to_stream($stream, $out);
+
+        @fclose($out);
+        @fclose($stream);
+
+        return is_file($targetPath);
     }
 }

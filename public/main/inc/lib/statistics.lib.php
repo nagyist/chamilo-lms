@@ -2632,9 +2632,9 @@ class Statistics
 
         if ('extra' === $dupMode && $extraFieldId > 0) {
             $sql = "SELECT id, variable, display_text
-                FROM $extraFieldTable
-                WHERE id = ".(int) $extraFieldId."
-                LIMIT 1";
+            FROM $extraFieldTable
+            WHERE id = ".(int) $extraFieldId."
+            LIMIT 1";
 
             try {
                 $res = Database::getManager()->getConnection()->executeQuery($sql);
@@ -2944,8 +2944,6 @@ class Statistics
         foreach ($groups as $groupKey => $rows) {
             foreach ($rows as $row) {
                 $userId = (int) $row['id'];
-                $keepUserId = (int) $keepUserIdByGroup[$groupKey];
-                $isKeep = $userId === $keepUserId;
 
                 $courseCount = $courseCounts[$userId] ?? 0;
                 $sessionCount = $sessionCounts[$userId] ?? 0;
@@ -2977,32 +2975,14 @@ class Statistics
 
                 $tableRow[] = Security::remove_XSS($activeLabel);
 
-                // Actions column
-                $actionsHtml = '';
-
-                if ($isKeep) {
-                    $actionsHtml .= '<span class="ch-dups-keep-badge">'.Security::remove_XSS(get_lang('Keep')).'</span> ';
-                }
-
-                // Small details button (icon only) to avoid showing "Details / Détails" text
-                $detailsUrl = api_get_path(WEB_CODE_PATH).'admin/user_information.php?user_id='.$userId;
-                $detailsTitle = Security::remove_XSS((string) get_lang('Details'));
-                $actionsHtml .= '<a href="'.htmlspecialchars($detailsUrl, ENT_QUOTES, 'UTF-8').'"
-                class="btn btn-default btn-xs"
-                title="'.$detailsTitle.'"
-                aria-label="'.$detailsTitle.'">🔍</a> ';
-
-                $actionsHtml .= self::buildDuplicateUserActionsHtml(
+                // Actions column (all buttons in one consistent block)
+                $tableRow[] = self::buildDuplicateUserActionsHtml(
                     $userId,
-                    $keepUserId,
-                    $isKeep,
                     $activeValue,
                     $dupMode,
                     $extraFieldId,
                     $token
                 );
-
-                $tableRow[] = $actionsHtml;
 
                 $rowsForTable[] = $tableRow;
             }
@@ -3037,6 +3017,112 @@ class Statistics
         ]);
 
         return $table;
+    }
+
+    private static function buildDuplicateUserActionsHtml(
+        int $userId,
+        int $activeValue,
+        string $dupMode,
+        int $extraFieldId,
+        string $token
+    ): string {
+        $dupMode = in_array($dupMode, ['name', 'email', 'extra'], true) ? $dupMode : 'name';
+
+        $baseParams = [
+            'report' => 'duplicated_users',
+            'dup_mode' => $dupMode,
+            'sec_token' => $token,
+        ];
+
+        if ('extra' === $dupMode && $extraFieldId > 0) {
+            $baseParams['extra_field_id'] = $extraFieldId;
+        }
+
+        // Preserve optional extra columns
+        if (isset($_GET['additional_profile_field'])) {
+            $apf = $_GET['additional_profile_field'];
+            if (!is_array($apf)) {
+                $apf = [$apf];
+            }
+            $baseParams['additional_profile_field'] = array_values(array_filter(array_map('strval', $apf)));
+        }
+
+        $buildUrl = static function (array $params) use ($baseParams): string {
+            $self = (string) api_get_self();
+            $self = strtok($self, '?') ?: $self;
+
+            return $self.'?'.http_build_query(array_merge($baseParams, $params));
+        };
+
+        $escapeConfirm = static function (string $text): string {
+            return addslashes($text);
+        };
+
+        $html = '<div class="ch-dups-actions">';
+
+        // Details (same button size as others)
+        $detailsUrl = api_get_path(WEB_CODE_PATH).'admin/user_information.php?user_id='.$userId;
+        $detailsTitle = (string) get_lang('Details');
+        $html .= sprintf(
+            '<a href="%s" class="btn btn-default btn-xs" title="%s" aria-label="%s"><span class="ch-dups-btn-label">%s</span></a>',
+            htmlspecialchars($detailsUrl, ENT_QUOTES, 'UTF-8'),
+            htmlspecialchars($detailsTitle, ENT_QUOTES, 'UTF-8'),
+            htmlspecialchars($detailsTitle, ENT_QUOTES, 'UTF-8'),
+            htmlspecialchars($detailsTitle, ENT_QUOTES, 'UTF-8')
+        );
+
+        // Activate / Deactivate
+        if (1 === $activeValue) {
+            $url = $buildUrl([
+                'action' => 'disable_duplicate_user',
+                'user_id' => $userId,
+            ]);
+
+            $confirm = $escapeConfirm((string) get_lang('Deactivate this user?'));
+
+            $html .= '<a class="btn btn-danger btn-xs"'
+                .' href="'.htmlspecialchars($url, ENT_QUOTES, 'UTF-8').'"'
+                .' onclick="return confirm(\''.$confirm.'\');">'
+                .htmlspecialchars((string) get_lang('Deactivate'), ENT_QUOTES, 'UTF-8')
+                .'</a>';
+        } else {
+            $url = $buildUrl([
+                'action' => 'enable_duplicate_user',
+                'user_id' => $userId,
+            ]);
+
+            $confirm = $escapeConfirm((string) get_lang('Enable this user?'));
+
+            $html .= '<a class="btn btn-success btn-xs"'
+                .' href="'.htmlspecialchars($url, ENT_QUOTES, 'UTF-8').'"'
+                .' onclick="return confirm(\''.$confirm.'\');">'
+                .htmlspecialchars((string) get_lang('Enable'), ENT_QUOTES, 'UTF-8')
+                .'</a>';
+        }
+
+        // Unify group into THIS user (single action)
+        $unifyUrl = $buildUrl([
+            'action' => 'unify_duplicate_user',
+            'unify_user_id' => $userId,
+        ]);
+
+        $confirmParts = [
+            sprintf((string) get_lang('Unify this duplicate group into user #%s?'), (string) $userId),
+            (string) get_lang('This will merge all other accounts in the same group into this account.'),
+            (string) get_lang('Merged accounts will be set to soft-deleted (active=-1) and disappear from this report.'),
+            (string) get_lang('You can permanently delete merged accounts later from the Users list.'),
+        ];
+        $confirm = $escapeConfirm(trim(implode(' ', $confirmParts)));
+
+        $html .= '<a class="btn btn-default btn-xs"'
+            .' href="'.htmlspecialchars($unifyUrl, ENT_QUOTES, 'UTF-8').'"'
+            .' onclick="return confirm(\''.$confirm.'\');">'
+            .htmlspecialchars((string) get_lang('Unify'), ENT_QUOTES, 'UTF-8')
+            .'</a>';
+
+        $html .= '</div>';
+
+        return $html;
     }
 
     /**
@@ -3097,101 +3183,6 @@ class Statistics
 
         // Keep it simple and reliable. If you prefer localized format, replace with your local formatter.
         return Security::remove_XSS($date);
-    }
-
-    /**
-     * Build action buttons HTML for each duplicate user row.
-     *
-     * IMPORTANT:
-     * - Adjust action names only if your controller currently expects different names.
-     * - This method preserves the current filters in the URL.
-     */
-    private static function buildDuplicateUserActionsHtml(
-        int $userId,
-        int $keepUserId,
-        bool $isKeep,
-        int $activeValue,
-        string $dupMode,
-        int $extraFieldId,
-        string $token
-    ): string {
-        $dupMode = in_array($dupMode, ['name', 'email', 'extra'], true) ? $dupMode : 'name';
-
-        $baseParams = [
-            'report' => 'duplicated_users',
-            'dup_mode' => $dupMode,
-            'sec_token' => $token,
-        ];
-
-        if ('extra' === $dupMode && $extraFieldId > 0) {
-            $baseParams['extra_field_id'] = $extraFieldId;
-        }
-
-        // Preserve optional extra columns
-        if (isset($_GET['additional_profile_field'])) {
-            $apf = $_GET['additional_profile_field'];
-            if (!is_array($apf)) {
-                $apf = [$apf];
-            }
-            $baseParams['additional_profile_field'] = array_values(array_filter(array_map('strval', $apf)));
-        }
-
-        $buildUrl = static function (array $params) use ($baseParams): string {
-            $self = (string) api_get_self();
-            $self = strtok($self, '?') ?: $self;
-
-            return $self.'?'.http_build_query(array_merge($baseParams, $params));
-        };
-
-        $html = '<div class="ch-dups-actions">';
-
-        // Activate / Deactivate
-        if ($activeValue === 1) {
-            $url = $buildUrl([
-                'action' => 'disable_duplicate_user',
-                'user_id' => $userId,
-            ]);
-
-            $html .= '<a class="btn btn-danger btn-xs"'
-                .' href="'.htmlspecialchars($url, ENT_QUOTES, 'UTF-8').'"'
-                .' onclick="return confirm(\'Deactivate this user?\');">'
-                .htmlspecialchars((string) get_lang('Deactivate'), ENT_QUOTES, 'UTF-8')
-                .'</a>';
-        } else {
-            $url = $buildUrl([
-                'action' => 'enable_duplicate_user',
-                'user_id' => $userId,
-            ]);
-
-            $html .= '<a class="btn btn-success btn-xs"'
-                .' href="'.htmlspecialchars($url, ENT_QUOTES, 'UTF-8').'"'
-                .' onclick="return confirm(\'Enable this user?\');">'
-                .htmlspecialchars((string) get_lang('Enable'), ENT_QUOTES, 'UTF-8')
-                .'</a>';
-        }
-
-        // Unify
-        if ($isKeep) {
-            $html .= '<a class="btn btn-default btn-xs disabled" href="#" aria-disabled="true" tabindex="-1">'
-                .htmlspecialchars((string) get_lang('Unify'), ENT_QUOTES, 'UTF-8')
-                .'</a>';
-        } else {
-            $url = $buildUrl([
-                'action' => 'unify_duplicate_user',
-                'keep_user_id' => $keepUserId,
-                'merge_user_id' => $userId,
-            ]);
-
-            $html .= '<a class="btn btn-default btn-xs"'
-                .' href="'.htmlspecialchars($url, ENT_QUOTES, 'UTF-8').'"'
-                .' onclick="return confirm(\'Unify this user into the KEEP account?\');">'
-                .htmlspecialchars((string) get_lang('Unify'), ENT_QUOTES, 'UTF-8')
-                .'</a>';
-        }
-
-        $html .= '</div>';
-
-        return $html;
     }
 
     /**
@@ -3266,6 +3257,132 @@ class Statistics
         $helper = Container::$container->get(UserMergeHelper::class);
 
         return $helper->mergeUsers($keepUserId, $mergeUserId);
+    }
+
+    /**
+     * Returns the user IDs that belong to the same duplicate group as $targetUserId.
+     * The matching logic follows the report mode: name|email|extra.
+     *
+     * @return int[] User IDs (includes $targetUserId). Empty array if no group found.
+     */
+    public static function getDuplicateUserGroupUserIds(string $dupMode, int $targetUserId, int $extraFieldId = 0): array
+    {
+        $dupMode = in_array($dupMode, ['name', 'email', 'extra'], true) ? $dupMode : 'name';
+        $targetUserId = (int) $targetUserId;
+        $extraFieldId = (int) $extraFieldId;
+
+        if ($targetUserId <= 0) {
+            return [];
+        }
+
+        $userTable = Database::get_main_table(TABLE_MAIN_USER);
+        $urlRelTable = Database::get_main_table(TABLE_MAIN_ACCESS_URL_REL_USER);
+        [$joinUrl, $whereUrl] = self::getAccessUrlJoinAndWhere('u', 'url', $urlRelTable);
+
+        // Load target row (and make sure it belongs to current URL when multi-url).
+        $sqlTarget = "SELECT u.id, u.firstname, u.lastname, u.email
+        FROM $userTable u
+        $joinUrl
+        WHERE u.id = $targetUserId
+          AND u.active <> ".USER_SOFT_DELETED."
+          $whereUrl
+        LIMIT 1";
+
+        $res = Database::query($sqlTarget);
+        $target = $res ? Database::fetch_assoc($res) : null;
+        if (empty($target)) {
+            return [];
+        }
+
+        $ids = [];
+
+        if ('name' === $dupMode) {
+            $fn = mb_strtolower(trim((string) ($target['firstname'] ?? '')), 'UTF-8');
+            $ln = mb_strtolower(trim((string) ($target['lastname'] ?? '')), 'UTF-8');
+
+            if ($fn === '' && $ln === '') {
+                return [];
+            }
+
+            $fnEsc = Database::escape_string($fn);
+            $lnEsc = Database::escape_string($ln);
+
+            $sql = "SELECT u.id
+            FROM $userTable u
+            $joinUrl
+            WHERE u.active <> ".USER_SOFT_DELETED."
+              $whereUrl
+              AND LOWER(TRIM(COALESCE(u.firstname, ''))) = '$fnEsc'
+              AND LOWER(TRIM(COALESCE(u.lastname, ''))) = '$lnEsc'
+            ORDER BY u.id ASC";
+        } elseif ('email' === $dupMode) {
+            $em = mb_strtolower(trim((string) ($target['email'] ?? '')), 'UTF-8');
+            if ($em === '') {
+                return [];
+            }
+
+            $emEsc = Database::escape_string($em);
+
+            $sql = "SELECT u.id
+            FROM $userTable u
+            $joinUrl
+            WHERE u.active <> ".USER_SOFT_DELETED."
+              $whereUrl
+              AND TRIM(COALESCE(u.email, '')) <> ''
+              AND LOWER(TRIM(COALESCE(u.email, ''))) = '$emEsc'
+            ORDER BY u.id ASC";
+        } else {
+            // extra
+            if ($extraFieldId <= 0) {
+                return [];
+            }
+
+            $valuesTable = Database::get_main_table(TABLE_EXTRA_FIELD_VALUES);
+
+            $sqlVal = "SELECT TRIM(COALESCE(v.field_value, '')) AS v
+            FROM $valuesTable v
+            INNER JOIN $userTable u ON u.id = v.item_id
+            $joinUrl
+            WHERE u.id = $targetUserId
+              AND u.active <> ".USER_SOFT_DELETED."
+              $whereUrl
+              AND v.field_id = $extraFieldId
+            LIMIT 1";
+
+            $resVal = Database::query($sqlVal);
+            $rowVal = $resVal ? Database::fetch_assoc($resVal) : null;
+
+            $val = mb_strtolower(trim((string) ($rowVal['v'] ?? '')), 'UTF-8');
+            if ($val === '') {
+                return [];
+            }
+
+            $valEsc = Database::escape_string($val);
+
+            $sql = "SELECT u.id
+            FROM $userTable u
+            INNER JOIN $valuesTable v ON v.item_id = u.id AND v.field_id = $extraFieldId
+            $joinUrl
+            WHERE u.active <> ".USER_SOFT_DELETED."
+              $whereUrl
+              AND TRIM(COALESCE(v.field_value, '')) <> ''
+              AND LOWER(TRIM(COALESCE(v.field_value, ''))) = '$valEsc'
+            ORDER BY u.id ASC";
+        }
+
+        $r = Database::query($sql);
+        while ($r && ($row = Database::fetch_assoc($r))) {
+            $ids[] = (int) ($row['id'] ?? 0);
+        }
+
+        $ids = array_values(array_unique(array_filter($ids, static fn (int $id): bool => $id > 0)));
+
+        // Only consider it a "group" if there are at least 2 users.
+        if (count($ids) < 2) {
+            return [];
+        }
+
+        return $ids;
     }
 
     /**

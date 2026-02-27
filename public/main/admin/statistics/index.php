@@ -55,6 +55,48 @@ if ($report === 'duplicated_users' && in_array($action, [
                     break;
 
                 case 'unify_duplicate_user':
+                    $unifyUserId = isset($_GET['unify_user_id']) ? (int) $_GET['unify_user_id'] : 0;
+                    $dupModeParam = isset($_GET['dup_mode']) ? (string) $_GET['dup_mode'] : 'name';
+                    $extraFieldId = isset($_GET['extra_field_id']) ? (int) $_GET['extra_field_id'] : 0;
+
+                    /** @var UserMergeHelper $userMergeHelper */
+                    $userMergeHelper = Container::$container->get(UserMergeHelper::class);
+
+                    if ($unifyUserId > 0) {
+                        $groupIds = Statistics::getDuplicateUserGroupUserIds($dupModeParam, $unifyUserId, $extraFieldId);
+
+                        if (count($groupIds) < 2) {
+                            Display::addFlash(Display::return_message(
+                                get_lang('No other duplicates found for this user.'),
+                                'warning',
+                                false
+                            ));
+                            break;
+                        }
+
+                        $mergeIds = array_values(array_filter($groupIds, static fn (int $id): bool => $id !== $unifyUserId));
+
+                        $mergedCount = $userMergeHelper->mergeUsersBatch($unifyUserId, $mergeIds);
+
+                        if ($mergedCount > 0) {
+                            $msg = sprintf(
+                                get_lang('Users unified: merged %s account(s) into user #%s.'),
+                                (int) $mergedCount,
+                                (int) $unifyUserId
+                            );
+
+                            Display::addFlash(Display::return_message($msg, 'confirmation', false));
+                        } else {
+                            Display::addFlash(Display::return_message(
+                                get_lang('No accounts were merged.'),
+                                'warning',
+                                false
+                            ));
+                        }
+
+                        break;
+                    }
+
                     $keepUserId = isset($_GET['keep_user_id']) ? (int) $_GET['keep_user_id'] : 0;
                     $mergeUserId = isset($_GET['merge_user_id']) ? (int) $_GET['merge_user_id'] : 0;
 
@@ -63,8 +105,6 @@ if ($report === 'duplicated_users' && in_array($action, [
                         break;
                     }
 
-                    /** @var UserMergeHelper $userMergeHelper */
-                    $userMergeHelper = Container::$container->get(UserMergeHelper::class);
                     $ok = $userMergeHelper->mergeUsers($keepUserId, $mergeUserId);
 
                     if ($ok) {
@@ -588,6 +628,9 @@ switch ($report) {
           .ch-dups-actions .btn{border-radius:4px;font-weight:700}
           .ch-dups-actions .btn-xs{padding:2px 8px;font-size:12px;line-height:1.2}
           .ch-dups-actions .btn.disabled{opacity:.45;pointer-events:none}
+          .ch-dups-actions .ch-dups-icon svg{width:14px; height:14px;}
+          .ch-dups-actions .ch-dups-emoji{font-size:14px; line-height:1;}
+          .ch-dups-actions .ch-dups-btn-label{margin-left:6px;}
           .ch-dups-help{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:12px;padding:12px;margin:10px 0 14px}
           .ch-dups-help__title{font-weight:700;margin:0 0 8px;color:#2b3645}
           .ch-dups-help__list{margin:0;padding-left:18px;color:#3b4757;font-size:13px}
@@ -667,26 +710,31 @@ switch ($report) {
             $extraFieldFormHtml = $formExtra->returnForm();
         }
 
-        // Info message
         if ('name' === $dupMode) {
-            $content .= Display::return_message('This report only lists users that have the same firstname and lastname.', 'info');
+            $content .= Display::return_message(
+                get_lang('This report only lists users that have the same firstname and lastname.'),
+                'info'
+            );
         } elseif ('email' === $dupMode) {
-            $content .= Display::return_message('This report only lists users that have the same e-mail address.', 'info');
+            $content .= Display::return_message(
+                get_lang('This report only lists users that have the same e-mail address.'),
+                'info'
+            );
         } else {
-            $content .= Display::return_message('This report only lists users that share the same value for the selected profile field.', 'info');
+            $content .= Display::return_message(
+                get_lang('This report only lists users that share the same value for the selected profile field.'),
+                'info'
+            );
         }
 
-        // Help box (explains actions + soft-delete).
-        $helpTitle = 'How to use this report';
+        $helpTitle = get_lang('How to use this report');
         $helpHtml = '
         <div class="ch-dups-help">
-          <div class="ch-dups-help__title">'.$helpTitle.'</div>
+          <div class="ch-dups-help__title">'.htmlspecialchars($helpTitle, ENT_QUOTES, 'UTF-8').'</div>
           <ul class="ch-dups-help__list">
-            <li><strong>Keep account</strong>: The system automatically selects the <em>oldest</em> account in each duplicate group (earliest registration date, then lowest ID).</li>
-            <li><strong>Why is Unify disabled on one row?</strong> Because that row is the <em>Keep</em> account. Use <strong>Unify</strong> on the other rows in the same group.</li>
-            <li><strong>Disable / Enable</strong>: Only blocks or restores login. It does <em>not</em> delete the user and does <em>not</em> remove subscriptions.</li>
-            <li><strong>Unify</strong>: Moves subscriptions and related data into the Keep account. The merged account will be set to <code>soft-deleted</code> (<code>active = -1</code>) and will disappear from this report.</li>
-            <li><strong>Permanent deletion</strong>: Go to <strong>Administration → Users list</strong>, search the user ID or <code>merged_</code>, and delete the user there if needed.</li>
+            <li><strong>'.get_lang('Disable / Enable').'</strong>: '.get_lang('Only blocks or restores login. It does not delete the user and does not remove subscriptions.').'</li>
+            <li><strong>'.get_lang('Unify').'</strong>: '.get_lang('Click Unify on the account that should remain. The system will merge all other accounts in the same duplicate group into it. Merged accounts will be set to soft-deleted (active = -1) and will disappear from this report.').'</li>
+            <li><strong>'.get_lang('Permanent deletion').'</strong>: '.get_lang('Go to Administration → Users list, search the user ID or merged_, and delete the user there if needed.').'</li>
           </ul>
         </div>
         ';
@@ -2699,13 +2747,17 @@ switch ($report) {
         ];
 
         $ajaxEndpointJs = json_encode($ajaxEndpoint, JSON_UNESCAPED_SLASHES);
+        $loadingText = get_lang('Loading report...');
+        $loadErrorText = get_lang('Failed to load this report. Please try again.');
+
         $loadingHtml = '
             <div class="flex items-center gap-2 text-sm text-gray-50 py-3">
                 '.$waitIcon.'
-                <span>Loading report…</span>
+                <span>'.htmlspecialchars($loadingText, ENT_QUOTES, 'UTF-8').'</span>
             </div>
         ';
         $loadingHtmlJs = json_encode($loadingHtml, JSON_UNESCAPED_SLASHES);
+        $loadErrorTextJs = json_encode($loadErrorText, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
         $htmlHeadXtra[] = <<<JS
         <script>
@@ -2714,6 +2766,7 @@ switch ($report) {
 
           var AJAX_ENDPOINT = {$ajaxEndpointJs};
           var LOADING_HTML = {$loadingHtmlJs};
+          var LOAD_ERROR_TEXT = {$loadErrorTextJs};
 
           function showTarget(\$el) {
             \$el.removeClass("hidden");
@@ -2747,7 +2800,7 @@ switch ($report) {
               if (status !== "success") {
                 \$target.html(
                   '<div class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">' +
-                  'Failed to load this report. Please try again.' +
+                  LOAD_ERROR_TEXT +
                   '</div>'
                 );
                 return;

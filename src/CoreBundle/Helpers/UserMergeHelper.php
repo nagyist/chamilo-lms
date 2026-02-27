@@ -130,6 +130,98 @@ final class UserMergeHelper
         }
     }
 
+    /**
+     * Merge many users into $keepUserId in a single DB transaction.
+     *
+     * @param int[] $mergeUserIds
+     * @param bool|null $enableLogs optional override for this call only (default: null = keep current flag)
+     *
+     * @return int Number of merged accounts
+     */
+    public function mergeUsersBatch(int $keepUserId, array $mergeUserIds, ?bool $enableLogs = null): int
+    {
+        $keepUserId = (int) $keepUserId;
+
+        $mergeUserIds = array_values(array_unique(array_map('intval', $mergeUserIds)));
+        $mergeUserIds = array_values(array_filter(
+            $mergeUserIds,
+            static fn (int $id): bool => $id > 0 && $id !== $keepUserId
+        ));
+
+        if ($keepUserId <= 0 || empty($mergeUserIds)) {
+            return 0;
+        }
+
+        // Per-call override (restored at the end to avoid side effects on shared service).
+        $previousEnableLogs = $this->enableLogs;
+        if (null !== $enableLogs) {
+            $this->enableLogs = (bool) $enableLogs;
+        }
+
+        try {
+            /** @var User|null $keepUser */
+            $keepUser = $this->userRepository->find($keepUserId);
+            if (!$keepUser) {
+                $this->log(LogLevel::ERROR, 'Batch merge: keep user not found.', ['keepUserId' => $keepUserId]);
+                return 0;
+            }
+
+            $this->log(LogLevel::ERROR, 'Batch merge started.', [
+                'keepUserId' => $keepUserId,
+                'mergeUserIds' => $mergeUserIds,
+            ]);
+
+            $conn = $this->em->getConnection();
+            $conn->beginTransaction();
+
+            $mergedCount = 0;
+
+            try {
+                foreach ($mergeUserIds as $mergeUserId) {
+                    /** @var User|null $mergeUser */
+                    $mergeUser = $this->userRepository->find($mergeUserId);
+                    if (!$mergeUser) {
+                        throw new RuntimeException(self::LOG_PREFIX." Batch merge: user #{$mergeUserId} not found.");
+                    }
+
+                    $this->log(LogLevel::ERROR, 'Batch merge item start.', [
+                        'keepUserId' => $keepUserId,
+                        'mergeUserId' => $mergeUserId,
+                    ]);
+
+                    $this->mergeExtraFieldValues($conn, $mergeUserId, $keepUserId);
+                    $this->mergeExtraFieldTags($conn, $mergeUserId, $keepUserId);
+                    $this->reassignUserResourcesToTargetSQL($conn, $mergeUser, $keepUser);
+                    $this->markUserAsMerged($conn, $mergeUserId, $keepUserId);
+
+                    $mergedCount++;
+                }
+
+                $conn->commit();
+
+                $this->log(LogLevel::ERROR, 'Batch merge committed.', [
+                    'keepUserId' => $keepUserId,
+                    'mergedCount' => $mergedCount,
+                ]);
+
+                return $mergedCount;
+            } catch (Throwable $e) {
+                $this->safeRollback($conn);
+
+                $this->log(LogLevel::ERROR, 'Batch merge failed with exception.', [
+                    'message' => $e->getMessage(),
+                    'class' => $e::class,
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                ]);
+
+                throw $e;
+            }
+        } finally {
+            $this->enableLogs = $previousEnableLogs;
+        }
+    }
+
     private function reassignUserResourcesToTargetSQL(Connection $conn, User $sourceUser, User $targetUser): void
     {
         $sourceId = (int) $sourceUser->getId();

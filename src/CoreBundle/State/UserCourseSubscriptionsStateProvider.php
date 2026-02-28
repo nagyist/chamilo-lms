@@ -24,6 +24,7 @@ use Chamilo\CoreBundle\Repository\CourseRelUserRepository;
 use Chamilo\CoreBundle\Repository\SequenceResourceRepository;
 use RuntimeException;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
+use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
 /**
  * @template-implements ProviderInterface<CourseRelUser>
@@ -38,6 +39,7 @@ final class UserCourseSubscriptionsStateProvider implements ProviderInterface
         private readonly CourseRelUserRepository $courseRelUserRepository,
         private readonly CourseStudentInfoHelper $courseStudentInfoHelper,
         private readonly SequenceResourceRepository $sequenceResourceRepository,
+        private readonly NormalizerInterface $normalizer,
         FilterExtension $filterExtension,
         PaginationExtension $paginationExtension,
         OrderExtension $orderExtension,
@@ -263,25 +265,34 @@ final class UserCourseSubscriptionsStateProvider implements ProviderInterface
     {
         $id = (int) $u->getId();
 
-        $fullName = '';
-        if (method_exists($u, 'getCompleteName')) {
-            $fullName = (string) $u->getCompleteName();
-        } else {
-            $fullName = trim((string) ($u->getFirstname() ?? '').' '.(string) ($u->getLastname() ?? ''));
+        $fullName = (string) $u->getFullName();
+        if ('' === trim($fullName)) {
+            $fullName = trim((string) $u->getFirstname().' '.(string) $u->getLastname());
+        }
+        if ('' === trim($fullName)) {
+            $fullName = (string) $u->getUsername();
         }
 
         $illustrationUrl = '';
-        if (method_exists($u, 'getIllustrationUrl')) {
-            $illustrationUrl = (string) $u->getIllustrationUrl();
-        } elseif (method_exists($u, 'getIllustration')) {
-            $illustrationUrl = (string) $u->getIllustration();
+        $normalized = $this->normalizer->normalize($u, 'json', [
+            'groups' => ['course_catalogue:read', 'course_rel_user:read', 'user:read'],
+            'enable_max_depth' => true,
+        ]);
+
+        if (\is_array($normalized)) {
+            $illustrationUrl = (string) (
+                $normalized['illustrationUrl']
+                ?? $normalized['pictureUri']
+                ?? $normalized['avatarUrl']
+                ?? ''
+            );
         }
 
         return [
             'id' => $id,
             '@id' => '/api/users/'.$id,
             'username' => (string) $u->getUsername(),
-            'fullName' => '' !== $fullName ? $fullName : (string) $u->getUsername(),
+            'fullName' => $fullName,
             'illustrationUrl' => $illustrationUrl,
             'roleLabel' => 'Teacher',
         ];

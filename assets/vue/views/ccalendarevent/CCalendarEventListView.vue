@@ -42,8 +42,10 @@
         />
       </div>
     </div>
-
-    <div class="flex flex-wrap items-center gap-2">
+    <div
+      v-if="showScopeFilters"
+      class="flex flex-wrap items-center gap-2"
+    >
       <button
         v-for="f in filters"
         :key="f.key"
@@ -54,10 +56,8 @@
         {{ f.label }}
       </button>
     </div>
-
     <!-- Results -->
     <div class="border rounded overflow-hidden bg-white relative">
-      <!-- Local overlay loading (not full screen) -->
       <div
         v-if="isLoading"
         class="absolute inset-0 z-10 bg-white/70 flex items-center justify-center"
@@ -67,13 +67,10 @@
           <span class="text-sm">{{ t("Loading") }}</span>
         </div>
       </div>
-
-      <!-- Inline skeleton loading inside results (more friendly) -->
       <div
         v-if="showSkeleton"
         class="p-4"
       >
-        <!-- Skeleton placeholders while loading results -->
         <div
           v-for="d in skeletonDaysCount"
           :key="`sk-day-${d}`"
@@ -112,7 +109,6 @@
           </div>
         </div>
       </div>
-
       <div
         v-if="groupedDays.length === 0 && !isLoading && !showSkeleton"
         class="p-4 text-sm text-gray-50"
@@ -208,12 +204,8 @@ import { computed, ref, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
 import { DateTime } from "luxon"
-import { storeToRefs } from "pinia"
-
 import CalendarSectionHeader from "../../components/ccalendarevent/CalendarSectionHeader.vue"
 import BaseButton from "../../components/basecomponents/BaseButton.vue"
-
-import { useCidReqStore } from "../../store/cidReq"
 import { useFormatDate } from "../../composables/formatDate"
 import { useLocale } from "../../composables/locale"
 import { useCalendarEvent } from "../../composables/calendar/calendarEvent"
@@ -221,37 +213,32 @@ import { useCalendarEvent } from "../../composables/calendar/calendarEvent"
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-
-const cidReqStore = useCidReqStore()
-const { course, session, group } = storeToRefs(cidReqStore)
-
 const { getCurrentTimezone } = useFormatDate()
 const { appLocaleTag } = useLocale()
-
 const { getCalendarEvents } = useCalendarEvent()
-
 const timezone = getCurrentTimezone()
 
-// Prevent locale-related errors from breaking rendering.
 function safeToLocaleString(dt, fmt) {
   if (!dt) return ""
   try {
     return dt.setLocale(appLocaleTag.value).toLocaleString(fmt)
   } catch (e) {
-    // Fallback: never break rendering
     return dt.setLocale("en").toLocaleString(fmt)
   }
 }
 
-function dtWithLocale(dt) {
-  // Keep this helper for places where a DateTime is needed with locale applied.
-  if (!dt) return dt
-  try {
-    return dt.setLocale(appLocaleTag.value)
-  } catch (e) {
-    return dt.setLocale("en")
-  }
+function computeContextFromQuery(query) {
+  if (query?.type === "global") return "global"
+  if (query?.sid && String(query.sid) !== "0") return "session"
+  if (query?.cid && String(query.cid) !== "0" && (!query.sid || String(query.sid) === "0")) return "course"
+  return "personal"
 }
+
+const currentContext = computed(() => computeContextFromQuery(route.query))
+const showScopeFilters = computed(() => {
+  const ctx = currentContext.value
+  return ctx !== "course" && ctx !== "session"
+})
 
 function parseQueryDate(value) {
   if (!value) return DateTime.now().setZone(timezone).startOf("day")
@@ -270,10 +257,6 @@ function syncDateToQuery(dt) {
     .catch(() => {})
 }
 
-/**
- * We keep "view" in query to make the list range consistent with FullCalendar.
- * Expected values: dayGridMonth, timeGridWeek, timeGridDay (or similar).
- */
 const viewType = computed(() => String(route.query.view || "timeGridWeek"))
 const viewMode = computed(() => {
   const v = viewType.value
@@ -292,23 +275,32 @@ watch(
 
 const activeFilter = ref("all")
 
-const filters = computed(() => [
-  { key: "all", label: t("All") },
-  { key: "personal", label: t("Personal") },
-  { key: "course", label: t("Course") },
-  { key: "session", label: t("Session") },
-  { key: "assignment", label: t("Assignments") },
-])
+const filters = computed(() => {
+  if (!showScopeFilters.value) return [{ key: "all", label: t("All") }]
+
+  return [
+    { key: "all", label: t("All") },
+    { key: "personal", label: t("Personal") },
+    { key: "course", label: t("Course") },
+    { key: "session", label: t("Session") },
+    { key: "assignment", label: t("Assignments") },
+  ]
+})
+
+watch(
+  () => showScopeFilters.value,
+  (enabled) => {
+    if (!enabled && activeFilter.value !== "all") activeFilter.value = "all"
+  },
+  { immediate: true },
+)
 
 function goToday() {
-  // Keep current view mode but jump to today.
   anchor.value = DateTime.now().setZone(timezone).startOf("day")
   syncDateToQuery(anchor.value)
 }
 
 function shiftRange(direction) {
-  // direction is -1 or +1
-  // Month view: move 1 month, Week view: move 1 week, Day view: move 1 day
   if (viewMode.value === "month") {
     anchor.value = anchor.value.plus({ months: direction }).startOf("day")
   } else if (viewMode.value === "day") {
@@ -316,36 +308,20 @@ function shiftRange(direction) {
   } else {
     anchor.value = anchor.value.plus({ days: 7 * direction }).startOf("day")
   }
-
   syncDateToQuery(anchor.value)
 }
 
 const rangeStart = computed(() => {
   const dt = anchor.value.setZone(timezone)
-
-  if (viewMode.value === "month") {
-    // Align with calendar-like range (full weeks for the month)
-    return dt.startOf("month").startOf("week")
-  }
-
-  if (viewMode.value === "day") {
-    return dt.startOf("day")
-  }
-
+  if (viewMode.value === "month") return dt.startOf("month").startOf("week")
+  if (viewMode.value === "day") return dt.startOf("day")
   return dt.startOf("week")
 })
 
 const rangeEnd = computed(() => {
   const dt = anchor.value.setZone(timezone)
-
-  if (viewMode.value === "month") {
-    return dt.endOf("month").endOf("week")
-  }
-
-  if (viewMode.value === "day") {
-    return dt.endOf("day")
-  }
-
+  if (viewMode.value === "month") return dt.endOf("month").endOf("week")
+  if (viewMode.value === "day") return dt.endOf("day")
   return dt.endOf("week")
 })
 
@@ -357,78 +333,60 @@ const rangeLabel = computed(() => {
   const start = rangeStart.value
   const end = rangeEnd.value
 
-  // Month view: show month + year based on anchor (not rangeStart which can be previous month week)
   if (viewMode.value === "month") {
-    // Comment: Luxon supports Intl options object.
     return safeToLocaleString(anchor.value, { month: "long", year: "numeric" })
   }
-
-  // Day view: single day label
   if (viewMode.value === "day") {
     return safeToLocaleString(start, DateTime.DATE_FULL)
   }
-
-  // Week view: start — end
   const a = safeToLocaleString(start, DateTime.DATE_MED)
   const b = safeToLocaleString(end, DateTime.DATE_MED)
   return `${a} — ${b}`
 })
 
+function pushClean(name, extraQuery = {}) {
+  router.push({ name, query: { ...extraQuery } }).catch(() => {})
+}
+
 function goToSessionsPlan() {
-  router.push({ name: "CalendarSessionsPlan", query: { ...route.query } }).catch(() => {})
+  pushClean("CalendarSessionsPlan")
 }
 
 function goToMyStudentsSchedule() {
-  router.push({ name: "CalendarMyStudentsSchedule", query: { ...route.query } }).catch(() => {})
+  pushClean("CalendarMyStudentsSchedule")
 }
 
 function goToCalendar() {
-  // Keep the same date and view when switching back to calendar.
-  const nextQuery = { ...route.query, date: anchor.value.toISODate(), view: viewType.value }
-  router.push({ name: "CCalendarEventList", query: nextQuery }).catch(() => {})
+  pushClean("CCalendarEventList")
 }
 
 function goToAddEvent() {
-  router
-    .push({
-      name: "CCalendarEventList",
-      query: { ...route.query, date: anchor.value.toISODate(), view: viewType.value, openAdd: "1" },
-    })
-    .catch(() => {})
+  // Open add dialog without carrying stale query params
+  pushClean("CCalendarEventList", { openAdd: "1" })
 }
 
 const isLoading = ref(false)
 const rawEvents = ref([])
 
-// Skeleton settings for a friendly inline loading state.
 const skeletonDaysCount = 3
 const skeletonItemsPerDay = 2
 const showSkeleton = computed(() => isLoading.value && groupedDays.value.length === 0)
 
 function computeCommonParams() {
-  const commonParams = {}
+  const q = route.query || {}
+  const params = {}
 
-  if (course.value) {
-    commonParams.cid = course.value.id
-  }
+  const cid = Number(q.cid ?? 0)
+  const sid = Number(q.sid ?? 0)
+  const gid = Number(q.gid ?? 0)
+  const type = String(q.type ?? "")
 
-  if (session.value) {
-    commonParams.sid = session.value.id
-  }
+  if (cid > 0) params.cid = cid
+  if (sid > 0) params.sid = sid
+  if (gid > 0) params.gid = gid
+  if (type === "global") params.type = "global"
 
-  if (route.query?.type === "global") {
-    commonParams.type = "global"
-  }
-
-  const gidFromRoute = Number(route.query.gid ?? 0)
-  const gidFromStore = Number(group.value?.id ?? 0)
-  const effectiveGid = gidFromStore > 0 ? gidFromStore : gidFromRoute
-
-  if (effectiveGid > 0) {
-    commonParams.gid = effectiveGid
-  }
-
-  return commonParams
+  return params
 }
 
 async function loadEvents() {
@@ -474,33 +432,25 @@ function defaultColorByContext(ctx) {
 function toLuxon(value) {
   if (!value) return null
 
-  // Date instance
-  if (value instanceof Date) {
-    return DateTime.fromJSDate(value, { zone: timezone })
-  }
+  if (value instanceof Date) return DateTime.fromJSDate(value, { zone: timezone })
 
-  // Numeric timestamp (seconds or milliseconds)
   if (typeof value === "number" && Number.isFinite(value)) {
     const isMillis = value > 1e12
     return isMillis ? DateTime.fromMillis(value, { zone: timezone }) : DateTime.fromSeconds(value, { zone: timezone })
   }
 
-  // String: ISO date, ISO datetime, or numeric timestamp string
   if (typeof value === "string") {
     const s = value.trim()
-
     if (/^\d{10,13}$/.test(s)) {
       const n = Number(s)
       const isMillis = n > 1e12
       return isMillis ? DateTime.fromMillis(n, { zone: timezone }) : DateTime.fromSeconds(n, { zone: timezone })
     }
-
     const iso = s.length === 10 ? `${s}T00:00:00` : s
     const dt = DateTime.fromISO(iso, { zone: timezone })
     return dt.isValid ? dt : null
   }
 
-  // Object with toISOString()
   if (typeof value === "object" && typeof value.toISOString === "function") {
     const dt = DateTime.fromISO(value.toISOString(), { zone: timezone })
     return dt.isValid ? dt : null
@@ -525,103 +475,150 @@ function scopeLabel(scope) {
   return scope
 }
 
-function extractCourse(ep) {
-  return ep?.course?.code || ep?.course?.title || ep?.courseCode || ep?.courseTitle || (ep?.cid ? String(ep.cid) : null)
+function plainTextFromHtml(input) {
+  if (!input) return ""
+  const s = String(input)
+
+  if (!/[<>]/.test(s)) {
+    return s.replace(/\s+/g, " ").trim()
+  }
+
+  const text = s
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<!doctype[^>]*>/gi, " ")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<\/?[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim()
+
+  return text.length > 220 ? `${text.slice(0, 220)}…` : text
 }
 
-function extractSession(ep) {
-  return (
-    ep?.session?.name || ep?.session?.title || ep?.sessionName || ep?.sessionTitle || (ep?.sid ? String(ep.sid) : null)
-  )
+function getPayload(e) {
+  // Support both shapes:
+  // - FullCalendar event objects (scope in extendedProps)
+  // - API objects (scope in root fields)
+  const ep = e?.extendedProps
+  if (ep && typeof ep === "object" && Object.keys(ep).length > 0) return ep
+  return e ?? {}
 }
 
-function extractType(ep) {
+function getLinks(payload) {
+  return Array.isArray(payload?.resourceLinkListFromEntity) ? payload.resourceLinkListFromEntity : []
+}
+
+function resolveScopeRaw(payload) {
+  // 1) Best: explicit "type" from API ("personal"|"course"|"session"|"global")
+  const explicit = payload?.type ?? payload?.scope ?? payload?.context ?? null
+  const explicitLower = String(explicit || "")
+    .toLowerCase()
+    .trim()
+  if (["personal", "course", "session", "global"].includes(explicitLower)) return explicitLower
+
+  // 2) Otherwise infer from resource links
+  const links = getLinks(payload)
+  if (links.length) {
+    // Prefer session over course when both exist
+    if (links.some((l) => l?.session)) return "session"
+    if (links.some((l) => l?.course)) return "course"
+    if (links.some((l) => l?.user)) return "personal"
+  }
+
+  return "personal"
+}
+
+function extractCourse(payload) {
+  if (payload?.course?.code) return payload.course.code
+  if (payload?.course?.title) return payload.course.title
+  const link = getLinks(payload).find((l) => l?.course)
+  return link?.course?.resourceNode?.title || link?.course?.title || link?.course?.code || null
+}
+
+function extractSession(payload) {
+  if (payload?.session?.title) return payload.session.title
+  if (payload?.session?.name) return payload.session.name
+  const link = getLinks(payload).find((l) => l?.session)
+  return link?.session?.title || link?.session?.name || null
+}
+
+function extractType(payload) {
   return (
-    ep?.resourceNode?.resourceType?.name || ep?.resourceNode?.resourceType || ep?.objectType || ep?.eventType || null
+    payload?.resourceNode?.resourceType?.name ||
+    payload?.resourceNode?.resourceType?.title ||
+    payload?.resourceNode?.resourceType ||
+    payload?.objectType ||
+    payload?.eventType ||
+    null
   )
 }
 
 function mapToBaseItem(e) {
-  const ep = e?.extendedProps ?? {}
+  const payload = getPayload(e)
 
-  const scopeRaw = ep?.type ?? ep?.scope ?? null
-  const typeValue = extractType(ep)
+  const title = e?.title || payload?.title || ""
+  const scopeRawLower = resolveScopeRaw(payload)
+  const typeValue = extractType(payload)
 
-  const objectTypeRaw = ep?.objectType ?? ep?.["objectType"] ?? null
-  const objectType = String(objectTypeRaw || "").toLowerCase()
-  const typeLower = String(typeValue || "").toLowerCase()
-  const scopeLower = String(scopeRaw || "").toLowerCase()
-  const title = e?.title || ep?.title || ""
-
-  // Prefer the most "FullCalendar-like" keys first
   let start =
     toLuxon(e?.start) ||
     toLuxon(e?.startStr) ||
     toLuxon(e?.startDate) ||
-    toLuxon(ep?.startDate) ||
-    toLuxon(ep?.start) ||
+    toLuxon(payload?.startDate) ||
+    toLuxon(payload?.start) ||
     null
 
   let end =
-    toLuxon(e?.end) || toLuxon(e?.endStr) || toLuxon(e?.endDate) || toLuxon(ep?.endDate) || toLuxon(ep?.end) || null
+    toLuxon(e?.end) ||
+    toLuxon(e?.endStr) ||
+    toLuxon(e?.endDate) ||
+    toLuxon(payload?.endDate) ||
+    toLuxon(payload?.end) ||
+    null
 
-  // fix inverted ranges caused by parsing/timezone issues
-  if (start && end && end < start) {
-    end = start.plus({ days: 1 })
-  }
+  if (start && end && end < start) end = start.plus({ days: 1 })
 
-  // Robust session detection
-  const looksLikeSession =
-    objectType === "session" ||
-    typeLower === "session" ||
-    scopeLower === "session" ||
-    String(title).toLowerCase().startsWith("session")
-
-  // If duration is >= 1 day, treat as all-day
   const durationDays = start && end ? end.diff(start, "days").days : 0
   const looksMultiDay = Number.isFinite(durationDays) && durationDays >= 1
 
-  // Force all-day for sessions and multi-day events
   const allDay =
     Boolean(e?.allDay === true) ||
-    Boolean(ep?.allDay === true) ||
-    looksLikeSession ||
+    Boolean(payload?.allDay === true) ||
     looksMultiDay ||
     (typeof e?.start === "string" && String(e.start).length === 10)
 
-  // Normalize all-day dates to midnight to avoid confusing time ranges
   if (allDay && start) {
     start = start.startOf("day")
     if (end) end = end.startOf("day")
+    if (!end || end <= start) end = start.plus({ days: 1 })
   }
 
-  // If an all-day event has no (valid) end, give it a minimal exclusive end
-  if (allDay && start) {
-    if (!end || end <= start) {
-      end = start.plus({ days: 1 })
-    }
-  }
+  const rawColor = payload?.color ?? e?.backgroundColor ?? e?.borderColor ?? e?.color ?? null
+  const color = normalizeHex(rawColor) || defaultColorByContext(scopeRawLower)
 
-  const rawColor = ep?.color ?? e?.backgroundColor ?? e?.borderColor ?? e?.color ?? null
-  const color = normalizeHex(rawColor) || defaultColorByContext(scopeRaw || "personal")
-
-  const content = ep?.content || ep?.description || ""
+  const content = plainTextFromHtml(payload?.content || payload?.description || "")
 
   return {
-    keyBase: e?.id || ep?.["@id"] || `${title}-${start?.toISO() || ""}`,
+    keyBase: e?.id || payload?.["@id"] || payload?.id || `${title}-${start?.toISO() || ""}`,
     title,
     content,
     color,
-    url: e?.url || ep?.url || null,
-    scope: scopeLabel(scopeRaw),
-    course: extractCourse(ep),
-    session: extractSession(ep),
+    url: e?.url || payload?.url || null,
+    scope: scopeLabel(scopeRawLower),
+    course: extractCourse(payload),
+    session: extractSession(payload),
     type: typeValue,
 
     _start: start,
     _end: end,
     _allDay: allDay,
-    _scopeRaw: scopeRaw ? String(scopeRaw).toLowerCase() : null,
+    _scopeRaw: scopeRawLower,
     _isAssignment: String(typeValue || "")
       .toLowerCase()
       .includes("assign"),
@@ -630,15 +627,12 @@ function mapToBaseItem(e) {
 
 /**
  * Expand multi-day all-day events into one row per day within the current range.
- * This keeps list output consistent with FullCalendar bars spanning multiple days.
  */
 function expandToOccurrences(base) {
   if (!base._start) return []
   const end = base._end || base._start
-
   if (!overlapsRange(base._start, end)) return []
 
-  // Non all-day: show once at start day
   if (!base._allDay) {
     const range =
       base._start && end
@@ -657,7 +651,6 @@ function expandToOccurrences(base) {
     ]
   }
 
-  // All-day: end is usually exclusive (FullCalendar)
   const startDay = base._start.startOf("day")
   let endDay = (end || base._start).startOf("day")
 
@@ -672,7 +665,6 @@ function expandToOccurrences(base) {
 
   const from = startDay < rangeFrom ? rangeFrom : startDay
   const to = endDay > rangeTo ? rangeTo : endDay
-
   if (from > to) return []
 
   const out = []
@@ -685,7 +677,6 @@ function expandToOccurrences(base) {
       _groupDay: cursor,
       range: t("All day"),
     })
-
     cursor = cursor.plus({ days: 1 })
   }
 
@@ -695,9 +686,7 @@ function expandToOccurrences(base) {
 const listItems = computed(() => {
   const base = (rawEvents.value || []).map(mapToBaseItem)
   const out = []
-  for (const b of base) {
-    out.push(...expandToOccurrences(b))
-  }
+  for (const b of base) out.push(...expandToOccurrences(b))
   return out
 })
 
@@ -715,11 +704,7 @@ const groupedDays = computed(() => {
   for (const ev of sorted) {
     const key = ev._groupDay.toISODate()
     const label = safeToLocaleString(ev._groupDay, DateTime.DATE_FULL)
-
-    if (!groups.has(key)) {
-      groups.set(key, { key, label, items: [] })
-    }
-
+    if (!groups.has(key)) groups.set(key, { key, label, items: [] })
     groups.get(key).items.push(ev)
   }
 

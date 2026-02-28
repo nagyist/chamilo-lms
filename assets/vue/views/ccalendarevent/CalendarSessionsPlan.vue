@@ -1,6 +1,7 @@
 <template>
   <div class="flex flex-col gap-4">
     <CalendarSectionHeader
+      active-view="calendar"
       @addClick="goToAddEvent"
       @agendaListClick="goToAgendaList"
       @sessionPlanningClick="goToSessionsPlan"
@@ -91,11 +92,9 @@
               >
                 {{ s.title }}
               </div>
-
               <div class="text-xs text-gray-600">
                 {{ t("From") }} {{ s.startDate || "—" }} • {{ t("Until") }} {{ s.endDate || "—" }}
               </div>
-
               <div
                 v-if="s.humanDate"
                 class="text-xs text-gray-500 mt-0.5"
@@ -104,10 +103,10 @@
               </div>
             </div>
 
-            <div class="relative col-span-52 border-l">
+            <div class="weeks-cell border-l">
               <div
                 v-if="showBar(s)"
-                class="absolute top-1/2 -translate-y-1/2 h-5 rounded"
+                class="bar"
                 :style="barStyle(s)"
                 :title="barTooltip(s)"
               />
@@ -132,27 +131,22 @@ const route = useRoute()
 const router = useRouter()
 
 function tOrFallback(key, fallback) {
-  // If a translation is missing, vue-i18n often returns the key itself.
   const out = t(key)
   return out === key ? fallback : out
 }
 
 function parseQueryYear(yearValue, dateValue) {
   const current = DateTime.now().year
-
   const y = Number(yearValue)
   if (Number.isFinite(y) && y >= 1970 && y <= 2100) {
     return y
   }
-
-  // When the route uses "date=YYYY-MM-DD", derive the year from it.
   if (dateValue) {
     const dt = DateTime.fromISO(String(dateValue))
     if (dt.isValid) {
       return dt.year
     }
   }
-
   return current
 }
 
@@ -202,22 +196,16 @@ async function fetchPlan() {
     errorMessage.value = ""
 
     const url = `/api/calendar/sessions-plan?year=${encodeURIComponent(String(year.value))}`
-    const resp = await fetch(url, {
-      method: "GET",
-      headers: { Accept: "application/ld+json, application/json" },
-    })
+    const resp = await fetch(url, { method: "GET", headers: { Accept: "application/ld+json, application/json" } })
 
     if (!resp.ok) {
       const text = await resp.text().catch(() => "")
-
       console.error("[SessionsPlan] Request failed", resp.status, text)
-
       if (resp.status === 403) {
         errorMessage.value = tOrFallback("TooMuchSessionsInPlanification", "Too many sessions in planification")
       } else {
         errorMessage.value = tOrFallback("Failed to load sessions plan", "Failed to load sessions plan")
       }
-
       sessions.value = []
       return
     }
@@ -231,13 +219,9 @@ async function fetchPlan() {
       startDate: x.startDate ?? null,
       endDate: x.endDate ?? null,
       humanDate: x.humanDate ?? null,
-      start: Number.isFinite(Number(x.start)) ? Number(x.start) : 0,
-      duration: Number.isFinite(Number(x.duration)) ? Math.max(1, Number(x.duration)) : 1,
+      start: Number.isFinite(Number(x.start)) ? Number(x.start) : 0, // 0..51
+      duration: Number.isFinite(Number(x.duration)) ? Math.max(1, Number(x.duration)) : 1, // >=1
       color: x.color || "rgba(70,130,180,0.9)",
-      noStart: Boolean(x.noStart),
-      noEnd: Boolean(x.noEnd),
-      startInLastYear: Boolean(x.startInLastYear),
-      endInNextYear: Boolean(x.endInNextYear),
     }))
   } catch (e) {
     console.error("[SessionsPlan] Unexpected error", e)
@@ -250,9 +234,7 @@ async function fetchPlan() {
 
 watch(
   () => year.value,
-  () => {
-    fetchPlan()
-  },
+  () => fetchPlan(),
   { immediate: true },
 )
 
@@ -269,19 +251,15 @@ function barTooltip(s) {
 function barStyle(s) {
   const start = Math.min(51, Math.max(0, s.start))
   const duration = Math.min(52, Math.max(1, s.duration))
-
   const leftPercent = (start / 52) * 100
   const widthPercent = (duration / 52) * 100
-
   return {
     left: `${leftPercent}%`,
     width: `${widthPercent}%`,
     background: s.color,
-    opacity: "0.9",
   }
 }
 </script>
-
 <style scoped>
 .plan-grid {
   display: grid;
@@ -293,5 +271,18 @@ function barStyle(s) {
 }
 .plan-row:hover {
   background: rgba(0, 0, 0, 0.02);
+}
+.weeks-cell {
+  grid-column: 2 / -1;
+  position: relative;
+  min-height: 44px;
+}
+.bar {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 20px;
+  border-radius: 8px;
+  opacity: 0.9;
 }
 </style>

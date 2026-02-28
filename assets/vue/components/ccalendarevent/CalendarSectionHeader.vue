@@ -1,11 +1,12 @@
 <script setup>
 import { computed } from "vue"
+import { useI18n } from "vue-i18n"
 import SectionHeader from "../layout/SectionHeader.vue"
 import BaseButton from "../basecomponents/BaseButton.vue"
-import { useI18n } from "vue-i18n"
 import { useCalendarActionButtons } from "../../composables/calendar/calendarActionButtons"
 
 const { t } = useI18n()
+const emit = defineEmits(["addClick", "agendaListClick", "myStudentsScheduleClick", "sessionPlanningClick"])
 
 const props = defineProps({
   activeView: {
@@ -13,8 +14,6 @@ const props = defineProps({
     default: "calendar", // "calendar" | "list"
   },
 })
-
-const emit = defineEmits(["addClick", "agendaListClick", "myStudentsScheduleClick", "sessionPlanningClick"])
 
 const { showAddButton, showAgendaListButton, showSessionPlanningButton, showMyStudentsScheduleButton } =
   useCalendarActionButtons()
@@ -25,7 +24,6 @@ const isListActive = computed(() => props.activeView === "list")
 function goCalendar() {
   emit("agendaListClick", "calendar")
 }
-
 function goList() {
   emit("agendaListClick", "list")
 }
@@ -33,17 +31,15 @@ function goList() {
 
 <template>
   <SectionHeader :title="t('Agenda')">
-    <!-- Add event -->
     <BaseButton
       v-if="showAddButton"
       :label="t('Add event')"
       icon="calendar-plus"
       only-icon
       type="black"
-      @click="$emit('addClick')"
+      @click="emit('addClick')"
     />
 
-    <!-- View switch: Calendar <-> List -->
     <div
       v-if="showAgendaListButton"
       class="flex items-center gap-1"
@@ -57,7 +53,6 @@ function goList() {
         :class="isCalendarActive ? '' : 'opacity-60 hover:opacity-100'"
         @click="goCalendar"
       />
-
       <BaseButton
         :label="t('Events list')"
         icon="agenda-list"
@@ -75,7 +70,7 @@ function goList() {
       icon="agenda-plan"
       only-icon
       type="black"
-      @click="$emit('sessionPlanningClick')"
+      @click="emit('sessionPlanningClick')"
     />
 
     <BaseButton
@@ -84,7 +79,7 @@ function goList() {
       icon="agenda-user-event"
       only-icon
       type="black"
-      @click="$emit('myStudentsScheduleClick')"
+      @click="emit('myStudentsScheduleClick')"
     />
   </SectionHeader>
 </template>

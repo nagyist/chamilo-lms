@@ -34,6 +34,8 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
+use const OPENSSL_RAW_DATA;
+
 /**
  * @author Julio Montoya <gugli100@gmail.com>
  */

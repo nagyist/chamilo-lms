@@ -15,15 +15,21 @@ use Symfony\Component\HttpFoundation\Request;
 use const CURLINFO_HTTP_CODE;
 use const CURLOPT_FOLLOWLOCATION;
 use const CURLOPT_HEADER;
+use const CURLOPT_PROTOCOLS;
 use const CURLOPT_PROXY;
 use const CURLOPT_PROXYPORT;
-use const CURLOPT_PROTOCOLS;
 use const CURLOPT_REDIR_PROTOCOLS;
 use const CURLOPT_RETURNTRANSFER;
 use const CURLOPT_TIMEOUT;
 use const CURLOPT_URL;
 use const CURLPROTO_HTTP;
 use const CURLPROTO_HTTPS;
+use const DNS_AAAA;
+use const FILTER_FLAG_IPV4;
+use const FILTER_FLAG_IPV6;
+use const FILTER_FLAG_NO_PRIV_RANGE;
+use const FILTER_FLAG_NO_RES_RANGE;
+use const FILTER_VALIDATE_IP;
 
 final class CheckCLinkAction extends AbstractController
 {

@@ -147,7 +147,7 @@ class ResourceNodeVoter extends Voter
                     }
                 }
 
-            // no break
+                // no break
             case self::EDIT:
                 break;
         }

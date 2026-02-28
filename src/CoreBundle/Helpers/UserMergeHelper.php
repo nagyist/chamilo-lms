@@ -133,8 +133,8 @@ final class UserMergeHelper
     /**
      * Merge many users into $keepUserId in a single DB transaction.
      *
-     * @param int[] $mergeUserIds
-     * @param bool|null $enableLogs optional override for this call only (default: null = keep current flag)
+     * @param int[]     $mergeUserIds
+     * @param bool|null $enableLogs   optional override for this call only (default: null = keep current flag)
      *
      * @return int Number of merged accounts
      */
@@ -163,6 +163,7 @@ final class UserMergeHelper
             $keepUser = $this->userRepository->find($keepUserId);
             if (!$keepUser) {
                 $this->log(LogLevel::ERROR, 'Batch merge: keep user not found.', ['keepUserId' => $keepUserId]);
+
                 return 0;
             }
 

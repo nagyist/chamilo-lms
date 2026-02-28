@@ -818,6 +818,7 @@ class BaseResourceFileAction
 
         if (!@mkdir($extractPath, 0770, true) && !is_dir($extractPath)) {
             $zip->close();
+
             throw new BadRequestHttpException('Could not create ZIP extraction directory.');
         }
 
@@ -836,7 +837,7 @@ class BaseResourceFileAction
             }
 
             $stat = $zip->statIndex($i);
-            if (is_array($stat) && $this->isZipSymlink($stat)) {
+            if (\is_array($stat) && $this->isZipSymlink($stat)) {
                 // Skip symlinks to avoid writing outside extraction dir indirectly.
                 continue;
             }
@@ -856,6 +857,7 @@ class BaseResourceFileAction
                     continue;
                 }
                 $extractedPaths[] = $targetPath;
+
                 continue;
             }
 
@@ -1040,6 +1042,7 @@ class BaseResourceFileAction
     {
         try {
             $svc = Container::$container->get(UploadFilenamePolicy::class);
+
             return $svc instanceof UploadFilenamePolicy ? $svc : null;
         } catch (Throwable) {
             return null;
@@ -1061,7 +1064,7 @@ class BaseResourceFileAction
             '.Thumbs.db',
         ];
 
-        return in_array($base, $skip, true);
+        return \in_array($base, $skip, true);
     }
 
     private function isZipSymlink(array $stat): bool
@@ -1071,7 +1074,7 @@ class BaseResourceFileAction
         $mode = ($attrs >> 16) & 0xFFFF;
 
         // 0xA000 is symlink in unix mode bits
-        return (0xA000 === ($mode & 0xF000));
+        return 0xA000 === ($mode & 0xF000);
     }
 
     private function sanitizeZipRelativePath(string $zipName, ?UploadFilenamePolicy $policy, bool $isDir): ?string
@@ -1132,7 +1135,7 @@ class BaseResourceFileAction
     private function sanitizeZipSegment(string $segment): string
     {
         $segment = trim($segment);
-        $segment = preg_replace('/[\\x00-\\x1F\\x7F]/u', '', $segment) ?? $segment;
+        $segment = preg_replace('/[\x00-\x1F\x7F]/u', '', $segment) ?? $segment;
         $segment = str_replace(['\\', '/', "\0"], '-', $segment);
 
         if ('' === $segment) {
@@ -1145,9 +1148,8 @@ class BaseResourceFileAction
     private function disableDangerousZipName(string $name): string
     {
         $name = (string) preg_replace('/\.(phar.?|php.?|phtml.?)(\.){0,1}.*$/i', '.phps', $name);
-        $name = str_ireplace('.htaccess', 'htaccess.txt', $name);
 
-        return $name;
+        return str_ireplace('.htaccess', 'htaccess.txt', $name);
     }
 
     private function writeZipEntryToPath(ZipArchive $zip, string $zipName, string $targetPath): bool
@@ -1160,6 +1162,7 @@ class BaseResourceFileAction
         $out = @fopen($targetPath, 'wb');
         if (false === $out) {
             @fclose($stream);
+
             return false;
         }
 

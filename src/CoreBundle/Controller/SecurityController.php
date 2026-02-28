@@ -43,6 +43,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
+use const OPENSSL_RAW_DATA;
+
 class SecurityController extends AbstractController
 {
     /**

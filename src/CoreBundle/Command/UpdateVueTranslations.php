@@ -177,7 +177,7 @@ class UpdateVueTranslations extends Command
     }
 
     /**
-     * The characters used in the message format syntax are processed by the compiler as special characters: { } @ $ |
+     * The characters used in the message format syntax are processed by the compiler as special characters: { } @ $ |.
      */
     private function escapeVueI18nSpecialChars(string $text): string
     {

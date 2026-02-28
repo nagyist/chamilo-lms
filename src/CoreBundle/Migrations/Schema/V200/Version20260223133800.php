@@ -22,16 +22,16 @@ final class Version20260223133800 extends AbstractMigrationChamilo
             $table = $schema->getTable('user_auth_source');
 
             if ($table->hasForeignKey('FK_D632110481CFDAE7')) {
-                $this->addSql("ALTER TABLE user_auth_source DROP FOREIGN KEY FK_D632110481CFDAE7");
+                $this->addSql('ALTER TABLE user_auth_source DROP FOREIGN KEY FK_D632110481CFDAE7');
             }
 
-            $this->addSql("ALTER TABLE user_auth_source ADD CONSTRAINT FK_D632110481CFDAE7 FOREIGN KEY (url_id) REFERENCES access_url (id) ON DELETE CASCADE");
+            $this->addSql('ALTER TABLE user_auth_source ADD CONSTRAINT FK_D632110481CFDAE7 FOREIGN KEY (url_id) REFERENCES access_url (id) ON DELETE CASCADE');
         }
     }
 
     public function down(Schema $schema): void
     {
-        $this->addSql("ALTER TABLE user_auth_source DROP FOREIGN KEY FK_D632110481CFDAE7");
-        $this->addSql("ALTER TABLE user_auth_source ADD CONSTRAINT FK_D632110481CFDAE7 FOREIGN KEY (url_id) REFERENCES access_url (id)");
+        $this->addSql('ALTER TABLE user_auth_source DROP FOREIGN KEY FK_D632110481CFDAE7');
+        $this->addSql('ALTER TABLE user_auth_source ADD CONSTRAINT FK_D632110481CFDAE7 FOREIGN KEY (url_id) REFERENCES access_url (id)');
     }
 }

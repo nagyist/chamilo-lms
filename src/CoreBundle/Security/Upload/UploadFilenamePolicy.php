@@ -10,9 +10,9 @@ use Chamilo\CoreBundle\Settings\SettingsManager;
 
 final class UploadFilenamePolicy
 {
-    public function __construct(private readonly SettingsManager $settingsManager)
-    {
-    }
+    public function __construct(
+        private readonly SettingsManager $settingsManager
+    ) {}
 
     /**
      * @return array{allowed:bool, filename:string, reason?:string}
@@ -29,8 +29,8 @@ final class UploadFilenamePolicy
     private function sanitizeFilename(string $name): string
     {
         $name = trim($name);
-        $name = preg_replace('/[\\x00-\\x1F\\x7F]/u', '', $name) ?? $name;
-        $name = preg_replace('/\\s+/', ' ', $name) ?? $name;
+        $name = preg_replace('/[\x00-\x1F\x7F]/u', '', $name) ?? $name;
+        $name = preg_replace('/\s+/', ' ', $name) ?? $name;
 
         // Avoid path tricks
         $name = str_replace(['\\', '/', "\0"], '-', $name);
@@ -45,9 +45,8 @@ final class UploadFilenamePolicy
     private function disableDangerousFile(string $filename): string
     {
         $filename = $this->php2phps($filename);
-        $filename = $this->htaccess2txt($filename);
 
-        return $filename;
+        return $this->htaccess2txt($filename);
     }
 
     private function php2phps(string $fileName): string
@@ -70,7 +69,7 @@ final class UploadFilenamePolicy
         }
 
         $listType = strtolower((string) $this->settingsManager->getSetting('document.upload_extensions_list_type', true));
-        $skip = strtolower((string) $this->settingsManager->getSetting('document.upload_extensions_skip', true)) === 'true';
+        $skip = 'true' === strtolower((string) $this->settingsManager->getSetting('document.upload_extensions_skip', true));
 
         $ext = $this->getExtension($filename);
 
@@ -81,7 +80,7 @@ final class UploadFilenamePolicy
 
         if ('whitelist' === $listType) {
             $whitelist = $this->splitList((string) $this->settingsManager->getSetting('document.upload_extensions_whitelist', true));
-            if (!in_array($ext, $whitelist, true)) {
+            if (!\in_array($ext, $whitelist, true)) {
                 if ($skip) {
                     return ['allowed' => false, 'filename' => $filename, 'reason' => 'Extension not in whitelist'];
                 }
@@ -94,7 +93,7 @@ final class UploadFilenamePolicy
 
         // Default: blacklist mode
         $blacklist = $this->splitList((string) $this->settingsManager->getSetting('document.upload_extensions_blacklist', true));
-        if (in_array($ext, $blacklist, true)) {
+        if (\in_array($ext, $blacklist, true)) {
             if ($skip) {
                 return ['allowed' => false, 'filename' => $filename, 'reason' => 'Extension in blacklist'];
             }
@@ -135,7 +134,7 @@ final class UploadFilenamePolicy
     {
         $replaceBy = (string) $this->settingsManager->getSetting('document.upload_extensions_replace_by', true);
         $replaceBy = str_replace('.', '', $replaceBy);
-        $replaceBy = preg_replace('/[^a-zA-Z0-9_\\-]/', '', $replaceBy) ?? $replaceBy;
+        $replaceBy = preg_replace('/[^a-zA-Z0-9_\-]/', '', $replaceBy) ?? $replaceBy;
 
         if ('' === $replaceBy) {
             $replaceBy = 'txt';

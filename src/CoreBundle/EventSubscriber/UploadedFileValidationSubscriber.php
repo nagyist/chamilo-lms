@@ -15,9 +15,9 @@ use Symfony\Component\HttpKernel\KernelEvents;
 
 final class UploadedFileValidationSubscriber implements EventSubscriberInterface
 {
-    public function __construct(private readonly UploadFilenamePolicy $policy)
-    {
-    }
+    public function __construct(
+        private readonly UploadFilenamePolicy $policy
+    ) {}
 
     public static function getSubscribedEvents(): array
     {
@@ -42,6 +42,7 @@ final class UploadedFileValidationSubscriber implements EventSubscriberInterface
 
     /**
      * @param mixed $value
+     *
      * @return mixed
      */
     private function sanitizeRecursive($value)
@@ -56,7 +57,7 @@ final class UploadedFileValidationSubscriber implements EventSubscriberInterface
             return null;
         }
 
-        if (is_array($value)) {
+        if (\is_array($value)) {
             $out = [];
 
             foreach ($value as $k => $v) {

@@ -19,6 +19,8 @@ use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
+use const OPENSSL_RAW_DATA;
+
 /**
  * @template T of object
  *

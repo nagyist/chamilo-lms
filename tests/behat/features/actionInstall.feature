@@ -16,7 +16,7 @@ Feature: Install portal
     Then I fill in the following:
       | dbUsernameForm | root |
       | dbPassForm | root |
-      | dbNameForm | master |
+      | dbNameForm | chamilo |
     Then I press "Check database connection"
     Then wait for the page to be loaded when ready
     Then I press "step4"

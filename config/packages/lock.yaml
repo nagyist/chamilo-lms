@@ -34,5 +34,8 @@
 # For multi-server deployments, always use Redis, Memcached, or a database.
 # File-based locks (flock) only work on a single server.
 
+parameters:
+    default_lock: 'flock'
+
 framework:
-    lock: '%env(LOCK_DSN)%'
+    lock: '%env(default:default_lock:LOCK_DSN)%'

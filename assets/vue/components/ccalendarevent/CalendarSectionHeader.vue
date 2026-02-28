@@ -1,14 +1,32 @@
 <script setup>
+import { computed } from "vue"
+import { useI18n } from "vue-i18n"
 import SectionHeader from "../layout/SectionHeader.vue"
 import BaseButton from "../basecomponents/BaseButton.vue"
-import { useI18n } from "vue-i18n"
 import { useCalendarActionButtons } from "../../composables/calendar/calendarActionButtons"
 
 const { t } = useI18n()
+const emit = defineEmits(["addClick", "agendaListClick", "myStudentsScheduleClick", "sessionPlanningClick"])
 
-const { showAddButton, showSessionPlanningButton, showMyStudentsScheduleButton } = useCalendarActionButtons()
+const props = defineProps({
+  activeView: {
+    type: String,
+    default: "calendar", // "calendar" | "list"
+  },
+})
 
-defineEmits(["addClick", "myStudentsScheduleClick", "sessionPlanningClick"])
+const { showAddButton, showAgendaListButton, showSessionPlanningButton, showMyStudentsScheduleButton } =
+  useCalendarActionButtons()
+
+const isCalendarActive = computed(() => props.activeView === "calendar")
+const isListActive = computed(() => props.activeView === "list")
+
+function goCalendar() {
+  emit("agendaListClick", "calendar")
+}
+function goList() {
+  emit("agendaListClick", "list")
+}
 </script>
 
 <template>
@@ -16,11 +34,35 @@ defineEmits(["addClick", "myStudentsScheduleClick", "sessionPlanningClick"])
     <BaseButton
       v-if="showAddButton"
       :label="t('Add event')"
-      icon="agenda-event"
+      icon="calendar-plus"
       only-icon
       type="black"
-      @click="$emit('addClick')"
+      @click="emit('addClick')"
     />
+
+    <div
+      v-if="showAgendaListButton"
+      class="flex items-center gap-1"
+    >
+      <BaseButton
+        :label="t('Calendar')"
+        icon="agenda-event"
+        only-icon
+        type="black"
+        :disabled="isCalendarActive"
+        :class="isCalendarActive ? '' : 'opacity-60 hover:opacity-100'"
+        @click="goCalendar"
+      />
+      <BaseButton
+        :label="t('Events list')"
+        icon="agenda-list"
+        only-icon
+        type="black"
+        :disabled="isListActive"
+        :class="isListActive ? '' : 'opacity-60 hover:opacity-100'"
+        @click="goList"
+      />
+    </div>
 
     <BaseButton
       v-if="showSessionPlanningButton"
@@ -28,7 +70,7 @@ defineEmits(["addClick", "myStudentsScheduleClick", "sessionPlanningClick"])
       icon="agenda-plan"
       only-icon
       type="black"
-      @click="$emit('sessionPlanningClick')"
+      @click="emit('sessionPlanningClick')"
     />
 
     <BaseButton
@@ -37,7 +79,7 @@ defineEmits(["addClick", "myStudentsScheduleClick", "sessionPlanningClick"])
       icon="agenda-user-event"
       only-icon
       type="black"
-      @click="$emit('myStudentsScheduleClick')"
+      @click="emit('myStudentsScheduleClick')"
     />
   </SectionHeader>
 </template>

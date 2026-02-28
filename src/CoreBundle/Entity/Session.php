@@ -13,10 +13,13 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Put;
+use Chamilo\CoreBundle\ApiResource\SessionPlanItem;
+use Chamilo\CoreBundle\Controller\Api\CalendarMyStudentsScheduleAction;
 use Chamilo\CoreBundle\Controller\Api\CreateSessionWithUsersAndCoursesAction;
 use Chamilo\CoreBundle\Dto\CreateSessionWithUsersAndCoursesInput;
 use Chamilo\CoreBundle\Entity\Listener\SessionListener;
 use Chamilo\CoreBundle\Repository\SessionRepository;
+use Chamilo\CoreBundle\State\SessionPlanStateProvider;
 use Chamilo\CoreBundle\State\UserSessionSubscriptionsStateProvider;
 use DateTime;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -100,6 +103,26 @@ use Symfony\Component\Validator\Constraints as Assert;
             security: "is_granted('ROLE_USER')",
             name: 'user_session_subscriptions_upcoming',
             provider: UserSessionSubscriptionsStateProvider::class,
+        ),
+        new GetCollection(
+            uriTemplate: '/calendar/sessions-plan.{_format}',
+            paginationEnabled: false,
+            normalizationContext: [
+                'groups' => ['session_plan:read'],
+            ],
+            security: "is_granted('ROLE_USER')",
+            output: SessionPlanItem::class,
+            name: 'calendar_sessions_plan',
+            provider: SessionPlanStateProvider::class,
+        ),
+        new GetCollection(
+            uriTemplate: '/calendar/my-students-schedule.{_format}',
+            controller: CalendarMyStudentsScheduleAction::class,
+            paginationEnabled: false,
+            security: "is_granted('ROLE_USER')",
+            output: false,
+            read: false,
+            name: 'calendar_my_students_schedule',
         ),
         new Post(security: "is_granted('ROLE_ADMIN')"),
         new Post(

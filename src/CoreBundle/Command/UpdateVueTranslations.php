@@ -181,7 +181,7 @@ class UpdateVueTranslations extends Command
      */
     private function escapeVueI18nSpecialChars(string $text): string
     {
-        $replace = function ($matches) use (&$count) {
+        $replace = function ($matches) {
             $type = $matches[0];
 
             return "{'$type'}";
